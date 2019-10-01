@@ -22,13 +22,13 @@ class BaseModel(models.Model):
 class Job(BaseModel):
     app = JSONField(null=False)
     external_id = models.CharField(max_length=50)
-    status = models.IntegerField(choices=[(status.value, status.name) for status in Status])
+    status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=Status.CREATED)
     inputs = JSONField(blank=True, null=False)
     outputs = JSONField(blank=True, null=False)
 
 
 class CommandLineToolJob(BaseModel):
     root = models.ForeignKey(Job, blank=False, null=False, on_delete=models.CASCADE)
-    status = models.IntegerField(choices=[(status.value, status.name) for status in Status])
+    status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=0)
     job_name = models.CharField(max_length=100)
     details = JSONField(blank=True, null=True)
