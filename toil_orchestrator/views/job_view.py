@@ -1,3 +1,4 @@
+import uuid
 from toil_orchestrator.models import Job
 from toil_orchestrator.serializers import JobSerializer
 from toil_orchestrator.tasks import submit_jobs_to_lsf
@@ -24,7 +25,7 @@ class JobViewSet(mixins.CreateModelMixin,
         serializer = JobSerializer(data=request.data)
         if serializer.is_valid():
             response = serializer.save()
-            submitter = JobSubmitter('TEST', response.app, response.inputs)
+            submitter = JobSubmitter(str(uuid.uuid4()), response.app, response.inputs)
             submitter._prepare_directories()
             command_line = submitter._command_line()
             print(command_line)
