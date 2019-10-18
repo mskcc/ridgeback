@@ -24,7 +24,7 @@ app.autodiscover_tasks()
 #     }
 # }
 
-app.conf.task_routes = {'submit_jobs_to_toil': {'queue': 'toil'}}
+app.conf.task_routes = {'toil_orchestrator.tasks.submit_jobs_to_toil': {'queue': 'toil'}}
 #
 # app.conf.task_queues = (
 #     Queue('toil', routing_key='submit'),
