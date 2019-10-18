@@ -11,8 +11,12 @@ class LSFClient(object):
             bsub_command.extend(['-W', settings.LSF_WALLTIME])
         bsub_command.extend(command)
         process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
-        print(process.stdout)
-        # check response
+        return self._parse_procid(process.stdout)
 
-    def status(self, job):
+    def _parse_procid(self, stdout):
+        part1 = stdout.split('<')[1]
+        lsf_job_id = part1.split('>')[0]
+        return lsf_job_id
+
+    def status(self, job_id):
         pass

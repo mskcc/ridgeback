@@ -11,12 +11,11 @@ logger = logging.getLogger(__name__)
 def submit_jobs_to_lsf(self, job_id):
     logger.info("Submitting jobs to lsf")
     job = Job.objects.get(id=job_id)
-    submitter = JobSubmitter(job_id, job.app, job.inputs)
-    submitter._prepare_directories()
-    submitter.lsf_client._command_line()
-
     try:
         logger.info("Submitting job %s to lsf" % job.id)
+        submitter = JobSubmitter(job_id, job.app, job.inputs)
+        job_id = submitter.submit()
+
     except Exception as e:
         self.retry(exc=e, countdown=10)
 

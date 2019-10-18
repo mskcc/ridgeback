@@ -1,7 +1,6 @@
 import os
 import git
 import json
-import uuid
 import shutil
 from django.conf import settings
 from lsf_client.lsf_client import LSFClient
@@ -58,6 +57,11 @@ class JobSubmitter(object):
         self.job_store_dir = os.path.join(settings.TOIL_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
 
+    def submit(self):
+        self._prepare_directories()
+        command_line = self._command_line()
+        self.lsf_client.submit(command_line)
+
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
         inputs_location = os.path.join(self.job_work_dir, 'input.json')
@@ -66,7 +70,6 @@ class JobSubmitter(object):
         return app_location, inputs_location
 
     def _prepare_directories(self):
-        # on start application
         if not os.path.exists(self.job_store_dir):
             os.mkdir(self.job_store_dir)
         if not os.path.exists(self.job_work_dir):

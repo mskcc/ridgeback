@@ -25,10 +25,5 @@ class JobViewSet(mixins.CreateModelMixin,
         serializer = JobSerializer(data=request.data)
         if serializer.is_valid():
             response = serializer.save()
-            submitter = JobSubmitter(str(uuid.uuid4()), response.app, response.inputs)
-            submitter._prepare_directories()
-            command_line = submitter._command_line()
-            print(command_line)
-            submitter.lsf_client.submit(command_line)
-            # .delay(response.data['id'])
+            submit_jobs_to_lsf.delay(response.data['id'])
             return Response(response, status=status.HTTP_201_CREATED)
