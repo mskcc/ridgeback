@@ -25,7 +25,7 @@ SECRET_KEY = '3gpghwoqas_6ei_efvb%)5s&lwgs#o99c9(ovmi=1od*e6ezvw'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['silo']
+ALLOWED_HOSTS = ['silo', 'localhost']
 
 
 # Application definition

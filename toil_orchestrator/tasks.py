@@ -14,8 +14,12 @@ def submit_jobs_to_lsf(self, job_id):
     try:
         logger.info("Submitting job %s to lsf" % job.id)
         submitter = JobSubmitter(job_id, job.app, job.inputs)
-        job_id = submitter.submit()
-        job.external_id = job_id
+        external_job_id, job_store_dir, job_work_dir = submitter.submit()
+        logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
+        job.external_id = external_job_id
+        job.job_store_location = job_store_dir
+        job.working_dir = job_work_dir
+        job.status = Status.PENDING
         job.save()
     except Exception as e:
         self.retry(exc=e, countdown=10)
