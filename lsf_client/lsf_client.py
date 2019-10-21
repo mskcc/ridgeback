@@ -4,9 +4,9 @@ from django.conf import settings
 
 class LSFClient(object):
 
-    def submit(self, command):
+    def submit(self, command, stdout):
         print(command)
-        bsub_command = ['bsub', '-sla', settings.LSF_SLA]
+        bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout]
         if settings.LSF_WALLTIME:
             bsub_command.extend(['-W', settings.LSF_WALLTIME])
         bsub_command.extend(command)

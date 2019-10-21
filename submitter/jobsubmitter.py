@@ -60,7 +60,7 @@ class JobSubmitter(object):
     def submit(self):
         self._prepare_directories()
         command_line = self._command_line()
-        return self.lsf_client.submit(command_line), self.job_store_dir, self.job_work_dir
+        return self.lsf_client.submit(command_line, os.path.join(self.job_work_dir, 'lsf.log')), self.job_store_dir, self.job_work_dir
 
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
