@@ -62,6 +62,12 @@ class JobSubmitter(object):
         command_line = self._command_line()
         return self.lsf_client.submit(command_line, os.path.join(self.job_work_dir, 'lsf.log')), self.job_store_dir, self.job_work_dir
 
+    def status(self, external_id):
+        self.lsf_client.status(external_id)
+
+    def get_outputs(self):
+        pass
+
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
         inputs_location = os.path.join(self.job_work_dir, 'input.json')
@@ -74,7 +80,7 @@ class JobSubmitter(object):
             os.mkdir(self.job_work_dir)
 
     def _command_line(self):
-        command_line = ['cwltoil', '--singularity', '--logFile', 'toil_log.log', '--batchSystem', 'lsf', '--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--workDir', self.job_work_dir, '--outdir', os.path.join(self.job_work_dir, 'outputs')]
+        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem', 'lsf', '--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--workDir', self.job_work_dir, '--outdir', os.path.join(self.job_work_dir, 'outputs')]
         command_line.extend(self._dump_app_inputs())
         return command_line
 

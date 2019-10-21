@@ -27,4 +27,20 @@ def submit_jobs_to_lsf(self, job_id):
 
 @shared_task(bind=True)
 def check_status_of_jobs(self):
-    pass
+    logger.info('Checking status of jobs on lsf')
+    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.CREATED, Status.RUNNING)).all()
+    for job in jobs:
+        submiter = JobSubmitter(job.id, job.app, job.inputs)
+        lsf_status = submiter.status(job.external_id)
+        if lsf_status == 'PEND':
+            job.status = Status.PENDING
+        elif lsf_status == 'RUN':
+            job.status = Status.RUNNING
+        elif lsf_status == 'DONE':
+            job.status = Status.COMPLETED
+            outputs = submiter.get_outputs()
+            job.outputs = outputs
+        else:
+            job.status = Status.FAILED
+            job.outputs = {'error': 'LSF status %s' % lsf_status}
+        job.save()

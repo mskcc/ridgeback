@@ -29,3 +29,10 @@ app.conf.task_routes = {'toil_orchestrator.tasks.submit_jobs_to_lsf': {'queue': 
 # app.conf.task_queues = (
 #     Queue('toil', routing_key='submit'),
 # )
+
+app.conf.beat_schedule = {
+    "check_status_of_jobs": {
+        "task": "toil_orchestrator.tasks.check_status_of_jobs",
+        "schedule": 60.0
+    }
+}

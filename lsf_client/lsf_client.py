@@ -18,5 +18,12 @@ class LSFClient(object):
         lsf_job_id = part1.split('>')[0]
         return lsf_job_id
 
-    def status(self, job_id):
-        pass
+    def _parse_status(self, stdout):
+        status = stdout.split()[3]
+        return status
+
+    def status(self, external_job_id):
+        bsub_command = ['bsub', '-noheader', external_job_id]
+        process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
+        status = self._parse_status(process.stdout)
+        return status
