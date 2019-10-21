@@ -1,3 +1,4 @@
+import os
 import logging
 from .models import Job, Status
 from celery import shared_task
@@ -19,6 +20,7 @@ def submit_jobs_to_lsf(self, job_id):
         job.external_id = external_job_id
         job.job_store_location = job_store_dir
         job.working_dir = job_work_dir
+        job.output_directory = os.path.join(job_work_dir, 'outputs')
         job.status = Status.PENDING
         job.save()
     except Exception as e:
@@ -30,7 +32,7 @@ def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
     jobs = Job.objects.filter(status__in=(Status.PENDING, Status.CREATED, Status.RUNNING)).all()
     for job in jobs:
-        submiter = JobSubmitter(job.id, job.app, job.inputs)
+        submiter = JobSubmitter(str(job.id), job.app, job.inputs)
         lsf_status = submiter.status(job.external_id)
         if lsf_status == 'PEND':
             job.status = Status.PENDING

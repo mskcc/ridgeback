@@ -23,7 +23,7 @@ class LSFClient(object):
         return status
 
     def status(self, external_job_id):
-        bsub_command = ['bsub', '-noheader', external_job_id]
+        bsub_command = ['bjobs', '-noheader', external_job_id]
         process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         status = self._parse_status(process.stdout)
         return status
