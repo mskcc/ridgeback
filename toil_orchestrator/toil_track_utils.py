@@ -24,7 +24,6 @@ from subprocess import PIPE, Popen
 import dill
 import json
 import sys
-import yaml
 import copy
 import traceback
 import glob
@@ -509,36 +508,37 @@ class ToilTrack():
                 worker_info = None
                 worker_directory = os.path.dirname(worker_log_path)
                 list_of_tools = []
-                for root, dirs, files in os.walk(worker_directory):
-                    for single_file in files:
-                        if single_file == '.jobState':
-                            job_state = {}
-                            job_info = {}
-                            job_name = ''
-                            job_state_path = os.path.join(root,single_file)
-                            tool_key = None
-                            job_stream_path = ""
-                            if os.path.exists(job_state_path):
-                                with open(job_state_path,'rb') as job_state_file:
-                                    job_state_contents = dill.load(job_state_file)
-                                    job_state = job_state_contents
-                                    job_stream_path = job_state_contents['jobName']
-                                    if job_stream_path in jobs_path:
-                                        tool_key = jobs_path[job_stream_path]
-                            if tool_key:
-                                if tool_key in job_dict:
-                                    tool_dict = job_dict[tool_key]
-                                    for single_job_key in tool_dict['workers']:
-                                        single_worker_obj = tool_dict['workers'][single_job_key]
-                                        if single_worker_obj["job_stream"] == job_stream_path:
-                                            update_worker_jobs = True
-                                            worker_info = {'job_state':job_state,'log_path':worker_log_path,'started':current_time,'last_modified': last_modified}
-                                            tool_dict['started'][single_job_key] = current_time
-                                            single_worker_obj.update(worker_info)
-                                            tool_info = (tool_key,single_job_key)
-                                            list_of_tools.append(tool_info)
-                            else:
-                                update_worker_jobs = False
+                if worker_directory:
+                    for root, dirs, files in os.walk(worker_directory):
+                        for single_file in files:
+                            if single_file == '.jobState':
+                                job_state = {}
+                                job_info = {}
+                                job_name = ''
+                                job_state_path = os.path.join(root,single_file)
+                                tool_key = None
+                                job_stream_path = ""
+                                if os.path.exists(job_state_path):
+                                    with open(job_state_path,'rb') as job_state_file:
+                                        job_state_contents = dill.load(job_state_file)
+                                        job_state = job_state_contents
+                                        job_stream_path = job_state_contents['jobName']
+                                        if job_stream_path in jobs_path:
+                                            tool_key = jobs_path[job_stream_path]
+                                if tool_key:
+                                    if tool_key in job_dict:
+                                        tool_dict = job_dict[tool_key]
+                                        for single_job_key in tool_dict['workers']:
+                                            single_worker_obj = tool_dict['workers'][single_job_key]
+                                            if single_worker_obj["job_stream"] == job_stream_path:
+                                                update_worker_jobs = True
+                                                worker_info = {'job_state':job_state,'log_path':worker_log_path,'started':current_time,'last_modified': last_modified}
+                                                tool_dict['started'][single_job_key] = current_time
+                                                single_worker_obj.update(worker_info)
+                                                tool_info = (tool_key,single_job_key)
+                                                list_of_tools.append(tool_info)
+                                else:
+                                    update_worker_jobs = False
                 if update_worker_jobs:
                     worker_jobs[worker_log_key] = {'list_of_tools':list_of_tools}
             else:
@@ -552,14 +552,15 @@ class ToilTrack():
         work_dir = self.work_dir
         job_dict = self.jobs
         workflow_id = self.workflow_id
-        for root, dirs, files in os.walk(work_dir):
-            for single_file in files:
-                if single_file == "worker_log.txt":
-                    worker_log_path = os.path.join(root,single_file)
-                    try:
-                        worker_info = self.read_worker_log(worker_log_path)
-                    except:
-                        pass
+        if work_dir:
+            for root, dirs, files in os.walk(work_dir):
+                for single_file in files:
+                    if single_file == "worker_log.txt":
+                        worker_log_path = os.path.join(root,single_file)
+                        try:
+                            worker_info = self.read_worker_log(worker_log_path)
+                        except:
+                            pass
 
     def check_for_finished_jobs(self):
         job_dict = self.jobs
