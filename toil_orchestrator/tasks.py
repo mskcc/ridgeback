@@ -4,6 +4,9 @@ from .models import Job, Status, CommandLineToolJob
 from .toil_track_utils import ToilTrack
 from celery import shared_task
 from submitter.jobsubmitter import JobSubmitter
+import json
+import datetime
+from django.core.serializers.json import DjangoJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -52,28 +55,38 @@ def check_status_of_jobs(self):
 def check_status_of_command_line_jobs(self):
     jobs = Job.objects.filter(status__in=(Status.CREATED, Status.RUNNING))
     for current_job in jobs:
-        track_cache = current_job.track_cache
-        if not track_cache:
+        current_job_str = current_job.track_cache
+        if current_job_str:
+            track_cache = json.loads(current_job_str)
+        else:
             track_cache = { 'current_jobs': [], 'jobs_path': {}, 'jobs': {}, 'worker_jobs': {} }
         jobstore_path = current_job.job_store_location
         workdir_path = current_job.working_dir
-        roslin_track = ToilTrack(jobstore_path,workdir_path,False,0,False,None)
-        cache_current_jobs = track_cache.current_jobs
-        cache_jobs_path = track_cache.jobs_path
-        cache_jobs = track_cache.jobs
-        cache_worker_jobs = track_cache.worker_jobs
-        roslin_track = ToilTrack(jobstore_path,workdir_path,False,0,False,None)
-        roslin_track.current_jobs = cache_current_jobs
-        roslin_track.jobs_path = cache_jobs_path
-        roslin_track.jobs = cache_jobs
-        roslin_track.worker_jobs = cache_worker_jobs
-        job_status = roslin_track.check_status()
-        track_cache.current_jobs = roslin_track.current_jobs
-        track_cache.jobs_path = roslin_track.jobs_path
-        track_cache.jobs = roslin_track.jobs
-        track_cache.worker_jobs = roslin_track.worker_jobs
-        current_job.track_cache = track_cache
+        toil_track_obj = ToilTrack(jobstore_path,workdir_path,False,0,False,None)
+        cache_current_jobs = track_cache['current_jobs']
+        cache_jobs_path = track_cache['jobs_path']
+        cache_jobs = track_cache['jobs']
+        cache_worker_jobs = track_cache['worker_jobs']
+        toil_track_obj.current_jobs = cache_current_jobs
+        toil_track_obj.jobs_path = cache_jobs_path
+        toil_track_obj.jobs = cache_jobs
+        toil_track_obj.worker_jobs = cache_worker_jobs
+        job_status = toil_track_obj.check_status()
+        track_cache['current_jobs'] = toil_track_obj.current_jobs
+        track_cache['jobs_path'] = toil_track_obj.jobs_path
+        track_cache['jobs'] = toil_track_obj.jobs
+        track_cache['worker_jobs'] = toil_track_obj.worker_jobs
+        current_job.track_cache = json.dumps(track_cache,sort_keys=True,indent=1,cls=DjangoJSONEncoder)
         current_job.save()
         for single_command_line_tool in job_status:
-            single_tool_module = CommandLineToolJob(root=current_job,status=single_command_line_tool['status'], started=single_command_line_tool['started'], submitted=single_command_line_tool['submitted'],finished=single_command_line_tool['finished'],job_name=single_command_line_tool['job_name'],job_id=single_command_line_tool['job_id'],details=single_command_line_tool['details'])
+            finished = single_command_line_tool['finished']
+            started = single_command_line_tool['started']
+            submitted = single_command_line_tool['submitted']
+            if not finished:
+                finished = datetime.datetime.now()
+            if not started:
+                started = datetime.datetime.now()
+            if not submitted:
+                submitted = datetime.datetime.now()
+            single_tool_module = CommandLineToolJob(root=current_job,status=single_command_line_tool['status'], started=started, submitted=submitted,finished=finished,job_name=single_command_line_tool['name'],job_id=single_command_line_tool['id'],details=single_command_line_tool['details'])
             single_tool_module.save()
