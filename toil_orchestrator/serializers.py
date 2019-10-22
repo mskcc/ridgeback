@@ -5,7 +5,7 @@ from .models import Job, CommandLineToolJob
 class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
-        fields = ('id', 'created_date', 'app', 'inputs', 'outputs')
+        fields = ('id', 'status', 'created_date', 'app', 'inputs', 'outputs')
 
 
 class CommandLineToolJobSerializer(serializers.ModelSerializer):
