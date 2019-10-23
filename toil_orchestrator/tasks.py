@@ -82,11 +82,5 @@ def check_status_of_command_line_jobs(self):
             finished = single_command_line_tool['finished']
             started = single_command_line_tool['started']
             submitted = single_command_line_tool['submitted']
-            if not finished:
-                finished = datetime.datetime.now()
-            if not started:
-                started = datetime.datetime.now()
-            if not submitted:
-                submitted = datetime.datetime.now()
             single_tool_module = CommandLineToolJob(root=current_job,status=single_command_line_tool['status'], started=started, submitted=submitted,finished=finished,job_name=single_command_line_tool['name'],job_id=single_command_line_tool['id'],details=single_command_line_tool['details'])
             single_tool_module.save()
