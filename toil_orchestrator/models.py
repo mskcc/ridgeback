@@ -33,9 +33,9 @@ class Job(BaseModel):
 class CommandLineToolJob(BaseModel):
     root = models.ForeignKey(Job, blank=False, null=False, on_delete=models.CASCADE)
     status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=0)
-    started = models.DateTimeField(blank=True)
-    submitted = models.DateTimeField(blank=True)
-    finished = models.DateTimeField(blank=True)
+    started = models.DateTimeField(blank=True, null=True)
+    submitted = models.DateTimeField(blank=True, null=True)
+    finished = models.DateTimeField(blank=True, null=True)
     job_name = models.CharField(max_length=100)
     job_id = models.CharField(max_length=20)
     details = JSONField(blank=True, null=True)
