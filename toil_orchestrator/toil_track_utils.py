@@ -27,6 +27,7 @@ import sys
 import copy
 import traceback
 import glob
+from django.utils import timezone
 time_format="%Y-%m-%d %H:%M:%S"
 log_format="(%(current_time)s) [%(name)s:%(levelname)s] %(message)s"
 ### logging wrappers ###
@@ -72,7 +73,7 @@ def log(logger,log_level,message):
 ### time wrappers ###
 
 def get_current_time():
-    current_time = datetime.datetime.now()
+    current_time = timezone.now()
     return current_time
 
 def get_time_difference(first_time_obj,second_time_obj):
@@ -298,9 +299,9 @@ class ToilTrack():
     def get_file_modification_time(self,file_path):
         if os.path.exists(file_path):
             last_modified_epoch = os.path.getmtime(file_path)
-            last_modified = datetime.datetime.fromtimestamp(last_modified_epoch).strftime(time_format)
+            last_modified = str(timezone.make_aware(datetime.datetime.fromtimestamp(last_modified_epoch)))
         else:
-            last_modified = get_current_time()
+            last_modified = str(get_current_time())
         return last_modified
 
     def mark_job_as_failed(self,job_id,job_name):
