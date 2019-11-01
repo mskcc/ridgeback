@@ -664,6 +664,8 @@ class ToilTrack():
                                     job_details.pop("job_state")
                                 if "started" in job_details:
                                     job_details.pop("started")
+                            if job_started == None and job_finished != None and job_submitted != None:
+                                job_started = job_submitted
                             job_obj = {'name':single_tool,'status':job_status,'id':job_id,'details':job_details,'submitted':job_submitted,'started':job_started,'finished':job_finished}
                             status_list.append(job_obj)
         return status_list
