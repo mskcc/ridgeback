@@ -5,7 +5,6 @@ from .toil_track_utils import ToilTrack
 from celery import shared_task
 from submitter.jobsubmitter import JobSubmitter
 import json
-import datetime
 from django.core.serializers.json import DjangoJSONEncoder
 
 
