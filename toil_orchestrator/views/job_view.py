@@ -28,3 +28,6 @@ class JobViewSet(mixins.CreateModelMixin,
             submit_jobs_to_lsf.delay(str(response.id))
             response = JobSerializer(response)
             return Response(response.data, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
