@@ -1,8 +1,6 @@
-import uuid
-from toil_orchestrator.models import Job
+from toil_orchestrator.models import Job, Status
 from toil_orchestrator.serializers import JobSerializer
 from toil_orchestrator.tasks import submit_jobs_to_lsf
-from submitter.jobsubmitter import JobSubmitter
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.viewsets import GenericViewSet
@@ -16,7 +14,7 @@ class JobViewSet(mixins.CreateModelMixin,
                  mixins.UpdateModelMixin,
                  mixins.ListModelMixin,
                  GenericViewSet):
-    queryset = Job.objects.all()
+    queryset = Job.objects.order_by('created_date').all()
 
     def get_serializer_class(self):
         return JobSerializer
@@ -29,5 +27,43 @@ class JobViewSet(mixins.CreateModelMixin,
             response = JobSerializer(response)
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:
-            print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request, *args, **kwargs):
+        queryset = Job.objects.order_by('created_date').all()
+        status_param = request.query_params.get('status')
+        if status_param:
+            if status_param not in [s.name for s in Status]:
+                return Response({'details': 'Invalid status value %s: expected values %s' % (status_param, [s.name for s in Status])}, status=status.HTTP_400_BAD_REQUEST)
+            queryset = queryset.filter(status=Status[status].value)
+        response = JobSerializer(queryset, many=True)
+        return Response(response.data, status=status.HTTP_200_OK)
+
+
+    @property
+    def paginator(self):
+        """
+        The paginator instance associated with the view, or `None`.
+        """
+        if not hasattr(self, '_paginator'):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(self, queryset):
+        """
+        Return a single page of results, or `None` if pagination is disabled.
+        """
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset, self.request, view=self)
+
+    def get_paginated_response(self, data):
+        """
+        Return a paginated style `Response` object for the given output data.
+        """
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
+
