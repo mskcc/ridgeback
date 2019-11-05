@@ -32,7 +32,7 @@ def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
     jobs = Job.objects.filter(status__in=(Status.PENDING, Status.CREATED, Status.RUNNING)).all()
     for job in jobs:
-        submiter = JobSubmitter(str(job.id), job.app, job.inputs)
+        submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
         if job.external_id:
             lsf_status = submiter.status(job.external_id)
             if lsf_status == 'PEND':
