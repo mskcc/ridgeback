@@ -14,7 +14,7 @@ def submit_jobs_to_lsf(self, job_id):
     job = Job.objects.get(id=job_id)
     try:
         logger.info("Submitting job %s to lsf" % job.id)
-        submitter = JobSubmitter(job_id, job.app, job.inputs)
+        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
         external_job_id, job_store_dir, job_work_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
         job.external_id = external_job_id
