@@ -35,7 +35,7 @@ class JobViewSet(mixins.CreateModelMixin,
         if status_param:
             if status_param not in [s.name for s in Status]:
                 return Response({'details': 'Invalid status value %s: expected values %s' % (status_param, [s.name for s in Status])}, status=status.HTTP_400_BAD_REQUEST)
-            queryset = queryset.filter(status=Status[status].value)
+            queryset = queryset.filter(status=Status[status_param].value)
         response = JobSerializer(queryset, many=True)
         return Response(response.data, status=status.HTTP_200_OK)
 
