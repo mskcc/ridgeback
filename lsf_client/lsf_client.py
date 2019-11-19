@@ -9,6 +9,8 @@ class LSFClient(object):
         bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout]
         if settings.LSF_WALLTIME:
             bsub_command.extend(['-W', settings.LSF_WALLTIME])
+        if settings.LSF_STACKLIMIT:
+            bsub_command.extend(['-s', settings.LSF_STACKLIMIT])
         bsub_command.extend(command)
         process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         return self._parse_procid(process.stdout)
