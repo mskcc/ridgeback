@@ -58,7 +58,6 @@ def check_status_of_jobs(self):
             else:
                 job.status = Status.FAILED
                 job.outputs = {'error': 'LSF status %s' % lsf_status}
-            job.save()
         else:
             logger.info('Job %s not submitted to lsf' % str(job.id))
             job.status = Status.FAILED
