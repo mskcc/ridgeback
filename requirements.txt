@@ -9,4 +9,6 @@ django-rest-swagger==2.2.0
 GitPython==2.1.13
 celery==4.3.0
 toil
+cwltool
+schema_salad
 psycopg2-binary
