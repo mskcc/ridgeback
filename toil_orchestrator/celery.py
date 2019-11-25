@@ -35,5 +35,10 @@ app.conf.beat_schedule = {
         "task": "toil_orchestrator.tasks.check_status_of_jobs",
         "schedule": 60.0,
         "options": {"queue": "toil"}
+    },
+     "check_status_of_command_line_jobs": {
+        "task": "toil_orchestrator.tasks.check_status_of_command_line_jobs",
+        "schedule": 10.0,
+        "options": {"queue": "toil"}
     }
 }
