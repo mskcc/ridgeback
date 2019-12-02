@@ -56,6 +56,7 @@ class JobSubmitter(object):
         self.lsf_client = LSFClient()
         self.job_store_dir = os.path.join(settings.TOIL_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
+        self.job_tmp_dir = os.path.join(settings.TOIL_TMP_DIR_ROOT, self.job_id)
 
     def submit(self):
         self._prepare_directories()
@@ -86,7 +87,7 @@ class JobSubmitter(object):
             os.mkdir(self.job_work_dir)
 
     def _command_line(self):
-        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem', 'lsf', '--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--workDir', self.job_work_dir, '--outdir', os.path.join(self.job_work_dir, 'outputs')]
+        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem', 'lsf', '--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', os.path.join(self.job_work_dir, 'outputs'), '--maxLocalJobs', '500']
         command_line.extend(self._dump_app_inputs())
         return command_line
 
