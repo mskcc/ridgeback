@@ -86,7 +86,10 @@ class JobSubmitter(object):
         if not os.path.exists(self.job_work_dir):
             os.mkdir(self.job_work_dir)
 
-        if not os.path.exists(self.job_store_dir):
+        if os.path.exists(self.job_store_dir):
+            # delete job-store directory for now so that execution can work;
+            # TODO: Implement resume at a later time
+            shutil.rmtree(self.job_store_dir)
             os.mkdir(self.job_store_dir)
 
         if not os.path.exists(self.job_tmp_dir):
