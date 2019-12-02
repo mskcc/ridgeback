@@ -12,11 +12,13 @@ from django.utils.timezone import is_aware, make_aware, now
 
 logger = logging.getLogger(__name__)
 
+
 def get_aware_datetime(date_str):
     datetime_obj = parse_datetime(str(date_str))
     if not is_aware(datetime_obj):
         datetime_obj = make_aware(datetime_obj)
     return datetime_obj
+
 
 @shared_task(bind=True, max_retries=3)
 def submit_jobs_to_lsf(self, job_id):
@@ -24,7 +26,7 @@ def submit_jobs_to_lsf(self, job_id):
     job = Job.objects.get(id=job_id)
     try:
         logger.info("Submitting job %s to lsf" % job.id)
-        submitter = JobSubmitter(job_id, job.app, job.inputs)
+        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
         external_job_id, job_store_dir, job_work_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
         job.external_id = external_job_id
@@ -42,20 +44,26 @@ def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
     jobs = Job.objects.filter(status__in=(Status.PENDING, Status.CREATED, Status.RUNNING)).all()
     for job in jobs:
-        submiter = JobSubmitter(str(job.id), job.app, job.inputs)
-        lsf_status = submiter.status(job.external_id)
-        if lsf_status == 'PEND':
-            job.status = Status.PENDING
-        elif lsf_status == 'RUN':
-            job.status = Status.RUNNING
-        elif lsf_status == 'DONE':
-            job.status = Status.COMPLETED
-            outputs = submiter.get_outputs()
-            job.outputs = outputs
+        submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
+        if job.external_id:
+            lsf_status = submiter.status(job.external_id)
+            if lsf_status == 'PEND':
+                job.status = Status.PENDING
+            elif lsf_status == 'RUN':
+                job.status = Status.RUNNING
+            elif lsf_status == 'DONE':
+                job.status = Status.COMPLETED
+                outputs = submiter.get_outputs()
+                job.outputs = outputs
+            else:
+                job.status = Status.FAILED
+                job.outputs = {'error': 'LSF status %s' % lsf_status}
         else:
+            logger.info('Job %s not submitted to lsf' % str(job.id))
             job.status = Status.FAILED
             job.outputs = {'error': 'LSF status %s' % lsf_status}
         job.save()
+
 
 @shared_task(bind=True)
 def check_status_of_command_line_jobs(self):
@@ -157,3 +165,4 @@ def check_status_of_command_line_jobs(self):
                 updated = True
             if updated:
                 single_tool_module.save()
+

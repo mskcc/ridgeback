@@ -49,13 +49,14 @@ class GithubApp(App):
 
 class JobSubmitter(object):
 
-    def __init__(self, job_id, app, inputs):
+    def __init__(self, job_id, app, inputs, root_dir):
         self.job_id = job_id
         self.app = App.factory(app)
         self.inputs = inputs
         self.lsf_client = LSFClient()
         self.job_store_dir = os.path.join(settings.TOIL_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
+        self.job_outputs_dir = os.path.join(root_dir, 'outputs')
         self.job_tmp_dir = os.path.join(settings.TOIL_TMP_DIR_ROOT, self.job_id)
 
     def submit(self):
@@ -93,7 +94,7 @@ class JobSubmitter(object):
             os.mkdir(self.job_tmp_dir)
 
     def _command_line(self):
-        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem', 'lsf', '--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', os.path.join(self.job_work_dir, 'outputs'), '--maxLocalJobs', '500']
+        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem', 'lsf', '--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir, '--maxLocalJobs', '500']
         command_line.extend(self._dump_app_inputs())
         return command_line
 
