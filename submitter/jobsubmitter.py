@@ -86,6 +86,12 @@ class JobSubmitter(object):
         if not os.path.exists(self.job_work_dir):
             os.mkdir(self.job_work_dir)
 
+        if not os.path.exists(self.job_store_dir):
+            os.mkdir(self.job_store_dir)
+
+        if not os.path.exists(self.job_tmp_dir):
+            os.mkdir(self.job_tmp_dir)
+
     def _command_line(self):
         command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem', 'lsf', '--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', os.path.join(self.job_work_dir, 'outputs'), '--maxLocalJobs', '500']
         command_line.extend(self._dump_app_inputs())
