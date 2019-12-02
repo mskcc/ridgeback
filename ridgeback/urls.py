@@ -19,7 +19,7 @@ from django.urls import path, include
 from rest_framework_swagger.views import get_swagger_view
 
 
-schema_view = get_swagger_view(title='Ridgebeck API')
+schema_view = get_swagger_view(title='Ridgeback API')
 
 urlpatterns = [
     url(r'^$', schema_view),
