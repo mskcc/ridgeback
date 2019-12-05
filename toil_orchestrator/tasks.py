@@ -36,13 +36,14 @@ def submit_jobs_to_lsf(self, job_id):
         job.status = Status.PENDING
         job.save()
     except Exception as e:
+        logger.info("Failed to submit job %s" % job_id)
         self.retry(exc=e, countdown=10)
 
 
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.CREATED, Status.RUNNING)).all()
+    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING)).all()
     for job in jobs:
         submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
         if job.external_id:
@@ -61,7 +62,7 @@ def check_status_of_jobs(self):
         else:
             logger.info('Job %s not submitted to lsf' % str(job.id))
             job.status = Status.FAILED
-            job.outputs = {'error': 'LSF status %s' % lsf_status}
+            job.outputs = {'error': 'External id not provided %s' % str(job.id)} 
         job.save()
 
 
