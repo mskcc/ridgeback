@@ -20,7 +20,15 @@ def get_aware_datetime(date_str):
     return datetime_obj
 
 
-@shared_task(bind=True, max_retries=3)
+def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
+    job_id = args[0]
+    logger.error('Failed to submit job: %s' % job_id)
+    job = Job.objects.get(id=job_id)
+    job.status = Status.FAILED
+    job.save()
+
+
+@shared_task(bind=True, max_retries=3, on_failure=on_failure_to_submit)
 def submit_jobs_to_lsf(self, job_id):
     logger.info("Submitting jobs to lsf")
     job = Job.objects.get(id=job_id)
@@ -36,13 +44,14 @@ def submit_jobs_to_lsf(self, job_id):
         job.status = Status.PENDING
         job.save()
     except Exception as e:
+        logger.info("Failed to submit job %s" % job_id)
         self.retry(exc=e, countdown=10)
 
 
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.CREATED, Status.RUNNING)).all()
+    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING)).all()
     for job in jobs:
         submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
         if job.external_id:
@@ -61,7 +70,7 @@ def check_status_of_jobs(self):
         else:
             logger.info('Job %s not submitted to lsf' % str(job.id))
             job.status = Status.FAILED
-            job.outputs = {'error': 'LSF status %s' % lsf_status}
+            job.outputs = {'error': 'External id not provided %s' % str(job.id)}
         job.save()
 
 
