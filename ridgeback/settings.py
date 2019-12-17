@@ -80,6 +80,7 @@ DB_NAME = os.environ['RIDGEBACK_DB_NAME']
 DB_USERNAME = os.environ['RIDGEBACK_DB_USERNAME']
 DB_PASSWORD = os.environ['RIDGEBACK_DB_PASSWORD']
 DB_HOST = os.environ.get('RIDGEBACK_DB_URL', 'localhost')
+DB_PORT = os.environ.get('RIDGEBACK_PORT', 5432)
 
 DATABASES = {
     'default': {
@@ -88,7 +89,7 @@ DATABASES = {
         'USER': DB_USERNAME,
         'PASSWORD': DB_PASSWORD,
         'HOST': DB_HOST,
-        'POST': 5432
+        'PORT': DB_PORT
     }
 }
 
