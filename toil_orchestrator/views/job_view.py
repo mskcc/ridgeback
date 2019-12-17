@@ -7,7 +7,6 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
 
 
-
 class JobViewSet(mixins.CreateModelMixin,
                  mixins.DestroyModelMixin,
                  mixins.RetrieveModelMixin,
