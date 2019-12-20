@@ -166,3 +166,6 @@ TOIL_TMP_DIR_ROOT = os.environ['RIDGEBACK_TOIL_TMP_DIR_ROOT']
 LSF_WALLTIME = os.environ['RIDGEBACK_LSF_WALLTIME']
 LSF_SLA = os.environ['RIDGEBACK_LSF_SLA']
 CWLTOIL = os.environ.get('RIDGEBACK_TOIL', 'cwltoil')
+
+# $PATH update used to put 'nextflow' in the PATH properly
+NXF_PATH = os.environ.get('NXF_PATH', os.path.join(os.path.realpath('.'), 'conda', 'bin'))

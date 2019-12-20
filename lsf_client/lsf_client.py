@@ -2,11 +2,12 @@ import os
 import subprocess
 from django.conf import settings
 
-
 class LSFClient(object):
 
     def submit(self, command, stdout):
-        bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout]
+        # need to drop SLA temporarily because I am not in the SLA group...
+        # bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout]
+        bsub_command = ['bsub', '-oo', stdout]
         if settings.LSF_WALLTIME:
             bsub_command.extend(['-W', settings.LSF_WALLTIME])
         bsub_command.extend(command)
