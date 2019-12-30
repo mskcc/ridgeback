@@ -20,7 +20,15 @@ def get_aware_datetime(date_str):
     return datetime_obj
 
 
-@shared_task(bind=True, max_retries=3)
+def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
+    job_id = args[0]
+    logger.error('Failed to submit job: %s' % job_id)
+    job = Job.objects.get(id=job_id)
+    job.status = Status.FAILED
+    job.save()
+
+
+@shared_task(bind=True, max_retries=3, on_failure=on_failure_to_submit)
 def submit_jobs_to_lsf(self, job_id):
     logger.info("Submitting jobs to lsf")
     job = Job.objects.get(id=job_id)
@@ -62,7 +70,7 @@ def check_status_of_jobs(self):
         else:
             logger.info('Job %s not submitted to lsf' % str(job.id))
             job.status = Status.FAILED
-            job.outputs = {'error': 'External id not provided %s' % str(job.id)} 
+            job.outputs = {'error': 'External id not provided %s' % str(job.id)}
         job.save()
 
 
