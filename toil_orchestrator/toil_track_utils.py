@@ -67,7 +67,7 @@ def log(logger,log_level,message):
     try:
         logging_function = getattr(logger,log_level)
         logging_function(str(message), extra={'current_time':str(current_time)})
-    except AttributeError:
+    except:
         logger.error("Log Level: "+ str(log_level) + " not found.\nOriginal message: "+ str(message), extra={'current_time':str(current_time)})
 
 ### time wrappers ###
