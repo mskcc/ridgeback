@@ -183,7 +183,12 @@ class ReadOnlyFileJobStore(FileJobStore):
 
     def getStatsFiles(self):
         stats_file_list = []
-        for tempDir in self._tempDirectories():
+        statsDirectories = []
+        if hasattr(self, "_tempDirectories"):
+            statsDirectories = self._tempDirectories()
+        if hasattr(self, "_statsDirectories"):
+            statsDirectories = self._statsDirectories()
+        for tempDir in statsDirectories:
             for tempFile in os.listdir(tempDir):
                 if tempFile.startswith('stats'):
                     stats_file_path = os.path.join(tempDir, tempFile)
@@ -277,6 +282,10 @@ class ToilTrack():
                 id_suffix = '-0'
             else:
                 id_suffix = '-1'
+        if 'instance' in jobStoreID:
+            jobStoreID_split = jobStoreID.split("instance")
+            if len(jobStoreID_split) > 1:
+                jobStoreID = jobStoreID_split[1]
         id_string = id_prefix + str(jobStoreID) + id_suffix
         return id_string
 
@@ -478,7 +487,7 @@ class ToilTrack():
         job_info = None
         try:
             job_stream_file = job_store_obj.readFileStream(job_stream_path)
-            job_stream_abs_path = job_store_obj._getAbsPath(job_stream_path)
+            job_stream_abs_path = job_store_obj._getFilePathFromId(job_stream_path)
             if os.path.exists(job_stream_abs_path):
                 with job_stream_file as job_stream:
                     job_stream_contents = safeUnpickleFromStream(job_stream)
