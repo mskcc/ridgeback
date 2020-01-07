@@ -3,7 +3,7 @@ import os
 import logging
 from builtins import super
 logging.getLogger("rdflib").setLevel(logging.WARNING)
-logging.getLogger("toil.jobStores.fileJobStore").setLevel(logging.WARNING)
+logging.getLogger("toil.jobStores.fileJobStore").setLevel(logging.ERROR)
 logging.getLogger("toil.jobStores.abstractJobStore").disabled = True
 logging.getLogger("toil.toilState").setLevel(logging.WARNING)
 from toil.common import Toil, safeUnpickleFromStream
