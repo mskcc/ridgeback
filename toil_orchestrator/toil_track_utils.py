@@ -21,7 +21,6 @@ import datetime
 import time
 import copy
 from subprocess import PIPE, Popen
-import dill
 import json
 import sys
 import copy
@@ -530,7 +529,7 @@ class ToilTrack():
                                 job_stream_path = ""
                                 if os.path.exists(job_state_path):
                                     with open(job_state_path,'rb') as job_state_file:
-                                        job_state_contents = dill.load(job_state_file)
+                                        job_state_contents = pickle.load(job_state_file)
                                         job_state = job_state_contents
                                         job_stream_path = job_state_contents['jobName']
                                         if job_stream_path in jobs_path:
