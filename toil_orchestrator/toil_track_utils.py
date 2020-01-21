@@ -494,8 +494,6 @@ class ToilTrack():
                     job_name = job_stream_contents_dict['jobName']
                     if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
                         job_id = self.make_key_from_file(job_name,True)
-                        if 'cwljob' in job_stream_contents_dict:
-                            job_info = job_stream_contents_dict['cwljob']
         except:
             debug_message = "Could not read job path: " +str(job_stream_path) + ".\n"+traceback.format_exc()
             logger.debug(debug_message)
