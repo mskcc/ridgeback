@@ -232,13 +232,7 @@ jobs:
 
 # submit a sample job to Ridgeback
 submit:
-	curl -H "Content-Type: application/json" -X POST --data @job.json http://localhost:8000/v0/jobs/
-
-submit2:
-	curl -H "Content-Type: application/json" -X POST --data @job2.json http://localhost:8000/v0/jobs/
-test:
-	curl http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/test/
-# print("LSFClient: bsub_command: {}".format(' '.join(bsub_command)), file = open(os.environ['DJANGO_TEST_LOGFILE'], "a"))
+	curl -H "Content-Type: application/json" -X POST --data @fixtures/tests/job.json "http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
 
 
 # check if the ports needed for services and servers are already in use on this system
