@@ -2,10 +2,17 @@ Bootstrap: docker
 From: ubuntu:19.10
 Includecmd: no
 
-%environment
-    export RIDGEBACK_PATH=/usr/bin/ridgeback
-
 %startscript
+
+    if [ -z "$RIDGEBACK_PATH" ]; then
+    export RIDGEBACK_PATH=/usr/bin/ridgeback
+    fi
+
+    if [ -z "$RIDGEBACK_PORT" ]; then
+    export RIDGEBACK_PORT=8000
+    fi
+
+    nohup python3 ${RIDGEBACK_PATH}/manage.py migrate
     nohup python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT
 
 %post
@@ -18,8 +25,12 @@ Includecmd: no
         gawk build-essential \
         git
 
+    if [ -z "$RIDGEBACK_BRANCH" ]; then
+    export RIDGEBACK_BRANCH=master
+    fi
+
     cd /usr/bin \
-    && git clone https://github.com/mskcc/ridgeback
+    && git clone https://github.com/mskcc/ridgeback --branch ${RIDGEBACK_BRANCH}
     cd /usr/bin/ridgeback \
     && python3 -m pip install python-ldap \
     && pip3 install -r requirements.txt
