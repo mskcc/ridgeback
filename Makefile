@@ -147,9 +147,7 @@ db-login:
 django-init: $(LOG_DIR_ABS) toil-init
 	python manage.py makemigrations
 	python manage.py migrate
-	# python manage.py migrate django_celery_results
-	# python manage.py migrate dashboard --database=dashboard_db
-	# python manage.py createsuperuser
+	python manage.py createsuperuser
 
 # ~~~~~~ Celery tasks & RabbitMQ setup ~~~~~ #
 # !! need to start RabbitMQ before celery, and both before running app servers !!
