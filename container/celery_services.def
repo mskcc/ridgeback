@@ -104,24 +104,8 @@ Includecmd: no
     export RIDGEBACK_BRANCH=master
     fi
 
-    if [ -z "$TOIL_REPO" ]; then
-    export TOIL_REPO=dataBiosphere
-    fi
-
-    if [ -z "$TOIL_BRANCH" ]; then
-    export TOIL_BRANCH=releases/3.21.0
-    fi
-
     cd /usr/bin \
     && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH
     cd /usr/bin/ridgeback \
-    && python3 -m virtualenv --python=/usr/bin/python3 /opt/venv \
-    && . /opt/venv/bin/activate \
     && python3 -m pip install python-ldap \
-    && pip3 install -r requirements.txt \
-    && cd /opt/ \
-    && git clone https://github.com/$TOIL_REPO/toil --branch $TOIL_BRANCH \
-    && cd toil \
-    && make prepare \
-    && make develop extras=[cwl] \
-    && chmod 777 /opt/toil/src/toil/version.py
+    && pip3 install -r requirements.txt
