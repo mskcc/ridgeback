@@ -78,6 +78,16 @@ Optional Variable       | Description | Default
 SINGULARITYENV_CELERY_LOG_PATH | Path to store the celery log files | /tmp
 SINGULARITYENV_CELERY_PID_PATH | Path to store the celery pid files | /tmp
 SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH | Path to store the beat schedule path | /tmp
+
+
+
+
+#### Configure singularity mount points
+
+Since we will be running our instance in a singularity container, we need to make sure it has the right paths mounted for LSF and TOIL to work properly. Running the following command will mount the lsf directories and /juno
+
+```
+export SINGULARITY_BIND="/juno,$SINGULARITYENV_LSF_LIBDIR,$SINGULARITYENV_LSF_SERVERDIR,$SINGULARITYENV_LSF_ENVDIR,$SINGULARITYENV_LSF_BINDIR"
 ```
 
 #### Running an instance
