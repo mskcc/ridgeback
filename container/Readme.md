@@ -35,6 +35,8 @@ SINGULARITYENV_RIDGEBACK_PORT | The port to run the ridgeback webserver | 8000
  SINGULARITYENV_RIDGEBACK_RABBITMQ_USERNAME | rabbitmq username
  SINGULARITYENV_RIDGEBACK_RABBITMQ_PASSWORD | rabbitmq password
 
+ The default rabbitmq queue should be the same queue set in toil_orchestrator/celery.py
+
 
 ##### Database
 
