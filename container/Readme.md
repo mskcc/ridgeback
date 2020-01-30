@@ -3,7 +3,8 @@
 #### Build SIF
 
 ```
-sudo singularity build ridgeback_service.sif ridgeback_service.def
+export SINGULARITYENV_RIDGEBACK_BRANCH=master # branch on github to use on build; can set to any existing branch in repo
+sudo -E singularity build ridgeback_service.sif ridgeback_service.def
 ```
 
 #### Expected Variables
