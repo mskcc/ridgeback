@@ -68,7 +68,7 @@ SINGULARITYENV_RIDGEBACK_LSF_SLA | Service SLA for LSF jobs
 Optional Variable       | Description | Default
 :------------- |:------------- |:-------------
 SINGULARITYENV_RIDGEBACK_LSF_WALLTIME | walltime limit for LSF jobs | None
-SINGULARITYENV_RIDGEBACK_LSF_STACKLIMIT | Stacklimit for LSF | None
+SINGULARITYENV_RIDGEBACK_LSF_STACKLIMIT | stacklimit for LSF | None
 
 
 ##### Celery
