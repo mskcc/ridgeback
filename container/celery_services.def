@@ -77,7 +77,6 @@ Includecmd: no
     nohup celery -A toil_orchestrator beat \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
-    -Q ${RIDGEBACK_DEFAULT_QUEUE} \
     -f ${CELERY_LOG_PATH}/ridgeback_beat.log \
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid \
     -s ${CELERY_BEAT_SCHEDULE_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.celerybeat-schedule &
