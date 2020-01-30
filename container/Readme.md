@@ -7,30 +7,77 @@ export SINGULARITYENV_RIDGEBACK_BRANCH=master # branch on github to use on build
 sudo -E singularity build ridgeback_service.sif ridgeback_service.def
 ```
 
-#### Expected Variables
+#### Expected Instance Run Variables
 
-The following environment variables must be set so that the instance can run properly.
+Here are both the essential and optional environment variables needed by the instance
 
-Note: Singularity passes environment variables to the SIF container by prepending variable names with `SINGULARITYENV_`. For example, to set `RIDGEBACK_PORT` in the container, you must set `SINGULARITYENV_RIDGEBACK_PORT`.
+> Note: Singularity passes environment variables to the SIF container by prepending variable names with
+> `SINGULARITYENV_`. For example, to set `RIDGEBACK_PORT` in the container, you must set
+> `SINGULARITYENV_RIDGEBACK_PORT`.
 
-```
-SINGULARITYENV_RIDGEBACK_DB_NAME
-SINGULARITYENV_RIDGEBACK_DB_USERNAME
-SINGULARITYENV_RIDGEBACK_DB_PASSWORD
-SINGULARITYENV_RIDGEBACK_TOIL_JOB_STORE_ROOT
-SINGULARITYENV_RIDGEBACK_TOIL_WORK_DIR_ROOT
-SINGULARITYENV_RIDGEBACK_TOIL_TMP_DIR_ROOT
-SINGULARITYENV_RIDGEBACK_LSF_WALLTIME
-SINGULARITYENV_RIDGEBACK_LSF_SLA
-SINGULARITYENV_RIDGEBACK_LSF_STACKLIMIT
-SINGULARITYENV_RIDGEBACK_RABBITMQ_USERNAME
-SINGULARITYENV_RIDGEBACK_RABBITMQ_PASSWORD
-SINGULARITYENV_RIDGEBACK_TOIL
-SINGULARITYENV_SINGULARITY_CACHEDIR
-SINGULARITYENV_SINGULARITY_TMPDIR
-SINGULARITYENV_TOIL_LSF_ARGS
-SINGULARITYENV_TMPDIR
-SINGULARITYENV_RIDGEBACK_PORT
+##### General
+
+ Variable       | Description
+ :------------- |:-------------
+SINGULARITYENV_SINGULARITY_PATH | The path to the singularity executable
+SINGULARITYENV_RIDGEBACK_VENV | The path to the venv containing toil and other python dependencies
+
+Optional Variable       | Description | Default
+:------------- |:------------- |:-------------
+SINGULARITYENV_RIDGEBACK_PATH | The path to the ridgeback repo | /usr/bin/ridgeback (in container)
+SINGULARITYENV_RIDGEBACK_PORT | The port to run the ridgeback webserver | 8000
+
+##### Rabbitmq
+
+ Variable       | Description
+ :------------- |:-------------
+ SINGULARITYENV_RIDGEBACK_DEFAULT_QUEUE | Default rabbitmq queue
+ SINGULARITYENV_RIDGEBACK_RABBITMQ_USERNAME | rabbitmq username
+ SINGULARITYENV_RIDGEBACK_RABBITMQ_PASSWORD | rabbitmq password
+
+
+##### Database
+
+Variable       | Description
+:------------- |:-------------
+SINGULARITYENV_RIDGEBACK_DB_NAME | Database name
+SINGULARITYENV_RIDGEBACK_DB_USERNAME | Database username
+SINGULARITYENV_RIDGEBACK_DB_PASSWORD | Database password
+SINGULARITYENV_RIDGEBACK_DB_PORT | Database port
+
+
+##### Toil
+
+Variable       | Description
+:------------- |:-------------
+SINGULARITYENV_RIDGEBACK_TOIL_JOB_STORE_ROOT | TOIL jobstore
+SINGULARITYENV_RIDGEBACK_TOIL_WORK_DIR_ROOT | TOIL workdir
+SINGULARITYENV_RIDGEBACK_TOIL_TMP_DIR_ROOT | TOIL tmp dir
+
+
+##### LSF
+
+Variable       | Description
+:------------- |:-------------
+SINGULARITYENV_LSF_LIBDIR | The path to the lsf lib dir
+SINGULARITYENV_LSF_SERVERDIR | The path to the lsf etc dir
+SINGULARITYENV_LSF_ENVDIR | The path to the lsf.conf
+SINGULARITYENV_LSF_BINDIR | The path to the lsf bin dir
+SINGULARITYENV_RIDGEBACK_LSF_SLA | Service SLA for LSF jobs
+
+Optional Variable       | Description | Default
+:------------- |:------------- |:-------------
+SINGULARITYENV_RIDGEBACK_LSF_WALLTIME | walltime limit for LSF jobs | None
+SINGULARITYENV_RIDGEBACK_LSF_STACKLIMIT | Stacklimit for LSF | None
+
+
+##### Celery
+
+Optional Variable       | Description | Default
+:--- | :--- | :---
+SINGULARITYENV_CELERY_LOG_PATH | Path to store the celery log files | /tmp
+SINGULARITYENV_CELERY_PID_PATH | Path to store the celery pid files | /tmp
+SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH | Path to store the beat schedule path | /tmp
 ```
 
 #### Running an instance
