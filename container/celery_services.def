@@ -4,6 +4,14 @@ Includecmd: no
 
 %startscript
 
+    if [ -z "$RIDGEBACK_VENV" ]; then
+    echo "ERROR environment variable RIDGEBACK_VENV is not defined, Toil will not work"
+    fi
+
+    if [ -z "$SINGULARITY_PATH" ]; then
+    echo "ERROR environment variable SINGULARITY_PATH is not defined, Singularity will not work"
+    fi
+
     if [ -z "$RIDGEBACK_PATH" ]; then
     export RIDGEBACK_PATH=/usr/bin/ridgeback
     fi
