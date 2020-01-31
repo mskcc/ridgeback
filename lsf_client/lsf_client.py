@@ -7,10 +7,14 @@ class LSFClient(object):
 
     def submit(self, command, stdout):
         bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout]
+        toil_lsf_args = '-sla %s' % settings.LSF_SLA
         if settings.LSF_WALLTIME:
             bsub_command.extend(['-W', settings.LSF_WALLTIME])
+            toil_lsf_args = '%s -W %s' % (toil_lsf_args,settings.LSF_WALLTIME)
         bsub_command.extend(command)
-        process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
+        current_env = os.environ
+        current_env['TOIL_LSF_ARGS'] = toil_lsf_args
+        process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True, env=current_env)
         return self._parse_procid(process.stdout)
 
     def _parse_procid(self, stdout):
