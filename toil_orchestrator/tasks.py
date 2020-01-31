@@ -44,7 +44,7 @@ def submit_jobs_to_lsf(self, job_id):
         job.status = Status.PENDING
         job.save()
     except Exception as e:
-        logger.info("Failed to submit job %s" % job_id)
+        logger.info("Failed to submit job %s\n%s" % (job_id,str(e)))
         self.retry(exc=e, countdown=10)
 
 
