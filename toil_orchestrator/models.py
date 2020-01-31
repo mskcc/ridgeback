@@ -29,6 +29,7 @@ class Job(BaseModel):
     status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=Status.CREATED)
     inputs = JSONField(blank=True, null=True)
     outputs = JSONField(blank=True, null=True)
+    job_store_clean_up = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
 
 
