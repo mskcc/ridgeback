@@ -1,11 +1,17 @@
 from rest_framework import serializers
-from .models import Job, CommandLineToolJob
+from .models import Job, CommandLineToolJob, Status
 
 
 class JobSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    def get_status(self, obj):
+        return Status(obj.status).name
+
     class Meta:
         model = Job
-        fields = ('id', 'created_date', 'app', 'inputs', 'outputs')
+        fields = (
+        'id', 'status', 'created_date', 'app', 'inputs', 'outputs', 'root_dir', 'job_store_location', 'working_dir', 'output_dir')
 
 
 class CommandLineToolJobSerializer(serializers.ModelSerializer):

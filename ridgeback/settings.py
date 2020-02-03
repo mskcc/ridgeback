@@ -25,7 +25,7 @@ SECRET_KEY = '3gpghwoqas_6ei_efvb%)5s&lwgs#o99c9(ovmi=1od*e6ezvw'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['silo', 'localhost']
 
 
 # Application definition
@@ -80,6 +80,7 @@ DB_NAME = os.environ['RIDGEBACK_DB_NAME']
 DB_USERNAME = os.environ['RIDGEBACK_DB_USERNAME']
 DB_PASSWORD = os.environ['RIDGEBACK_DB_PASSWORD']
 DB_HOST = os.environ.get('RIDGEBACK_DB_URL', 'localhost')
+DB_PORT = os.environ.get('RIDGEBACK_DB_PORT', 5432)
 
 DATABASES = {
     'default': {
@@ -88,7 +89,7 @@ DATABASES = {
         'USER': DB_USERNAME,
         'PASSWORD': DB_PASSWORD,
         'HOST': DB_HOST,
-        'POST': 5432
+        'PORT': DB_PORT
     }
 }
 
@@ -130,7 +131,7 @@ REST_FRAMEWORK = {
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/New_York'
 
 USE_I18N = True
 
@@ -144,6 +145,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+CORS_ORIGIN_ALLOW_ALL = True
 
 # Celery settings
 
@@ -158,5 +160,9 @@ CELERY_RESULT_SERIALIZER = 'json'
 
 # Toil settings
 
-TOIL_JOB_STORE = os.environ['RIDGEBACK_TOIL_JOB_STORE']
-
+TOIL_JOB_STORE_ROOT = os.environ['RIDGEBACK_TOIL_JOB_STORE_ROOT']
+TOIL_WORK_DIR_ROOT = os.environ['RIDGEBACK_TOIL_WORK_DIR_ROOT']
+TOIL_TMP_DIR_ROOT = os.environ['RIDGEBACK_TOIL_TMP_DIR_ROOT']
+LSF_WALLTIME = os.environ['RIDGEBACK_LSF_WALLTIME']
+LSF_SLA = os.environ['RIDGEBACK_LSF_SLA']
+CWLTOIL = os.environ.get('RIDGEBACK_TOIL', 'cwltoil')

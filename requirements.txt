@@ -1,4 +1,4 @@
-Django==2.2.2
+Django==2.2.8
 psycopg2==2.7.4
 djangorestframework==3.9.4
 markdown==3.1.1
@@ -8,3 +8,7 @@ python-slugify==3.0.2
 django-rest-swagger==2.2.0
 GitPython==2.1.13
 celery==4.3.0
+toil
+cwltool
+schema_salad
+psycopg2-binary
