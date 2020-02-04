@@ -8,6 +8,7 @@ import json
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
+import shutil
 
 
 logger = logging.getLogger(__name__)
@@ -44,8 +45,27 @@ def submit_jobs_to_lsf(self, job_id):
         job.status = Status.PENDING
         job.save()
     except Exception as e:
-        logger.info("Failed to submit job %s" % job_id)
+        logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
         self.retry(exc=e, countdown=10)
+
+@shared_task(bind=True)
+def cleanup_folder(self,path, job_id,is_jobstore):
+    logger.info("Cleaning up %s" % path)
+    job_obj_list = Job.objects.filter(id__exact=job_id)
+    job_obj = None
+    if len(job_obj_list) > 0:
+        if job_obj_list[0] != None:
+            job_obj = job_obj_list[0]
+    try:
+        shutil.rmtree(path)
+        logger.info("Cleaning of %s successful" % path)
+        if is_jobstore:
+            if job_obj != None:
+                job_obj.job_store_clean_up = now()
+                job_obj.save()
+    except Exception as e:
+        error_message = "Failed to remove folder: %s\n%s" % (path,str(e))
+        logger.info(error_message)
 
 
 @shared_task(bind=True)
