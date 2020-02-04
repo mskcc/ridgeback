@@ -70,9 +70,9 @@ conda:
 # NOTE: RabbitMQ sometimes has installation problems on macOS 10.12
 install: conda
 	conda install -y \
-	anaconda::postgresql \
+	anaconda::postgresql=11.2 \
 	conda-forge::ncurses \
-	rabbitmq-server && \
+	rabbitmq-server=3.7.16 && \
 	pip install -r requirements.txt
 
 # Ridgeback environment variables for configuration
