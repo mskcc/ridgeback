@@ -2,6 +2,7 @@ from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
 from kombu import Exchange, Queue
+from django.conf import settings
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ridgeback.settings')
@@ -24,8 +25,8 @@ app.autodiscover_tasks()
 #     }
 # }
 
-app.conf.task_routes = {'toil_orchestrator.tasks.submit_jobs_to_lsf': {'queue': 'toil'},
-                        'toil_orchestrator.tasks.cleanup_folder': {'queue': 'toil'}}
+app.conf.task_routes = {'toil_orchestrator.tasks.submit_jobs_to_lsf': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
+                        'toil_orchestrator.tasks.cleanup_folder': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE}}
 #
 # app.conf.task_queues = (
 #     Queue('toil', routing_key='submit'),
@@ -35,11 +36,11 @@ app.conf.beat_schedule = {
     "check_status_of_jobs": {
         "task": "toil_orchestrator.tasks.check_status_of_jobs",
         "schedule": 60.0,
-        "options": {"queue": "toil"}
+        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     },
-     "check_status_of_command_line_jobs": {
+    "check_status_of_command_line_jobs": {
         "task": "toil_orchestrator.tasks.check_status_of_command_line_jobs",
         "schedule": 10.0,
-        "options": {"queue": "toil"}
+        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     }
 }
