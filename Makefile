@@ -67,21 +67,30 @@ conda:
 	bash "$(CONDASH)" -b -p conda && \
 	rm -f "$(CONDASH)"
 
+# install MSKCC toil fork
+toil:
+	git clone git@github.com:mskcc/toil.git && \
+	cd toil && git checkout 3.19.0
+
+# equivalent to toil's `make prepare`, `make develop extras=cwl`
 # NOTE: RabbitMQ sometimes has installation problems on macOS 10.12
-install: conda
+install: conda toil
 	conda install -y \
 	anaconda::postgresql=11.2 \
 	conda-forge::ncurses \
 	rabbitmq-server=3.7.16 && \
 	pip install -r requirements.txt
+	pip install -r requirements-toil.txt && \
+	cd toil && \
+	pip install -e .[cwl]
 
 # Ridgeback environment variables for configuration
 export RIDGEBACK_DB_NAME:=db
 export RIDGEBACK_DB_USERNAME:=$(shell whoami)
 export RIDGEBACK_DB_PASSWORD:=admin
 export RIDGEBACK_DB_URL:=localhost
-export RIDGEBACK_PORT:=1111
-export RIDGEBACK_TOIL_DIR:=$(CURDIR)/toil
+export RIDGEBACK_DB_PORT:=1111
+export RIDGEBACK_TOIL_DIR:=$(CURDIR)/.toil
 export RIDGEBACK_TOIL_JOB_STORE:=$(RIDGEBACK_TOIL_DIR)/job_store
 export RIDGEBACK_TOIL_JOB_STORE_ROOT:=$(RIDGEBACK_TOIL_DIR)/job_store_root
 export RIDGEBACK_TOIL_WORK_DIR_ROOT:=$(RIDGEBACK_TOIL_DIR)/work
@@ -107,7 +116,7 @@ export PGDATA:=$(RIDGEBACK_DB_NAME)
 export PGUSER:=$(RIDGEBACK_DB_USERNAME)
 export PGPASSWORD:=$(RIDGEBACK_DB_PASSWORD)
 export PGHOST:=$(RIDGEBACK_DB_URL)
-export PGPORT:=$(RIDGEBACK_PORT)
+export PGPORT:=$(RIDGEBACK_DB_PORT)
 export PGLOG:=$(LOG_DIR_ABS)/postgres.log
 export PGDATABASE:=$(RIDGEBACK_DB_NAME)
 
@@ -238,7 +247,7 @@ ifeq ($(UNAME), Darwin)
 # On macOS High Sierra, use this command: lsof -nP -i4TCP:$PORT | grep LISTEN
 check-port-collision:
 	@for i in \
-	"RIDGEBACK_PORT:$(RIDGEBACK_PORT)" \
+	"RIDGEBACK_DB_PORT:$(RIDGEBACK_DB_PORT)" \
 	"RABBITMQ_NODE_PORT:$(RABBITMQ_NODE_PORT)" \
 	"DJANGO_RIDGEBACK_PORT:$(DJANGO_RIDGEBACK_PORT)" \
 	"PGPORT:$(PGPORT)" ; do ( \
@@ -248,14 +257,14 @@ check-port-collision:
 	) ; done
 
 port-check:
-	lsof -i:$(RIDGEBACK_PORT),$(RABBITMQ_NODE_PORT),$(DJANGO_RIDGEBACK_PORT),$(PGPORT) | \
+	lsof -i:$(RIDGEBACK_DB_PORT),$(RABBITMQ_NODE_PORT),$(DJANGO_RIDGEBACK_PORT),$(PGPORT) | \
 	grep LISTEN
 endif
 
 ifeq ($(UNAME), Linux)
 check-port-collision:
 	@for i in \
-	"RIDGEBACK_PORT:$(RIDGEBACK_PORT)" \
+	"RIDGEBACK_DB_PORT:$(RIDGEBACK_DB_PORT)" \
 	"RABBITMQ_NODE_PORT:$(RABBITMQ_NODE_PORT)" \
 	"DJANGO_RIDGEBACK_PORT:$(DJANGO_RIDGEBACK_PORT)" \
 	"PGPORT:$(PGPORT)" ; do ( \
