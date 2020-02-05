@@ -8,7 +8,6 @@ python-slugify==3.0.2
 django-rest-swagger==2.2.0
 GitPython==2.1.13
 celery==4.3.0
-toil
-cwltool
-schema_salad
-psycopg2-binary
+cwltool==2.0.20200122124526
+schema-salad==5.0.20200122085940
+psycopg2-binary==2.8.4
