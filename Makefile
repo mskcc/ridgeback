@@ -70,7 +70,7 @@ conda:
 # install MSKCC toil fork
 toil:
 	git clone git@github.com:mskcc/toil.git && \
-	cd toil && git checkout 3.19.0
+	cd toil && git checkout 3.21.0
 
 # equivalent to toil's `make prepare`, `make develop extras=cwl`
 # NOTE: RabbitMQ sometimes has installation problems on macOS 10.12
