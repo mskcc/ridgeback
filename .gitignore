@@ -1,2 +1,6 @@
 *.pyc
 .idea/
+db
+logs/
+conda/
+toil
