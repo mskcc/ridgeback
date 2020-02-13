@@ -85,11 +85,12 @@ install: conda toil
 	pip install -e .[cwl]
 
 # Ridgeback environment variables for configuration
+export RIDGEBACK_PATH:=$(CURDIR)
 export RIDGEBACK_DB_NAME:=db
 export RIDGEBACK_DB_USERNAME:=$(shell whoami)
 export RIDGEBACK_DB_PASSWORD:=admin
 export RIDGEBACK_DB_URL:=localhost
-export RIDGEBACK_DB_PORT:=1111
+export RIDGEBACK_DB_PORT:=1110
 export RIDGEBACK_TOIL_DIR:=$(CURDIR)/.toil
 export RIDGEBACK_TOIL_JOB_STORE:=$(RIDGEBACK_TOIL_DIR)/job_store
 export RIDGEBACK_TOIL_JOB_STORE_ROOT:=$(RIDGEBACK_TOIL_DIR)/job_store_root
@@ -97,6 +98,12 @@ export RIDGEBACK_TOIL_WORK_DIR_ROOT:=$(RIDGEBACK_TOIL_DIR)/work
 export RIDGEBACK_TOIL_TMP_DIR_ROOT:=$(RIDGEBACK_TOIL_DIR)/tmp
 export RIDGEBACK_LSF_WALLTIME:=100
 export RIDGEBACK_LSF_SLA:=CMOPI
+export RIDGEBACK_TOIL:=cwltoil
+# LSF variables configured for Juno/Silo HPC
+export LSF_ENVDIR:=/common/juno/OS7/conf
+export LSF_BINDIR:=/common/juno/OS7/10.1/linux3.10-glibc2.17-x86_64/bin
+export LSF_LIBDIR:=/common/juno/OS7/10.1/linux3.10-glibc2.17-x86_64/lib
+export LSF_SERVERDIR:=/common/juno/OS7/10.1/linux3.10-glibc2.17-x86_64/etc
 
 $(RIDGEBACK_TOIL_DIR):
 	mkdir -p "$(RIDGEBACK_TOIL_DIR)"
@@ -160,22 +167,34 @@ django-init: $(LOG_DIR_ABS) toil-init
 
 # ~~~~~~ Celery tasks & RabbitMQ setup ~~~~~ #
 # !! need to start RabbitMQ before celery, and both before running app servers !!
+export RIDGEBACK_RABBITMQ_USERNAME:=guest
+export RABBITMQ_USERNAME:=$(RIDGEBACK_RABBITMQ_USERNAME)
+export RIDGEBACK_RABBITMQ_PASSWORD:=guest
+export RABBITMQ_PASSWORD:=$(RIDGEBACK_RABBITMQ_PASSWORD)
+export RIDGEBACK_RABBITMQ_URL:=localhost
+export RABBITMQ_URL:=$(RIDGEBACK_RABBITMQ_URL)
 export RABBITMQ_CONFIG_FILE:=$(CURDIR)/rabbitmq
 export RABBITMQ_NODENAME:=rabbit_$(CURDIR_BASE)
-export RABBITMQ_NODE_IP_ADDRESS:=127.0.0.1
-export RABBITMQ_NODE_PORT:=5674
+export RIDGEBACK_DEFAULT_QUEUE:=$(RABBITMQ_NODENAME)
+export RABBITMQ_NODE_IP_ADDRESS:=$(RIDGEBACK_RABBITMQ_URL)
+export RABBITMQ_NODE_PORT:=5670
 export RABBITMQ_LOG_BASE:=$(LOG_DIR_ABS)
 export RABBITMQ_LOGS:=rabbitmq.log
 export RABBITMQ_PID_FILE:=$(RABBITMQ_LOG_BASE)/rabbitmq.pid
+export CELERY_LOG_PATH:=$(LOG_DIR_ABS)
+export CELERY_PID_PATH:=$(LOG_DIR_ABS)
+export CELERY_BEAT_SCHEDULE_PATH:=$(LOG_DIR_ABS)
 export CELERY_BEAT_PID_FILE:=$(LOG_DIR_ABS)/celery.beat.pid
 export CELERY_BEAT_LOGFILE:=$(LOG_DIR_ABS)/celery.beat.log
 export CELERY_BEAT_SCHEDULE:=$(LOG_DIR_ABS)/celerybeat-schedule
 export CELERY_WORKER_PID_FILE:=$(LOG_DIR_ABS)/celery.worker.pid
 export CELERY_WORKER_LOGFILE:=$(LOG_DIR_ABS)/celery.worker.log
-export CELERY_BROKER_URL:=amqp://$(RABBITMQ_NODE_IP_ADDRESS):$(RABBITMQ_NODE_PORT)
+export CELERY_BROKER_URL:=amqp://$(RABBITMQ_USERNAME):$(RABBITMQ_PASSWORD)@$(RABBITMQ_NODE_IP_ADDRESS):$(RABBITMQ_NODE_PORT)
 # https://www.rabbitmq.com/configure.html#supported-environment-variables
 # https://www.rabbitmq.com/relocate.html#environment-variables
 # https://www.rabbitmq.com/rabbitmq-server.8.html
+# https://raw.githubusercontent.com/rabbitmq/rabbitmq-server/master/docs/rabbitmq.conf.example
+# https://www.rabbitmq.com/configure.html#config-items
 
 rabbitmq-start:
 	rabbitmq-server -detached
@@ -220,12 +239,15 @@ stop-services:
 	$(MAKE) rabbitmq-stop
 	$(MAKE) db-stop
 
+print-env:
+	env | grep -E 'RABBITMQ_USERNAME|RABBITMQ_PASSWORD|RABBITMQ_URL|CELERY_BROKER_URL|RIDGEBACK_DEFAULT_QUEUE|TOIL_JOB_STORE_ROOT|TOIL_WORK_DIR_ROOT|TOIL_TMP_DIR_ROOT' >> debug.env.log
+
 # ~~~~~ Run ~~~~~ #
 export DJANGO_TEST_LOGFILE:=$(LOG_DIR_ABS)/dj_server.log
 export DJANGO_RIDGEBACK_IP:=localhost
 export DJANGO_RIDGEBACK_PORT:=7001
 # start running the Ridgeback server; make sure RabbitMQ and Celery and Postgres are all running first; make start-services
-runserver: $(LOG_DIR_ABS)
+runserver: $(LOG_DIR_ABS) 
 	python manage.py runserver "$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)"
 
 # enter interactive bash session with the Makefile environment set
