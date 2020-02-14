@@ -239,9 +239,6 @@ stop-services:
 	$(MAKE) rabbitmq-stop
 	$(MAKE) db-stop
 
-print-env:
-	env | grep -E 'RABBITMQ_USERNAME|RABBITMQ_PASSWORD|RABBITMQ_URL|CELERY_BROKER_URL|RIDGEBACK_DEFAULT_QUEUE|TOIL_JOB_STORE_ROOT|TOIL_WORK_DIR_ROOT|TOIL_TMP_DIR_ROOT' >> debug.env.log
-
 # ~~~~~ Run ~~~~~ #
 export DJANGO_TEST_LOGFILE:=$(LOG_DIR_ABS)/dj_server.log
 export DJANGO_RIDGEBACK_IP:=localhost
@@ -266,18 +263,6 @@ demo-submit:
 	--data @fixtures/tests/job.json \
 	"http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
 
-
-# curl -XPOST -H "Content-type: application/json" -d '{
-#   "app": {
-#     "github": {
-#       "repository":"git@github.com:mskcc/ACCESS-Pipeline.git",
-#       "entrypoint": "workflows/ACCESS_pipeline.cwl",
-#       "version": "master"
-#     }
-#   },
-#   "inputs":"/juno/work/access/testing/users/johnsoni/lims_client_09780_B_test_titlefix/inputs.yaml",
-#   "root_dir": "./output"
-# }' 'http://localhost:7001/v0/jobs/'
 
 # check if the ports needed for services and servers are already in use on this system
 ifeq ($(UNAME), Darwin)
