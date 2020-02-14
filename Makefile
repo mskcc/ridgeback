@@ -214,7 +214,7 @@ celery-start:
 	--detach
 	celery -A toil_orchestrator worker \
 	-l info \
-	-Q toil \
+	-Q "$(RIDGEBACK_DEFAULT_QUEUE)" \
 	--pidfile "$(CELERY_WORKER_PID_FILE)" \
 	--logfile "$(CELERY_WORKER_LOGFILE)" \
 	--detach
@@ -247,7 +247,7 @@ export DJANGO_TEST_LOGFILE:=$(LOG_DIR_ABS)/dj_server.log
 export DJANGO_RIDGEBACK_IP:=localhost
 export DJANGO_RIDGEBACK_PORT:=7001
 # start running the Ridgeback server; make sure RabbitMQ and Celery and Postgres are all running first; make start-services
-runserver: $(LOG_DIR_ABS) 
+runserver: $(LOG_DIR_ABS)
 	python manage.py runserver "$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)"
 
 # enter interactive bash session with the Makefile environment set
@@ -260,9 +260,24 @@ jobs:
 	curl "http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
 
 # submit a sample job to Ridgeback
-submit:
-	curl -H "Content-Type: application/json" -X POST --data @fixtures/tests/job.json "http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
+demo-submit:
+	curl -H "Content-Type: application/json" \
+	-X POST \
+	--data @fixtures/tests/job.json \
+	"http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
 
+
+# curl -XPOST -H "Content-type: application/json" -d '{
+#   "app": {
+#     "github": {
+#       "repository":"git@github.com:mskcc/ACCESS-Pipeline.git",
+#       "entrypoint": "workflows/ACCESS_pipeline.cwl",
+#       "version": "master"
+#     }
+#   },
+#   "inputs":"/juno/work/access/testing/users/johnsoni/lims_client_09780_B_test_titlefix/inputs.yaml",
+#   "root_dir": "./output"
+# }' 'http://localhost:7001/v0/jobs/'
 
 # check if the ports needed for services and servers are already in use on this system
 ifeq ($(UNAME), Darwin)
