@@ -1,5 +1,6 @@
 SHELL:=/bin/bash
 UNAME:=$(shell uname)
+HOSTNAME:=$(shell echo $$HOSTNAME)
 CURDIR_BASE:=$(shell basename "$(CURDIR)")
 export LOG_DIR_ABS:=$(shell python -c 'import os; print(os.path.realpath("logs"))')
 
@@ -273,22 +274,18 @@ export SINGULARITYENV_CELERY_PID_PATH:=$(CELERY_PID_PATH)
 export SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH:=$(CELERY_BEAT_SCHEDULE_PATH)
 export SINGULARITY_BIND=/work,/juno,/srv,$(SINGULARITYENV_LSF_LIBDIR),$(SINGULARITYENV_LSF_SERVERDIR),$(SINGULARITYENV_LSF_ENVDIR),$(SINGULARITYENV_LSF_BINDIR)
 
-export SINGULARITYENV_RIDGEBACK_BRANCH=develop
-singularity-build:
-	module load singularity/3.3.0 && \
-	sudo -E singularity build ridgeback_service.sif ridgeback_service.def
-
+# start running the Ridgeback server with the software dependencies saved inside the container
 export RIDGEBACK_SERVICE_SIF:=../ridgeback_service.sif
 singularity-start:
-	module load singularity/3.3.0 && \
+	if grep -q -E 'silo|juno' <<<'$(HOSTNAME)'; then module load singularity/3.3.0; fi ; \
 	singularity instance start $(RIDGEBACK_SERVICE_SIF) ridgeback_service
 
-singularit-stop:
-	module load singularity/3.3.0 && \
+singularity-stop:
+	if grep -q -E 'silo|juno' <<<'$(HOSTNAME)'; then module load singularity/3.3.0; fi ; \
 	singularity instance stop ridgeback_service
 
 singularity-check:
-	module load singularity/3.3.0 && \
+	if grep -q -E 'silo|juno' <<<'$(HOSTNAME)'; then module load singularity/3.3.0; fi ; \
 	singularity instance list
 
 # start running the Ridgeback server; make sure RabbitMQ and Celery and Postgres are all running first; make start-services
