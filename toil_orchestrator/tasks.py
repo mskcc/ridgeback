@@ -22,11 +22,13 @@ def get_aware_datetime(date_str):
 
 
 def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
+    logger.error('On failure to submit')
     job_id = args[0]
     logger.error('Failed to submit job: %s' % job_id)
     job = Job.objects.get(id=job_id)
     job.status = Status.FAILED
     job.save()
+    logger.error('Job Saved')
 
 
 @shared_task(bind=True, max_retries=3, on_failure=on_failure_to_submit)
@@ -44,9 +46,11 @@ def submit_jobs_to_lsf(self, job_id):
         job.output_directory = os.path.join(job_work_dir, 'outputs')
         job.status = Status.PENDING
         job.save()
+        logger.info('Job Saved')
     except Exception as e:
         logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
         self.retry(exc=e, countdown=10)
+
 
 @shared_task(bind=True)
 def cleanup_folder(self,path, job_id,is_jobstore):
@@ -147,7 +151,7 @@ def check_status_of_command_line_jobs(self):
                     already_exists = True
                     single_tool_module = commandLineToolJobs[0]
                     if single_tool_module.status != Status.COMPLETED and single_tool_module != Status.FAILED:
-                        keys_to_modify = ['started','submitted','finished','status','details']
+                        keys_to_modify = ['started', 'submitted', 'finished', 'status', 'details']
                         for single_key in keys_to_modify:
                             key_value = single_command_line_tool[single_key]
                             if key_value:
@@ -158,40 +162,48 @@ def check_status_of_command_line_jobs(self):
                                             if single_detail_value != None:
                                                 old_value = None
                                                 if single_detail_key in single_tool_module.__dict__[single_key]:
-                                                    old_value = single_tool_module.__dict__[single_key][single_detail_key]
-                                                if single_detail_key in ['job_cpu','job_memory']:
+                                                    old_value = single_tool_module.__dict__[single_key][
+                                                        single_detail_key]
+                                                if single_detail_key in ['job_cpu', 'job_memory']:
                                                     if old_value:
                                                         last_record = old_value[-1]
                                                         if last_record[1] != single_detail_value:
-                                                            new_record = (str(now()),single_detail_value)
-                                                            single_tool_module.__dict__[single_key][single_detail_key].append(new_record)
+                                                            new_record = (str(now()), single_detail_value)
+                                                            single_tool_module.__dict__[single_key][
+                                                                single_detail_key].append(new_record)
                                                             updated = True
                                                     else:
-                                                        new_record = (str(now()),single_detail_value)
-                                                        single_tool_module.__dict__[single_key][single_detail_key] = [new_record]
+                                                        new_record = (str(now()), single_detail_value)
+                                                        single_tool_module.__dict__[single_key][single_detail_key] = [
+                                                            new_record]
                                                         updated = True
                                                 else:
                                                     if old_value != single_detail_value:
-                                                        single_tool_module.__dict__[single_key][single_detail_key] = single_detail_value
+                                                        single_tool_module.__dict__[single_key][
+                                                            single_detail_key] = single_detail_value
                                                         updated = True
                                     else:
-                                        if single_key in ['started','submitted','finished']:
+                                        if single_key in ['started', 'submitted', 'finished']:
                                             if single_tool_module.__dict__[single_key] != None:
                                                 continue
-                                                if get_aware_datetime(single_tool_module.__dict__[single_key]) == get_aware_datetime(key_value):
+                                                if get_aware_datetime(
+                                                        single_tool_module.__dict__[single_key]) == get_aware_datetime(
+                                                        key_value):
                                                     continue
                                         single_tool_module.__dict__[single_key] = key_value
                                         updated = True
             if not already_exists:
                 if details:
-                    for single_detail_key in ['job_cpu','job_memory']:
+                    for single_detail_key in ['job_cpu', 'job_memory']:
                         if single_detail_key in details:
                             single_detail_value = details[single_detail_key]
                             if single_detail_value:
                                 new_record = (str(now()),single_detail_value)
                                 details[single_detail_key] = [new_record]
-                single_tool_module = CommandLineToolJob(root=current_job,status=status, started=started, submitted=submitted,finished=finished,job_name=single_command_line_tool['name'],job_id=single_command_line_tool['id'],details=details)
+                single_tool_module = CommandLineToolJob(root=current_job, status=status, started=started,
+                                                        submitted=submitted, finished=finished,
+                                                        job_name=single_command_line_tool['name'],
+                                                        job_id=single_command_line_tool['id'], details=details)
                 updated = True
             if updated:
                 single_tool_module.save()
-
