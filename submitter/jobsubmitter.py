@@ -3,7 +3,7 @@ import git
 import json
 import shutil
 from django.conf import settings
-from lsf_client.lsf_client import LSFClient
+from batch_systems.lsf_client.lsf_client import LSFClient
 
 
 class App(object):
