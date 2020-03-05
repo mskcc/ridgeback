@@ -33,7 +33,7 @@ class GithubApp(App):
     type = "github"
 
     def __init__(self, github, entrypoint, version='master'):
-        super(App, self).__init__()
+        super().__init__()
         self.github = github
         self.entrypoint = entrypoint
         self.version = version
