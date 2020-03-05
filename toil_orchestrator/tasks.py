@@ -79,22 +79,22 @@ def check_status_of_jobs(self):
     for job in jobs:
         submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
         if job.external_id:
-            lsf_status = submiter.status(job.external_id)
-            if lsf_status == 'PEND':
-                job.status = Status.PENDING
-            elif lsf_status == 'RUN':
-                job.status = Status.RUNNING
-            elif lsf_status == 'DONE':
-                job.status = Status.COMPLETED
-                outputs = submiter.get_outputs()
-                job.outputs = outputs
+            lsf_status_info = submiter.status(job.external_id)
+            if lsf_status_info:
+                lsf_status, lsf_message = lsf_status_info
+                job.status = lsf_status
+                if lsf_message:
+                    job.message = lsf_message
+                if lsf_status == Status.COMPLETED:
+                    outputs = submiter.get_outputs()
+                    job.outputs = outputs
             else:
-                job.status = Status.FAILED
-                job.outputs = {'error': 'LSF status %s' % lsf_status}
+                logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,job.external_id))
+                job.message = 'Job [{}], Could not retrieve status'.format(job.id)
         else:
-            logger.info('Job %s not submitted to lsf' % str(job.id))
+            logger.info('Job [{}] not submitted to lsf'.format(job.id))
             job.status = Status.FAILED
-            job.outputs = {'error': 'External id not provided %s' % str(job.id)}
+            job.message = 'Job [{}], External id not provided'.format(job.id)
         job.save()
 
 
