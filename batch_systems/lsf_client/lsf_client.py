@@ -70,14 +70,14 @@ class LSFClient(object):
                     self.logger.debug(
                         "Job [{}] completed".format(external_job_id))
                     return (Status.COMPLETED, None)
-                if process_status == 'PEND':
+                elif process_status == 'PEND':
                     pending_info = None
                     if 'PEND_REASON' in process_output:
                         if process_output['PEND_REASON']:
                             pending_info = process_output['PEND_REASON']
                     self.logger.debug("Job [{}] pending with: {}".format(external_job_id, pending_info))
-                if process_status == 'EXIT':
                     return (Status.PENDING, pending_info.strip())
+                elif process_status == 'EXIT':
                     exit_code = 1
                     exit_info = None
                     if 'EXIT_CODE' in process_output:
@@ -90,16 +90,22 @@ class LSFClient(object):
                             exit_info += "\nexit reason: {}".format(exit_reason)
                     self.logger.error(
                         "Job [{}] failed with: {}".format(external_job_id, exit_info))
-                if process_status == 'RUN':
                     return (Status.FAILED, exit_info.strip())
+                elif process_status == 'RUN':
                     self.logger.debug(
                         "Job [{}] is running".format(external_job_id))
                     return (Status.RUNNING, None)
-                if process_status in {'PSUSP', 'USUSP', 'SSUSP'}:
+                elif process_status in {'PSUSP', 'USUSP', 'SSUSP'}:
                     self.logger.debug(
                         "Job [{}] is suspended".format(external_job_id))
                     suspended_info = "Job suspended"
-                    return (Status.PENDING, suspended_info)
+                    return (Status.PENDING, suspended_info.strip())
+                else:
+                    self.logger.debug(
+                        "Job [{}] is in an unhandled state ({})".format(external_job_id,process_status)
+                        )
+                    status_info = "Job is in an unhandles state: {}".format(process_status)
+                    return (Status.UNKOWN, status_info.strip())
         return status
 
     def status(self, external_job_id):
