@@ -183,8 +183,6 @@ class ReadOnlyFileJobStore(FileJobStore):
     def getStatsFiles(self):
         stats_file_list = []
         statsDirectories = []
-        if hasattr(self, "_tempDirectories"):
-            statsDirectories = self._tempDirectories()
         if hasattr(self, "_statsDirectories"):
             statsDirectories = self._statsDirectories()
         for tempDir in statsDirectories:
