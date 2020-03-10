@@ -207,3 +207,8 @@ def check_status_of_command_line_jobs(self):
                 updated = True
             if updated:
                 single_tool_module.save()
+    commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING,Status.PENDING))
+    for single_command_line_tool in commandLineToolJobs:
+        if single_command_line_tool.root.status != Status.RUNNING:
+            single_command_line_tool.__dict__['status'] = Status.UNKOWN
+            single_command_line_tool.save()
