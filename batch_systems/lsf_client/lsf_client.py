@@ -76,8 +76,8 @@ class LSFClient(object):
                         if process_output['PEND_REASON']:
                             pending_info = process_output['PEND_REASON']
                     self.logger.debug("Job [{}] pending with: {}".format(external_job_id, pending_info))
-                    return (Status.PENDING, pending_info)
                 if process_status == 'EXIT':
+                    return (Status.PENDING, pending_info.strip())
                     exit_code = 1
                     exit_info = None
                     if 'EXIT_CODE' in process_output:
@@ -90,8 +90,8 @@ class LSFClient(object):
                             exit_info += "\nexit reason: {}".format(exit_reason)
                     self.logger.error(
                         "Job [{}] failed with: {}".format(external_job_id, exit_info))
-                    return (Status.FAILED, exit_info)
                 if process_status == 'RUN':
+                    return (Status.FAILED, exit_info.strip())
                     self.logger.debug(
                         "Job [{}] is running".format(external_job_id))
                     return (Status.RUNNING, None)
