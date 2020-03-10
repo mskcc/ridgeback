@@ -28,6 +28,7 @@ class Job(BaseModel):
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
     output_dir = models.CharField(max_length=1000, null=True, blank=True)
     status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=Status.CREATED)
+    message = models.CharField(max_length=500, null=True, blank=True)
     inputs = JSONField(blank=True, null=True)
     outputs = JSONField(blank=True, null=True)
     job_store_clean_up = models.DateTimeField(blank=True, null=True)
@@ -37,7 +38,6 @@ class Job(BaseModel):
 class CommandLineToolJob(BaseModel):
     root = models.ForeignKey(Job, blank=False, null=False, on_delete=models.CASCADE)
     status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=0)
-    message = models.TextField(blank=True, null=True)
     started = models.DateTimeField(blank=True, null=True)
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
