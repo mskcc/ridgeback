@@ -177,7 +177,7 @@ class LSFClient():
         """Parse LSF status
 
         Args:
-            external_job_id (TYPE): LSF id
+            external_job_id (int): LSF id
 
         Returns:
             tuple: (Ridgeback Status int, extra info)
