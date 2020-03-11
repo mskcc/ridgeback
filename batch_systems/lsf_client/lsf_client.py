@@ -1,3 +1,6 @@
+'''
+Submit and monitor LSF jobs
+'''
 import os
 import re
 import subprocess
@@ -8,12 +11,32 @@ from django.conf import settings
 from toil_orchestrator.models import Status
 
 
-class LSFClient(object):
+class LSFClient():
+
+    '''
+    Client for LSF
+
+    Attributes:
+        logger (logging): logging module
+    '''
 
     def __init__(self):
+        '''
+        init function
+        '''
         self.logger = logging.getLogger('LSF_client')
 
     def submit(self, command, stdout):
+        '''
+        Submit command to LSF and store log in stdout
+
+        Args:
+            command (str): command to submit
+            stdout (str): log file path
+
+        Returns:
+            int: lsf job id
+        '''
         bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout]
         toil_lsf_args = '-sla %s' % settings.LSF_SLA
         if settings.LSF_WALLTIME:
@@ -22,12 +45,22 @@ class LSFClient(object):
         bsub_command.extend(command)
         current_env = os.environ
         current_env['TOIL_LSF_ARGS'] = toil_lsf_args
-        self.logger.debug("Running command: %s\nEnv: %s" % (bsub_command,current_env))
+        self.logger.debug("Running command: %s\nEnv: %s", bsub_command, current_env)
         process = subprocess.run(
-            bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True, env=current_env)
+            bsub_command, check=True, stdout=subprocess.PIPE,
+            universal_newlines=True, env=current_env)
         return self._parse_procid(process.stdout)
 
-    def parse_bjobs(self,bjobs_output_str):
+    def parse_bjobs(self, bjobs_output_str):
+        """
+        Parse the output of bjobs into a descriptive dict
+
+        Args:
+            bjobs_output_str (str): Stdout from bjobs
+
+        Returns:
+            Dict: bjobs records
+        """
         bjobs_dict = None
         bjobs_records = None
         # Handle Cannot connect to LSF. Please wait ... type messages
@@ -38,79 +71,121 @@ class LSFClient(object):
             try:
                 bjobs_dict = json.loads(bjobs_output)
             except json.decoder.JSONDecodeError:
-                self.logger.error("Could not parse bjobs output: {}".format(bjobs_output_str))
+                self.logger.error("Could not parse bjobs output: %s", bjobs_output_str)
             if 'RECORDS' in bjobs_dict:
                 bjobs_records = bjobs_dict['RECORDS']
-        if bjobs_records == None:
-            self.logger.error("Could not find bjobs output json in: {}".format(bjobs_output_str))
+        if bjobs_records is None:
+            self.logger.error("Could not find bjobs output json in: %s", bjobs_output_str)
 
         return bjobs_records
 
 
     def _parse_procid(self, stdout):
-        self.logger.debug("LSF returned %s" % stdout)
+        """
+        Parse bsub output and retrieve the LSF id
+
+        Args:
+            stdout (str): bsub output
+
+        Returns:
+            int: LSF id
+        """
+        self.logger.debug("LSF returned %s", stdout)
         lsf_job_id_search = re.search('Job <(.*)> is submitted', stdout)
         if lsf_job_id_search:
             lsf_job_id = int(lsf_job_id_search[1])
-            self.logger.debug("Got the job id: {}".format(lsf_job_id))
+            self.logger.debug("Got the job id: %s", lsf_job_id)
         else:
-            self.logger.error("Could not submit job\nReason: {}".format(stdout))
+            self.logger.error("Could not submit job\nReason: %s", stdout)
             temp_id = randint(10000000, 99999999)
-            result = "NOT_SUBMITTED_{}".format(temp_id)
+            lsf_job_id = "NOT_SUBMITTED_{}".format(temp_id)
         return lsf_job_id
 
+    def _handle_status(self, process_status, process_output, external_job_id):
+        """
+        Map LSF status to Ridgeback status
+
+        Args:
+            process_status (str): LSF status of process
+            process_output (dict): LSF record dict
+            external_job_id (str): LSF job id
+
+        Returns:
+            tuple: (Ridgeback Status int, extra info)
+        """
+        if process_status == 'DONE':
+            self.logger.debug(
+                "Job [%s] completed", external_job_id)
+            return (Status.COMPLETED, None)
+        if process_status == 'PEND':
+            pending_info = None
+            if 'PEND_REASON' in process_output:
+                if process_output['PEND_REASON']:
+                    pending_info = process_output['PEND_REASON']
+            self.logger.debug("Job [%s] pending with: %s", external_job_id, pending_info)
+            return (Status.PENDING, pending_info.strip())
+        if process_status == 'EXIT':
+            exit_code = 1
+            exit_info = None
+            if 'EXIT_CODE' in process_output:
+                if process_output['EXIT_CODE']:
+                    exit_code = process_output['EXIT_CODE']
+                    exit_info = "\nexit code: {}".format(exit_code)
+            if 'EXIT_REASON' in process_output:
+                if process_output['EXIT_REASON']:
+                    exit_reason = process_output['EXIT_REASON']
+                    exit_info += "\nexit reason: {}".format(exit_reason)
+            self.logger.error(
+                "Job [%s] failed with: %s", external_job_id, exit_info)
+            return (Status.FAILED, exit_info.strip())
+        if process_status == 'RUN':
+            self.logger.debug(
+                "Job [%s] is running", external_job_id)
+            return (Status.RUNNING, None)
+        if process_status in {'PSUSP', 'USUSP', 'SSUSP'}:
+            self.logger.debug(
+                "Job [%s] is suspended", external_job_id)
+            suspended_info = "Job suspended"
+            return (Status.PENDING, suspended_info.strip())
+        self.logger.debug(
+            "Job [%s] is in an unhandled state (%s)", external_job_id, process_status)
+        status_info = "Job is in an unhandles state: {}".format(process_status)
+        return (Status.UNKOWN, status_info.strip())
+
+
     def _parse_status(self, stdout, external_job_id):
+        """Parse LSF stdout helper
+
+        Args:
+            stdout (str): stdout of bjobs
+            external_job_id (int): LSF id
+
+        Returns:
+            tuple: (Ridgeback Status int, extra info)
+        """
         bjobs_records = self.parse_bjobs(stdout)
         status = None
         if bjobs_records:
             process_output = bjobs_records[0]
             if 'STAT' in process_output:
                 process_status = process_output['STAT']
-                if process_status == 'DONE':
-                    self.logger.debug(
-                        "Job [{}] completed".format(external_job_id))
-                    return (Status.COMPLETED, None)
-                elif process_status == 'PEND':
-                    pending_info = None
-                    if 'PEND_REASON' in process_output:
-                        if process_output['PEND_REASON']:
-                            pending_info = process_output['PEND_REASON']
-                    self.logger.debug("Job [{}] pending with: {}".format(external_job_id, pending_info))
-                    return (Status.PENDING, pending_info.strip())
-                elif process_status == 'EXIT':
-                    exit_code = 1
-                    exit_info = None
-                    if 'EXIT_CODE' in process_output:
-                        if process_output['EXIT_CODE']:
-                            exit_code = process_output['EXIT_CODE']
-                            exit_info = "\nexit code: {}".format(exit_code)
-                    if 'EXIT_REASON' in process_output:
-                        if process_output['EXIT_REASON']:
-                            exit_reason = process_output['EXIT_REASON']
-                            exit_info += "\nexit reason: {}".format(exit_reason)
-                    self.logger.error(
-                        "Job [{}] failed with: {}".format(external_job_id, exit_info))
-                    return (Status.FAILED, exit_info.strip())
-                elif process_status == 'RUN':
-                    self.logger.debug(
-                        "Job [{}] is running".format(external_job_id))
-                    return (Status.RUNNING, None)
-                elif process_status in {'PSUSP', 'USUSP', 'SSUSP'}:
-                    self.logger.debug(
-                        "Job [{}] is suspended".format(external_job_id))
-                    suspended_info = "Job suspended"
-                    return (Status.PENDING, suspended_info.strip())
-                else:
-                    self.logger.debug(
-                        "Job [{}] is in an unhandled state ({})".format(external_job_id,process_status)
-                        )
-                    status_info = "Job is in an unhandles state: {}".format(process_status)
-                    return (Status.UNKOWN, status_info.strip())
+                return self._handle_status(process_status, process_output, external_job_id)
+
         return status
 
     def status(self, external_job_id):
-        bsub_command = ["bjobs", "-json", "-o","user exit_code stat exit_reason pend_reason", str(external_job_id)]
-        self.logger.debug("Checking lsf status for job: {}".format(external_job_id))
-        process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
+        """Parse LSF status
+
+        Args:
+            external_job_id (TYPE): LSF id
+
+        Returns:
+            tuple: (Ridgeback Status int, extra info)
+        """
+        bsub_command = ["bjobs", "-json", "-o",
+                        "user exit_code stat exit_reason pend_reason", str(external_job_id)]
+        self.logger.debug("Checking lsf status for job: %s", external_job_id)
+        process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE,
+                                 universal_newlines=True)
         status = self._parse_status(process.stdout, external_job_id)
         return status
