@@ -3,7 +3,7 @@ import git
 import json
 import shutil
 from django.conf import settings
-from lsf_client.lsf_client import LSFClient
+from batch_systems.lsf_client.lsf_client import LSFClient
 
 
 class App(object):
@@ -33,7 +33,7 @@ class GithubApp(App):
     type = "github"
 
     def __init__(self, github, entrypoint, version='master'):
-        super(App, self).__init__()
+        super().__init__()
         self.github = github
         self.entrypoint = entrypoint
         self.version = version

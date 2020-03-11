@@ -128,7 +128,7 @@ class ReadOnlyFileJobStore(FileJobStore):
         self.job_cache = {}
         self.stats_cache = {}
         self.job_store_path = path
-        self.logger = None
+        self.logger = logging.getLogger('file_job_store')
 
     def check_if_job_exists(self,job_store_id):
         try:
@@ -183,8 +183,6 @@ class ReadOnlyFileJobStore(FileJobStore):
     def getStatsFiles(self):
         stats_file_list = []
         statsDirectories = []
-        if hasattr(self, "_tempDirectories"):
-            statsDirectories = self._tempDirectories()
         if hasattr(self, "_statsDirectories"):
             statsDirectories = self._statsDirectories()
         for tempDir in statsDirectories:
@@ -291,6 +289,8 @@ class ToilTrack():
     def resume_job_store(self):
         logger = self.logger
         job_store_path = self.job_store_path
+        if not job_store_path:
+            return
         read_only_job_store_obj = ReadOnlyFileJobStore(job_store_path)
         read_only_job_store_obj.resume()
         read_only_job_store_obj.setJobCache()
@@ -399,13 +399,12 @@ class ToilTrack():
             return
         current_time = get_current_time()
         for single_job in job_store.getFailedJobs():
-            job_name = single_job.jobName
-            failed_job_log_file = single_job.logJobStoreFileID
             retry_count = single_job.remainingRetryCount
             jobstore_id = single_job.jobStoreID
             if retry_count == 0 and jobstore_id not in retry_job_ids:
                 continue
             retry_count = retry_count + 1
+            job_name = single_job.jobName
             job_id = self.create_job_id(single_job.jobStoreID,retry_count)
             self.mark_job_as_failed(job_id,job_name)
         for single_job in job_store.getRestartedJobs():
@@ -654,7 +653,7 @@ class ToilTrack():
                             job_submitted = None
                             job_started = None
                             job_finished = None
-                            if job_status == 3 or job_status == 4:
+                            if job_status == status_name_dict['done'] or job_status == status_name_dict['exit']:
                                 job_finished = single_job_obj
                             if 'started' in jobs_dict[single_tool]:
                                 if single_job in jobs_dict[single_tool]['started']:
