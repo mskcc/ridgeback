@@ -12,6 +12,7 @@ import shutil
 
 
 logger = logging.getLogger(__name__)
+RETRY_NUMBER = 5
 
 
 def get_aware_datetime(date_str):
@@ -19,6 +20,29 @@ def get_aware_datetime(date_str):
     if not is_aware(datetime_obj):
         datetime_obj = make_aware(datetime_obj)
     return datetime_obj
+
+def retry_submit(job_id, external_job_id, job_store_location, job_work_dir, output_directory, status):
+    retry_attempt = 1
+    job_saved = False
+    while not job_saved and retry_attempt < RETRY_NUMBER:
+        job = Job.objects.get(id=job_id)
+        job.external_id = external_job_id
+        job.job_store_location = job_store_location
+        job.working_dir = job_work_dir
+        job.output_directory = output_directory
+        job.status = status
+        job.save()
+        job = Job.objects.get(id=job_id)
+        if job.status == status:
+            logger.info('Job %s saved' % job_id)
+            job_saved = True
+        else:
+            logger.info('Job %s failed to save, trying again (attempt: %s/%s)' % (job_id, retry_attempt, RETRY_NUMBER))
+        retry_attempt += 1
+    return job_saved
+
+
+
 
 
 def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
@@ -38,15 +62,14 @@ def submit_jobs_to_lsf(self, job_id):
     try:
         logger.info("Submitting job %s to lsf" % job.id)
         submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
-        external_job_id, job_store_dir, job_work_dir = submitter.submit()
+        external_job_id, job_store_location, job_work_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
-        job.external_id = external_job_id
-        job.job_store_location = job_store_dir
-        job.working_dir = job_work_dir
-        job.output_directory = os.path.join(job_work_dir, 'outputs')
-        job.status = Status.PENDING
-        job.save()
-        logger.info('Job Saved')
+        output_directory = os.path.join(job_work_dir, 'outputs')
+        status = Status.PENDING
+        job_submit = retry_submit(job_id,external_job_id,job_store_location,job_work_dir,output_directory,status)
+        if not job_submit:
+            logger.info("Failed to submit job %s" % job_id)
+            self.retry(exc=e, countdown=10)
     except Exception as e:
         logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
         self.retry(exc=e, countdown=10)
