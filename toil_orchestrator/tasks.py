@@ -5,6 +5,7 @@ from .toil_track_utils import ToilTrack
 from celery import shared_task
 from submitter.jobsubmitter import JobSubmitter
 import json
+from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
@@ -19,6 +20,26 @@ def get_aware_datetime(date_str):
     if not is_aware(datetime_obj):
         datetime_obj = make_aware(datetime_obj)
     return datetime_obj
+
+def get_job_info_path(job_id):
+    work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, str(job_id))
+    job_info_path = os.path.join(work_dir,'.run.info')
+    return job_info_path
+
+
+def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
+    if os.path.exists(working_dir):
+        job_info = {'external_id': external_id,
+                    'job_store_location': job_store_location,
+                    'working_dir': working_dir,
+                    'output_directory': output_directory
+                    }
+        job_info_path = get_job_info_path(job_id)
+        with open(job_info_path,'w') as job_info_file:
+            json.dump(job_info,job_info_file)
+    else:
+        logger.error('Working directory %s does not exist', working_dir)
+
 
 
 def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
@@ -40,17 +61,17 @@ def submit_jobs_to_lsf(self, job_id):
         submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
         external_job_id, job_store_dir, job_work_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
+        output_directory = os.path.join(job_work_dir, 'outputs')
+        save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, output_directory)
         job.external_id = external_job_id
         job.job_store_location = job_store_dir
         job.working_dir = job_work_dir
-        job.output_directory = os.path.join(job_work_dir, 'outputs')
+        job.output_directory = output_directory
         job.status = Status.PENDING
         job.save()
-        logger.info('Job Saved')
     except Exception as e:
         logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
         self.retry(exc=e, countdown=10)
-
 
 @shared_task(bind=True)
 def cleanup_folder(self,path, job_id,is_jobstore):
@@ -75,6 +96,22 @@ def cleanup_folder(self,path, job_id,is_jobstore):
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
+    created_jobs = Job.objects.filter(status__exact=(Status.CREATED)).all()
+    for single_created_job in created_jobs:
+        job_info_path = get_job_info_path(single_created_job.id)
+        if os.path.exists(job_info_path):
+            try:
+                with open(job_info_path) as job_info_file:
+                    job_info_data = json.load(job_info_file)
+                single_created_job.external_id = job_info_data['external_id']
+                single_created_job.job_store_location = job_info_data['job_store_location']
+                single_created_job.working_dir = job_info_data['working_dir']
+                single_created_job.output_directory = job_info_data['output_directory']
+                single_created_job.status = Status.PENDING
+                single_created_job.save()
+            except Exception as e:
+                error_message = "Failed to update job %s from file: %s\n%s" % (single_created_job.id, job_info_path,str(e))
+                logger.info(error_message)
     jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING)).all()
     for job in jobs:
         submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
