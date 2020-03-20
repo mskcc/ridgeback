@@ -96,24 +96,26 @@ def cleanup_folder(self,path, job_id,is_jobstore):
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    created_jobs = Job.objects.filter(status__exact=(Status.CREATED)).all()
-    for single_created_job in created_jobs:
-        job_info_path = get_job_info_path(single_created_job.id)
-        if os.path.exists(job_info_path):
-            try:
-                with open(job_info_path) as job_info_file:
-                    job_info_data = json.load(job_info_file)
-                single_created_job.external_id = job_info_data['external_id']
-                single_created_job.job_store_location = job_info_data['job_store_location']
-                single_created_job.working_dir = job_info_data['working_dir']
-                single_created_job.output_directory = job_info_data['output_directory']
-                single_created_job.status = Status.PENDING
-                single_created_job.save()
-            except Exception as e:
-                error_message = "Failed to update job %s from file: %s\n%s" % (single_created_job.id, job_info_path,str(e))
-                logger.info(error_message)
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING)).all()
+    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED)).all()
     for job in jobs:
+        if job.status == Status.CREATED:
+            job_info_path = get_job_info_path(single_created_job.id)
+            if os.path.exists(job_info_path):
+                try:
+                    with open(job_info_path) as job_info_file:
+                        job_info_data = json.load(job_info_file)
+                    single_created_job.external_id = job_info_data['external_id']
+                    single_created_job.job_store_location = job_info_data['job_store_location']
+                    single_created_job.working_dir = job_info_data['working_dir']
+                    single_created_job.output_directory = job_info_data['output_directory']
+                    lsf_status, lsf_message = submiter.status(job_info_data['external_id'])
+                    single_created_job.status = lsf_status
+                    if lsf_message:
+                        single_created_job.message = lsf_message
+                    single_created_job.save()
+                except Exception as e:
+                    error_message = "Failed to update job %s from file: %s\n%s" % (single_created_job.id, job_info_path,str(e))
+                    logger.info(error_message)
         submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
         if job.external_id:
             lsf_status_info = submiter.status(job.external_id)
