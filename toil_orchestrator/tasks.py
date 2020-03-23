@@ -59,14 +59,13 @@ def submit_jobs_to_lsf(self, job_id):
     try:
         logger.info("Submitting job %s to lsf" % job.id)
         submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
-        external_job_id, job_store_dir, job_work_dir = submitter.submit()
+        external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
-        output_directory = os.path.join(job_work_dir, 'outputs')
-        save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, output_directory)
+        save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
         job.external_id = external_job_id
         job.job_store_location = job_store_dir
         job.working_dir = job_work_dir
-        job.output_directory = output_directory
+        job.output_directory = job_output_dir
         job.status = Status.PENDING
         job.save()
     except Exception as e:
