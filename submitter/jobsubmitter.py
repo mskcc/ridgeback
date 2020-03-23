@@ -62,7 +62,9 @@ class JobSubmitter(object):
     def submit(self):
         self._prepare_directories()
         command_line = self._command_line()
-        return self.lsf_client.submit(command_line, os.path.join(self.job_work_dir, 'lsf.log')), self.job_store_dir, self.job_work_dir
+        log_path = os.path.join(self.job_work_dir, 'lsf.log')
+        external_id = self.lsf_client.submit(command_line, log_path)
+        return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def status(self, external_id):
         return self.lsf_client.status(external_id)
