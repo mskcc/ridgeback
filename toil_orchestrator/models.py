@@ -26,7 +26,6 @@ class Job(BaseModel):
     root_dir = models.CharField(max_length=1000)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
-    output_dir = models.CharField(max_length=1000, null=True, blank=True)
     status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=Status.CREATED)
     message = models.CharField(max_length=500, null=True, blank=True)
     inputs = JSONField(blank=True, null=True)
