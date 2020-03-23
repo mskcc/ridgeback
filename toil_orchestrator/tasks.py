@@ -108,16 +108,12 @@ def check_status_of_jobs(self):
                     job.job_store_location = job_info_data['job_store_location']
                     job.working_dir = job_info_data['working_dir']
                     job.output_directory = job_info_data['output_directory']
-                    lsf_status, lsf_message = submiter.status(job_info_data['external_id'])
-                    job.status = lsf_status
-                    if lsf_message:
-                        job.message = lsf_message
-                    job.save()
+                    job.status = Status.PENDING
                 except Exception as e:
                     error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
                     logger.info(error_message)
-        submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
-        if job.external_id:
+        elif job.external_id:
+            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
             lsf_status_info = submiter.status(job.external_id)
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info
