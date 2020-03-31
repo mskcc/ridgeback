@@ -56,7 +56,7 @@ class JobSubmitter(object):
         self.lsf_client = LSFClient()
         self.job_store_dir = os.path.join(settings.TOIL_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
-        self.job_outputs_dir = os.path.join(root_dir, 'outputs')
+        self.job_outputs_dir = os.path.join(root_dir)
         self.job_tmp_dir = os.path.join(settings.TOIL_TMP_DIR_ROOT, self.job_id)
 
     def submit(self):
