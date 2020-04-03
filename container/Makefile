@@ -1,13 +1,7 @@
 SHELL:=/bin/bash
 
-# build the Docker container with Singularity in it
-export DOCKERTAG:=singularity-3.3.0
-singularity-docker-container-build:
-	cd Singularity-3.3.0 && \
-	docker build -t "$(DOCKERTAG)" .
-
-# build the singularity container
-# on HPC: module load singularity/3.3.0 &&
+# build the singularity container using Docker
+export DOCKERTAG:=singularityware/singularity:v3.3.0
 export SINGULARITYENV_RIDGEBACK_BRANCH=develop
 export SINGULARITYDIR:=$(CURDIR)
 singularity-build-docker:
@@ -16,7 +10,8 @@ singularity-build-docker:
 	--rm \
 	-ti \
 	-v "$(SINGULARITYDIR):/image" "$(DOCKERTAG)" \
-	bash -c 'cd /image && singularity build ridgeback_service.sif ridgeback_service.def'
+	build /image/ridgeback_service.sif /image/ridgeback_service.def
 
+# on HPC: module load singularity/3.3.0 &&
 singularity-build:
 	sudo -E singularity build ridgeback_service.sif ridgeback_service.def
