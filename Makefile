@@ -1,5 +1,6 @@
 SHELL:=/bin/bash
 UNAME:=$(shell uname)
+HOSTNAME:=$(shell echo $$HOSTNAME)
 CURDIR_BASE:=$(shell basename "$(CURDIR)")
 export LOG_DIR_ABS:=$(shell python -c 'import os; print(os.path.realpath("logs"))')
 
@@ -243,6 +244,50 @@ stop-services:
 export DJANGO_TEST_LOGFILE:=$(LOG_DIR_ABS)/dj_server.log
 export DJANGO_RIDGEBACK_IP:=localhost
 export DJANGO_RIDGEBACK_PORT:=7001
+
+
+# Singularity environment variables
+# # module load singularity/3.3.0
+export SINGULARITYENV_SINGULARITY_PATH:=/opt/local/singularity/3.3.0/bin/singularity
+# export SINGULARITYENV_RIDGEBACK_VENV:=
+export SINGULARITYENV_RIDGEBACK_PATH:=$(CURDIR)
+export SINGULARITYENV_RIDGEBACK_PORT:=$(DJANGO_RIDGEBACK_PORT)
+export SINGULARITYENV_RIDGEBACK_DEFAULT_QUEUE:=$(RIDGEBACK_DEFAULT_QUEUE)
+export SINGULARITYENV_RIDGEBACK_RABBITMQ_USERNAME:=$(RIDGEBACK_RABBITMQ_USERNAME)
+export SINGULARITYENV_RIDGEBACK_RABBITMQ_PASSWORD:=$(RIDGEBACK_RABBITMQ_PASSWORD)
+export SINGULARITYENV_RIDGEBACK_DB_NAME:=$(RIDGEBACK_DB_NAME)
+export SINGULARITYENV_RIDGEBACK_DB_USERNAME:=$(RIDGEBACK_DB_USERNAME)
+export SINGULARITYENV_RIDGEBACK_DB_PASSWORD:=$(RIDGEBACK_DB_USERNAME)
+export SINGULARITYENV_RIDGEBACK_DB_PORT:=$(RIDGEBACK_DB_PORT)
+export SINGULARITYENV_RIDGEBACK_TOIL_JOB_STORE_ROOT:=$(RIDGEBACK_TOIL_JOB_STORE_ROOT)
+export SINGULARITYENV_RIDGEBACK_TOIL_WORK_DIR_ROOT:=$(RIDGEBACK_TOIL_WORK_DIR_ROOT)
+export SINGULARITYENV_RIDGEBACK_TOIL_TMP_DIR_ROOT:=$(RIDGEBACK_TOIL_TMP_DIR_ROOT)
+export SINGULARITYENV_LSF_LIBDIR:=$(LSF_LIBDIR)
+export SINGULARITYENV_LSF_SERVERDIR:=$(LSF_SERVERDIR)
+export SINGULARITYENV_LSF_ENVDIR:=$(LSF_ENVDIR)
+export SINGULARITYENV_LSF_BINDIR:=$(LSF_BINDIR)
+export SINGULARITYENV_RIDGEBACK_LSF_SLA:=$(RIDGEBACK_LSF_SLA)
+export SINGULARITYENV_RIDGEBACK_LSF_WALLTIME:=$(LSF_WALLTIME)
+# export SINGULARITYENV_RIDGEBACK_LSF_STACKLIMIT:=
+export SINGULARITYENV_CELERY_LOG_PATH:=$(CELERY_LOG_PATH)
+export SINGULARITYENV_CELERY_PID_PATH:=$(CELERY_PID_PATH)
+export SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH:=$(CELERY_BEAT_SCHEDULE_PATH)
+export SINGULARITY_BIND=/work,/juno,/srv,$(SINGULARITYENV_LSF_LIBDIR),$(SINGULARITYENV_LSF_SERVERDIR),$(SINGULARITYENV_LSF_ENVDIR),$(SINGULARITYENV_LSF_BINDIR)
+
+# start running the Ridgeback server with the software dependencies saved inside the container
+export RIDGEBACK_SERVICE_SIF:=../ridgeback_service.sif
+singularity-start:
+	if grep -q -E 'silo|juno' <<<'$(HOSTNAME)'; then module load singularity/3.3.0; fi ; \
+	singularity instance start $(RIDGEBACK_SERVICE_SIF) ridgeback_service
+
+singularity-stop:
+	if grep -q -E 'silo|juno' <<<'$(HOSTNAME)'; then module load singularity/3.3.0; fi ; \
+	singularity instance stop ridgeback_service
+
+singularity-check:
+	if grep -q -E 'silo|juno' <<<'$(HOSTNAME)'; then module load singularity/3.3.0; fi ; \
+	singularity instance list
+
 # start running the Ridgeback server; make sure RabbitMQ and Celery and Postgres are all running first; make start-services
 runserver: $(LOG_DIR_ABS)
 	python manage.py runserver "$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)"
