@@ -10,7 +10,7 @@ class App(object):
 
     def factory(app):
         if app.get('github'):
-            repo = app['github']['repository']
+            repo = app['github']['repository'].replace(".git", "")
             entrypoint = app['github']['entrypoint']
             version = app['github'].get('version', 'master')
             return GithubApp(repo, entrypoint, version)
