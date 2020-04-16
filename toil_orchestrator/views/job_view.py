@@ -1,5 +1,5 @@
 from toil_orchestrator.models import Job, Status
-from toil_orchestrator.serializers import JobSerializer
+from toil_orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer
 from toil_orchestrator.tasks import submit_jobs_to_lsf
 from rest_framework import mixins
 from rest_framework import status
@@ -27,6 +27,10 @@ class JobViewSet(mixins.CreateModelMixin,
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(request_body=JobResumeSerializer, responses={201: JobSerializer})
+
+    @swagger_auto_schema(request_body=JobSubmitSerializer, responses={201: JobSerializer})
 
     def list(self, request, *args, **kwargs):
         queryset = Job.objects.order_by('created_date').all()
