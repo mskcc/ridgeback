@@ -62,12 +62,11 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = (
-        'id', 'status', 'created_date', 'app', 'inputs', 'outputs', 'root_dir', 'job_store_location', 'working_dir')
+        fields = '__all__'
 
 
 class CommandLineToolJobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommandLineToolJob
-        fields = ('id', 'root', 'status', 'job_name', 'details')
+        fields = '__all__'
