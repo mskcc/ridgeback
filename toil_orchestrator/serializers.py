@@ -64,6 +64,8 @@ class JobSerializer(serializers.ModelSerializer):
         model = Job
         fields = '__all__'
 
+    app = AppField()
+
 
 class CommandLineToolJobSerializer(serializers.ModelSerializer):
 
