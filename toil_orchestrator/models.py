@@ -17,7 +17,7 @@ class BaseModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_date = models.DateTimeField(auto_now_add=True, editable=False)
     modified_date = models.DateTimeField(auto_now=True)
-    output_directory = models.CharField(max_length=400)
+    output_directory = models.CharField(null=True, blank=True, max_length=400)
 
 
 class Job(BaseModel):
