@@ -54,10 +54,13 @@ class JobSubmitter(object):
         self.app = App.factory(app)
         self.inputs = inputs
         self.lsf_client = LSFClient()
-        self.job_store_dir = os.path.join(settings.TOIL_JOB_STORE_ROOT, self.job_id)
+        self.resume_jobstore = resume_jobstore
+        if resume_jobstore:
+            self.job_store_dir = resume_jobstore
+        else:
+            self.job_store_dir = os.path.join(settings.TOIL_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
         self.job_outputs_dir = root_dir
-        self.resume_jobstore = resume_jobstore
         self.job_tmp_dir = os.path.join(settings.TOIL_TMP_DIR_ROOT, self.job_id)
 
     def submit(self):
@@ -96,7 +99,6 @@ class JobSubmitter(object):
         if self.resume_jobstore:
             if not os.path.exists(self.resume_jobstore):
                 raise Exception('The jobstore indicated to be resumed could not be found')
-            shutil.copytree(self.resume_jobstore,self.job_store_dir,symlinks=True)
 
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
