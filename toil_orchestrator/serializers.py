@@ -66,6 +66,17 @@ class JobSerializer(serializers.ModelSerializer):
 
     app = AppField()
 
+class JobSubmitSerializer(JobSerializer):
+
+    class Meta:
+        model = Job
+        fields = ('app','inputs','root_dir')
+
+class JobResumeSerializer(JobSerializer):
+
+    class Meta:
+        model = Job
+        fields = ['root_dir']
 
 class CommandLineToolJobSerializer(serializers.ModelSerializer):
 
