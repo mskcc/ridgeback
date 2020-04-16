@@ -49,7 +49,7 @@ class GithubApp(App):
 
 class JobSubmitter(object):
 
-    def __init__(self, job_id, app, inputs, root_dir):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore):
         self.job_id = job_id
         self.app = App.factory(app)
         self.inputs = inputs
@@ -57,6 +57,7 @@ class JobSubmitter(object):
         self.job_store_dir = os.path.join(settings.TOIL_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
         self.job_outputs_dir = root_dir
+        self.resume_jobstore = resume_jobstore
         self.job_tmp_dir = os.path.join(settings.TOIL_TMP_DIR_ROOT, self.job_id)
 
     def submit(self):
@@ -89,17 +90,23 @@ class JobSubmitter(object):
         if not os.path.exists(self.job_work_dir):
             os.mkdir(self.job_work_dir)
 
-        if os.path.exists(self.job_store_dir):
-            # delete job-store directory for now so that execution can work;
-            # TODO: Implement resume at a later time
+        if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
             shutil.rmtree(self.job_store_dir)
-            os.mkdir(self.job_store_dir)
+
+        if self.resume_jobstore:
+            if not os.path.exists(self.resume_jobstore):
+                raise Exception('The jobstore indicated to be resumed could not be found')
+            shutil.copytree(self.resume_jobstore,self.job_store_dir,symlinks=True)
 
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
 
     def _command_line(self):
         command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--disable-host-provenance','--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir, '--maxLocalJobs', '500']
-        command_line.extend(self._dump_app_inputs())
+        app_location, inputs_location = self._dump_app_inputs()
+        if self.resume_jobstore:
+            command_line.extend(['--restart',app_location])
+        else:
+            command_line.extend([app_location, inputs_location])
         return command_line
 
