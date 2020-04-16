@@ -144,6 +144,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+LOGIN_URL='/admin/login/'
+LOGOUT_URL='/admin/logout/'
+
 
 CORS_ORIGIN_ALLOW_ALL = True
 
