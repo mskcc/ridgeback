@@ -62,6 +62,12 @@ class JobViewSet(mixins.CreateModelMixin,
         serializer = JobSerializer(page, many=True)
         return self.get_paginated_response(serializer.data)
 
+    def destroy(self, request, *args, **kwargs):
+        if request.user.is_superuser:
+            return super().destroy(request, *args, **kwargs)
+        else:
+            return Response("Only admins can delete job objects", status=status.HTTP_401_UNAUTHORIZED)
+
 
     @property
     def paginator(self):
