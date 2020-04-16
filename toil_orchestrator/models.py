@@ -25,6 +25,7 @@ class Job(BaseModel):
     external_id = models.CharField(max_length=50, null=True, blank=True)
     root_dir = models.CharField(max_length=1000)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
+    resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
     status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=Status.CREATED)
     message = models.CharField(max_length=500, null=True, blank=True)
