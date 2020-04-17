@@ -26,4 +26,4 @@ install:
   - python manage.py migrate
 script:
   - source travis_env.sh
-  - python manage.py test
+  - python manage.py test --verbosity=2
