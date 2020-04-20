@@ -31,6 +31,6 @@ export RIDGEBACK_LSF_SLA=sample_SLA
 
 ### Set the celery env variable
 
-export CELERY_LOG_PATH=/juno/work/ci/nikhil/ridgeback/ridgeback_workspace/celery
-export CELERY_PID_PATH=/juno/work/ci/nikhil/ridgeback/ridgeback_workspace/celery
-export CELERY_BEAT_SCHEDULE_PATH=/juno/work/ci/nikhil/ridgeback/ridgeback_workspace/celery
+export CELERY_LOG_PATH=/sample_path
+export CELERY_PID_PATH=/sample_path
+export CELERY_BEAT_SCHEDULE_PATH=/sample_path
