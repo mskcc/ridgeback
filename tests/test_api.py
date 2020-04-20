@@ -1,3 +1,4 @@
+from mock import patch
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -5,10 +6,11 @@ from toil_orchestrator.models import Job, Status
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 
+
 class JobTestCase(APITestCase):
 
 	def setUp(self):
-		example_app = {'github':{'repository':'example_repository','entrypoint':'example_entrypoint'}}
+		example_app = {'github': {'repository':'example_repository','entrypoint':'example_entrypoint'}}
 		self.example_job = Job.objects.create(
 			app=example_app,
 			root_dir='example_rootdir',
@@ -34,11 +36,14 @@ class JobTestCase(APITestCase):
 		response = self.client.get(url)
 		self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-	def test_create(self):
+	@patch('toil_orchestrator.tasks.submit_jobs_to_lsf.delay')
+	def test_create(self, submit_jobs_mock):
 		url = self.api_root + 'jobs/'
-		data = { 'app': self.example_job.app,
-				 'root_dir': self.example_job.root_dir,
-				 'inputs': {'example_input': True}
+		submit_jobs_mock.return_value = None
+		data = {
+			'app': self.example_job.app,
+			'root_dir': self.example_job.root_dir,
+			'inputs': {'example_input': True}
 		}
 		response = self.client.post(url, data=data, format='json')
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -61,8 +66,10 @@ class JobTestCase(APITestCase):
 		response = self.client.delete(url)
 		self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-	def test_resume(self):
-		url = '{}jobs/{}/resume/'.format(self.api_root,self.example_job.id)
+	@patch('toil_orchestrator.tasks.submit_jobs_to_lsf.delay')
+	def test_resume(self, submit_jobs_mock):
+		url = '{}jobs/{}/resume/'.format(self.api_root, self.example_job.id)
+		submit_jobs_mock.return_value = None
 		data = {
 			'root_dir': self.example_job.root_dir
 		}
