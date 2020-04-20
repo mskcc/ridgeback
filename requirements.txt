@@ -11,3 +11,4 @@ celery==4.3.0
 cwltool==2.0.20200122124526
 schema-salad==5.0.20200122085940
 psycopg2-binary==2.8.4
+mock==4.0.2
