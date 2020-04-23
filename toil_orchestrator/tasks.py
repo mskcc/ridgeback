@@ -58,7 +58,7 @@ def submit_jobs_to_lsf(self, job_id):
     job = Job.objects.get(id=job_id)
     try:
         logger.info("Submitting job %s to lsf" % job.id)
-        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
+        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
         external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
         save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
@@ -112,7 +112,7 @@ def check_status_of_jobs(self):
                     error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
                     logger.info(error_message)
         elif job.external_id:
-            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
+            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
             lsf_status_info = submiter.status(job.external_id)
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info
