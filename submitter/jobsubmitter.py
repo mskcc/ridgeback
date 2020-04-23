@@ -3,7 +3,7 @@ import git
 import json
 import shutil
 from django.conf import settings
-from lsf_client.lsf_client import LSFClient
+from batch_systems.lsf_client.lsf_client import LSFClient
 
 
 class App(object):
@@ -33,7 +33,7 @@ class GithubApp(App):
     type = "github"
 
     def __init__(self, github, entrypoint, version='master'):
-        super(App, self).__init__()
+        super().__init__()
         self.github = github
         self.entrypoint = entrypoint
         self.version = version
@@ -56,13 +56,15 @@ class JobSubmitter(object):
         self.lsf_client = LSFClient()
         self.job_store_dir = os.path.join(settings.TOIL_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
-        self.job_outputs_dir = os.path.join(root_dir, 'outputs')
+        self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(settings.TOIL_TMP_DIR_ROOT, self.job_id)
 
     def submit(self):
         self._prepare_directories()
         command_line = self._command_line()
-        return self.lsf_client.submit(command_line, os.path.join(self.job_work_dir, 'lsf.log')), self.job_store_dir, self.job_work_dir
+        log_path = os.path.join(self.job_work_dir, 'lsf.log')
+        external_id = self.lsf_client.submit(command_line, log_path)
+        return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def status(self, external_id):
         return self.lsf_client.status(external_id)
@@ -97,7 +99,7 @@ class JobSubmitter(object):
             os.mkdir(self.job_tmp_dir)
 
     def _command_line(self):
-        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--disable-host-provenance','--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir, '--maxLocalJobs', '500']
+        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--disable-host-provenance','--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir, '--maxLocalJobs', '500']
         command_line.extend(self._dump_app_inputs())
         return command_line
 
