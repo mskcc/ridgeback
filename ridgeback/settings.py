@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'toil_orchestrator.apps.ToilOrchestratorConfig',
     'rest_framework',
-    'rest_framework_swagger'
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [
@@ -144,6 +144,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+LOGIN_URL='/admin/login/'
+LOGOUT_URL='/admin/logout/'
+
 
 CORS_ORIGIN_ALLOW_ALL = True
 
