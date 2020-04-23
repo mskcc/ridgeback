@@ -5,6 +5,7 @@ from .toil_track_utils import ToilTrack
 from celery import shared_task
 from submitter.jobsubmitter import JobSubmitter
 import json
+from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
@@ -20,13 +21,35 @@ def get_aware_datetime(date_str):
         datetime_obj = make_aware(datetime_obj)
     return datetime_obj
 
+def get_job_info_path(job_id):
+    work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, str(job_id))
+    job_info_path = os.path.join(work_dir,'.run.info')
+    return job_info_path
+
+
+def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
+    if os.path.exists(working_dir):
+        job_info = {'external_id': external_id,
+                    'job_store_location': job_store_location,
+                    'working_dir': working_dir,
+                    'output_directory': output_directory
+                    }
+        job_info_path = get_job_info_path(job_id)
+        with open(job_info_path,'w') as job_info_file:
+            json.dump(job_info,job_info_file)
+    else:
+        logger.error('Working directory %s does not exist', working_dir)
+
+
 
 def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
+    logger.error('On failure to submit')
     job_id = args[0]
     logger.error('Failed to submit job: %s' % job_id)
     job = Job.objects.get(id=job_id)
     job.status = Status.FAILED
     job.save()
+    logger.error('Job Saved')
 
 
 @shared_task(bind=True, max_retries=3, on_failure=on_failure_to_submit)
@@ -36,12 +59,13 @@ def submit_jobs_to_lsf(self, job_id):
     try:
         logger.info("Submitting job %s to lsf" % job.id)
         submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
-        external_job_id, job_store_dir, job_work_dir = submitter.submit()
+        external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
+        save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
         job.external_id = external_job_id
         job.job_store_location = job_store_dir
         job.working_dir = job_work_dir
-        job.output_directory = os.path.join(job_work_dir, 'outputs')
+        job.output_directory = job_output_dir
         job.status = Status.PENDING
         job.save()
     except Exception as e:
@@ -71,26 +95,40 @@ def cleanup_folder(self,path, job_id,is_jobstore):
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING)).all()
+    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED)).all()
     for job in jobs:
-        submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
-        if job.external_id:
-            lsf_status = submiter.status(job.external_id)
-            if lsf_status == 'PEND':
-                job.status = Status.PENDING
-            elif lsf_status == 'RUN':
-                job.status = Status.RUNNING
-            elif lsf_status == 'DONE':
-                job.status = Status.COMPLETED
-                outputs = submiter.get_outputs()
-                job.outputs = outputs
+        if job.status == Status.CREATED:
+            job_info_path = get_job_info_path(job.id)
+            if os.path.exists(job_info_path):
+                try:
+                    with open(job_info_path) as job_info_file:
+                        job_info_data = json.load(job_info_file)
+                    job.external_id = job_info_data['external_id']
+                    job.job_store_location = job_info_data['job_store_location']
+                    job.working_dir = job_info_data['working_dir']
+                    job.output_directory = job_info_data['output_directory']
+                    job.status = Status.PENDING
+                except Exception as e:
+                    error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
+                    logger.info(error_message)
+        elif job.external_id:
+            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
+            lsf_status_info = submiter.status(job.external_id)
+            if lsf_status_info:
+                lsf_status, lsf_message = lsf_status_info
+                job.status = lsf_status
+                if lsf_message:
+                    job.message = lsf_message
+                if lsf_status == Status.COMPLETED:
+                    outputs = submiter.get_outputs()
+                    job.outputs = outputs
             else:
-                job.status = Status.FAILED
-                job.outputs = {'error': 'LSF status %s' % lsf_status}
+                logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,job.external_id))
+                job.message = 'Job [{}], Could not retrieve status'.format(job.id)
         else:
-            logger.info('Job %s not submitted to lsf' % str(job.id))
+            logger.info('Job [{}] not submitted to lsf'.format(job.id))
             job.status = Status.FAILED
-            job.outputs = {'error': 'External id not provided %s' % str(job.id)}
+            job.message = 'Job [{}], External id not provided'.format(job.id)
         job.save()
 
 
@@ -147,7 +185,7 @@ def check_status_of_command_line_jobs(self):
                     already_exists = True
                     single_tool_module = commandLineToolJobs[0]
                     if single_tool_module.status != Status.COMPLETED and single_tool_module != Status.FAILED:
-                        keys_to_modify = ['started','submitted','finished','status','details']
+                        keys_to_modify = ['started', 'submitted', 'finished', 'status', 'details']
                         for single_key in keys_to_modify:
                             key_value = single_command_line_tool[single_key]
                             if key_value:
@@ -158,40 +196,53 @@ def check_status_of_command_line_jobs(self):
                                             if single_detail_value != None:
                                                 old_value = None
                                                 if single_detail_key in single_tool_module.__dict__[single_key]:
-                                                    old_value = single_tool_module.__dict__[single_key][single_detail_key]
-                                                if single_detail_key in ['job_cpu','job_memory']:
+                                                    old_value = single_tool_module.__dict__[single_key][
+                                                        single_detail_key]
+                                                if single_detail_key in ['job_cpu', 'job_memory']:
                                                     if old_value:
                                                         last_record = old_value[-1]
                                                         if last_record[1] != single_detail_value:
-                                                            new_record = (str(now()),single_detail_value)
-                                                            single_tool_module.__dict__[single_key][single_detail_key].append(new_record)
+                                                            new_record = (str(now()), single_detail_value)
+                                                            single_tool_module.__dict__[single_key][
+                                                                single_detail_key].append(new_record)
                                                             updated = True
                                                     else:
-                                                        new_record = (str(now()),single_detail_value)
-                                                        single_tool_module.__dict__[single_key][single_detail_key] = [new_record]
+                                                        new_record = (str(now()), single_detail_value)
+                                                        single_tool_module.__dict__[single_key][single_detail_key] = [
+                                                            new_record]
                                                         updated = True
                                                 else:
                                                     if old_value != single_detail_value:
-                                                        single_tool_module.__dict__[single_key][single_detail_key] = single_detail_value
+                                                        single_tool_module.__dict__[single_key][
+                                                            single_detail_key] = single_detail_value
                                                         updated = True
                                     else:
-                                        if single_key in ['started','submitted','finished']:
+                                        if single_key in ['started', 'submitted', 'finished']:
                                             if single_tool_module.__dict__[single_key] != None:
                                                 continue
-                                                if get_aware_datetime(single_tool_module.__dict__[single_key]) == get_aware_datetime(key_value):
+                                                if get_aware_datetime(
+                                                        single_tool_module.__dict__[single_key]) == get_aware_datetime(
+                                                        key_value):
                                                     continue
                                         single_tool_module.__dict__[single_key] = key_value
                                         updated = True
             if not already_exists:
                 if details:
-                    for single_detail_key in ['job_cpu','job_memory']:
+                    for single_detail_key in ['job_cpu', 'job_memory']:
                         if single_detail_key in details:
                             single_detail_value = details[single_detail_key]
                             if single_detail_value:
                                 new_record = (str(now()),single_detail_value)
                                 details[single_detail_key] = [new_record]
-                single_tool_module = CommandLineToolJob(root=current_job,status=status, started=started, submitted=submitted,finished=finished,job_name=single_command_line_tool['name'],job_id=single_command_line_tool['id'],details=details)
+                single_tool_module = CommandLineToolJob(root=current_job, status=status, started=started,
+                                                        submitted=submitted, finished=finished,
+                                                        job_name=single_command_line_tool['name'],
+                                                        job_id=single_command_line_tool['id'], details=details)
                 updated = True
             if updated:
                 single_tool_module.save()
-
+    commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING,Status.PENDING))
+    for single_command_line_tool in commandLineToolJobs:
+        if single_command_line_tool.root.status != Status.RUNNING:
+            single_command_line_tool.__dict__['status'] = Status.UNKOWN
+            single_command_line_tool.save()
