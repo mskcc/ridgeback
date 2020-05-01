@@ -28,24 +28,30 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     job.save()
 
 
-@shared_task(bind=True, max_retries=3, on_failure=on_failure_to_submit)
-def submit_jobs_to_lsf(self, job_id):
+def submit_jobs_to_lsf(job_id):
     logger.info("Submitting jobs to lsf")
+    print("Submit jobs 1")
     job = Job.objects.get(id=job_id)
     try:
+        print("Submit jobs 2", job.app)
         logger.info("Submitting job %s to lsf" % job.id)
         submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
+        print("Submit jobs 3")
         external_job_id, job_store_dir, job_work_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
+        print("Submit jobs 4")
         job.external_id = external_job_id
         job.job_store_location = job_store_dir
         job.working_dir = job_work_dir
+        print("Submit jobs 5")
         job.output_directory = os.path.join(job_work_dir, 'outputs')
         job.status = Status.PENDING
+        print("Submit jobs 6")
         job.save()
     except Exception as e:
+        print("Submit jobs ERROR", e)
         logger.info("Failed to submit job %s" % job_id)
-        self.retry(exc=e, countdown=10)
+        # self.retry(exc=e, countdown=10)
 
 
 @shared_task(bind=True)

@@ -75,19 +75,29 @@ install: conda
 	rabbitmq-server && \
 	pip install -r requirements.txt
 
+install-requirements:
+	pip install -r requirements.txt
+
+install-local:
+	cd toil-pip && \
+	pip install .
+
+
+make rabbit:
+	rabbitmqctl
 # Ridgeback environment variables for configuration
 export RIDGEBACK_DB_NAME:=db
 export RIDGEBACK_DB_USERNAME:=$(shell whoami)
 export RIDGEBACK_DB_PASSWORD:=admin
-export RIDGEBACK_DB_URL:=localhost
-export RIDGEBACK_PORT:=1111
+export RIDGEBACK_DB_URL:=/tmp
+export RIDGEBACK_PORT:=1112
 export RIDGEBACK_TOIL_DIR:=$(CURDIR)/toil
 export RIDGEBACK_TOIL_JOB_STORE:=$(RIDGEBACK_TOIL_DIR)/job_store
 export RIDGEBACK_TOIL_JOB_STORE_ROOT:=$(RIDGEBACK_TOIL_DIR)/job_store_root
 export RIDGEBACK_TOIL_WORK_DIR_ROOT:=$(RIDGEBACK_TOIL_DIR)/work
 export RIDGEBACK_TOIL_TMP_DIR_ROOT:=$(RIDGEBACK_TOIL_DIR)/tmp
-export RIDGEBACK_LSF_WALLTIME:=100
-export RIDGEBACK_LSF_SLA:=CMOPI
+export RIDGEBACK_LSF_WALLTIME:=2880
+# export RIDGEBACK_LSF_SLA:=CMOPI
 
 $(RIDGEBACK_TOIL_DIR):
 	mkdir -p "$(RIDGEBACK_TOIL_DIR)"
@@ -114,7 +124,7 @@ export PGDATABASE:=$(RIDGEBACK_DB_NAME)
 $(PGDATA):
 	mkdir -p "$(PGDATA)"
 db-start:
-	pg_ctl -D "$(PGDATA)" -l "$(PGLOG)" start
+	pg_ctl -o "-p $(PGPORT)" -D "$(PGDATA)" -l "$(PGLOG)" start
 db-stop:
 	pg_ctl -D "$(PGDATA)" stop
 db-check:
@@ -268,3 +278,19 @@ PORT=
 port-check:
 	ss -lntup | grep ':$(PORT)'
 endif
+
+export:
+	export RIDGEBACK_DB_NAME=db \
+	export RIDGEBACK_DB_USERNAME=$(shell whoami) \
+	export RIDGEBACK_DB_PASSWORD=admin \
+	export RIDGEBACK_DB_URL='/tmp' \
+	export RIDGEBACK_PORT=5432 \
+	export RIDGEBACK_TOIL_DIR=$(CURDIR)/toil \
+	export RIDGEBACK_TOIL_JOB_STORE=$(RIDGEBACK_TOIL_DIR)/job_store \
+	export RIDGEBACK_TOIL_JOB_STORE_ROOT=$(RIDGEBACK_TOIL_DIR)/job_store_root \
+	export RIDGEBACK_TOIL_WORK_DIR_ROOT=$(RIDGEBACK_TOIL_DIR)/work \
+	export RIDGEBACK_TOIL_TMP_DIR_ROOT=$(RIDGEBACK_TOIL_DIR)/tmp \
+	export RIDGEBACK_LSF_WALLTIME=100 \
+	export RIDGEBACK_LSF_SLA=CMOPI
+
+

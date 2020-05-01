@@ -10,7 +10,7 @@ class App(object):
 
     def factory(app):
         if app.get('github'):
-            repo = app['github']['repository']
+            repo = app['github']['repository'].replace(".git", "")
             entrypoint = app['github']['entrypoint']
             version = app['github'].get('version', 'master')
             return GithubApp(repo, entrypoint, version)
@@ -62,6 +62,14 @@ class JobSubmitter(object):
     def submit(self):
         self._prepare_directories()
         command_line = self._command_line()
+
+        envars = os.environ.get('PATH')
+        if "PATH" not in command_line[0]:
+            print("Adding ENVAR")
+            path = "/work/access/testing/users/fraihaa/ridgeback/conda/envs/toil-msk-3.21.1-MSK-rc1/bin:/conda/bin:/home/accessbot/miniconda3/envs/ACCESS_1.3.26/bin/:{}".format(envars)
+            command_line.insert(0, "PATH={}".format(path))
+
+        print("Running Submit: {} {} {} {}".format(" ".join(command_line), os.path.join(self.job_work_dir, 'lsf.log'), self.job_store_dir, self.job_work_dir))
         return self.lsf_client.submit(command_line, os.path.join(self.job_work_dir, 'lsf.log')), self.job_store_dir, self.job_work_dir
 
     def status(self, external_id):
@@ -78,10 +86,12 @@ class JobSubmitter(object):
 
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
-        inputs_location = os.path.join(self.job_work_dir, 'input.json')
+        inputs_location = os.path.join(self.job_work_dir, 'inputs.json')
+        print("==========================")
+        print(inputs_location, self.inputs)
         with open(inputs_location, 'w') as f:
             json.dump(self.inputs, f)
-        return app_location, inputs_location
+        return app_location, self.inputs
 
     def _prepare_directories(self):
         if not os.path.exists(self.job_work_dir):
@@ -97,7 +107,9 @@ class JobSubmitter(object):
             os.mkdir(self.job_tmp_dir)
 
     def _command_line(self):
-        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--disable-host-provenance','--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir, '--maxLocalJobs', '500']
+        command_line = ['toil-cwl-runner', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--logLevel', 'DEBUG','--disable-host-provenance','--stats', '--debug', '--cleanWorkDir', 'always', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '_JAVA_OPTIONS', 'PYTHONPATH', 'TEMP', '--defaultMemory', '10G', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir]
+        #command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--logLevel', 'DEBUG','--disable-host-provenance','--stats', '--debug', '--cleanWorkDir', 'always', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '_JAVA_OPTIONS', 'PYTHONPATH', 'TEMP', '--defaultMemory', '10G', '--maxCores', '16', '--defaultDisk', '10G', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir, '--maxLocalJobs', '500']
+        # command_line = ['PATH=/work/access/testing/users/fraihaa/ridgeback/conda/envs/toil-msk-3.21.1-MSK-rc1/bin:/conda/bin:/home/accessbot/miniconda3/envs/ACCESS_1.3.26/bin/:$PATH', 'toil-cwl-runner', '--logFile', 'toil_log.log', '--batchSystem','lsf', '--defaultDisk', '10G', '--defaultMem', '10G', '--stats', '--logLevel', 'DEBUG', '--disableCaching', '--debug', '--cleanWorkDir', 'never', '--preserve-environment', 'PATH', 'TMPDIR', 'TMP_DIR', '_JAVA_OPTIONS', 'TMP', 'TEMP', 'PYTHONPATH', 'TOIL_LSF_ARGS', '--writeLogs', self.job_work_dir, '--jobStore', self.job_store_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir]
         command_line.extend(self._dump_app_inputs())
         return command_line
 

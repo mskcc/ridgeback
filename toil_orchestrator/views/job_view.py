@@ -22,7 +22,7 @@ class JobViewSet(mixins.CreateModelMixin,
         serializer = JobSerializer(data=request.data)
         if serializer.is_valid():
             response = serializer.save()
-            submit_jobs_to_lsf.delay(str(response.id))
+            submit_jobs_to_lsf(str(response.id))
             response = JobSerializer(response)
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:
