@@ -95,7 +95,7 @@ def cleanup_folder(self,path, job_id,is_jobstore):
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED)).all()
+    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKOWN)).all()
     for job in jobs:
         if job.status == Status.CREATED:
             job_info_path = get_job_info_path(job.id)
