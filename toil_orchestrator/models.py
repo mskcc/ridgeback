@@ -10,7 +10,7 @@ class Status(IntEnum):
     RUNNING = 2
     COMPLETED = 3
     FAILED = 4
-    UNKOWN = 5
+    UNKNOWN = 5
 
 
 class BaseModel(models.Model):
