@@ -150,7 +150,7 @@ class LSFClient():
         self.logger.debug(
             "Job [%s] is in an unhandled state (%s)", external_job_id, process_status)
         status_info = "Job is in an unhandles state: {}".format(process_status)
-        return (Status.UNKOWN, status_info.strip())
+        return (Status.UNKNOWN, status_info.strip())
 
 
     def _parse_status(self, stdout, external_job_id):

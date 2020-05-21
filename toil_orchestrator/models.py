@@ -10,7 +10,7 @@ class Status(IntEnum):
     RUNNING = 2
     COMPLETED = 3
     FAILED = 4
-    UNKOWN = 5
+    UNKNOWN = 5
 
 
 class BaseModel(models.Model):
@@ -32,6 +32,7 @@ class Job(BaseModel):
     inputs = JSONField(blank=True, null=True)
     outputs = JSONField(blank=True, null=True)
     job_store_clean_up = models.DateTimeField(blank=True, null=True)
+    working_dir_clean_up = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
 
 
