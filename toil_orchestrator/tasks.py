@@ -95,7 +95,7 @@ def cleanup_folder(self,path, job_id,is_jobstore):
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKOWN)).all()
+    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKNOWN)).all()
     for job in jobs:
         if job.status == Status.CREATED:
             job_info_path = get_job_info_path(job.id)
@@ -244,5 +244,5 @@ def check_status_of_command_line_jobs(self):
     commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING,Status.PENDING))
     for single_command_line_tool in commandLineToolJobs:
         if single_command_line_tool.root.status != Status.RUNNING:
-            single_command_line_tool.__dict__['status'] = Status.UNKOWN
+            single_command_line_tool.__dict__['status'] = Status.UNKNOWN
             single_command_line_tool.save()
