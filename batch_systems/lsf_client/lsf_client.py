@@ -169,6 +169,11 @@ class LSFClient():
             if 'STAT' in process_output:
                 process_status = process_output['STAT']
                 return self._handle_status(process_status, process_output, external_job_id)
+            if 'ERROR' in process_output:
+                error_message = ""
+                if process_output['ERROR']:
+                    error_message = process_output['ERROR']
+                return (Status.UNKNOWN, error_message.strip())
 
         return None
 
