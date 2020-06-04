@@ -164,14 +164,13 @@ class LSFClient():
             tuple: (Ridgeback Status int, extra info)
         """
         bjobs_records = self.parse_bjobs(stdout)
-        status = None
         if bjobs_records:
             process_output = bjobs_records[0]
             if 'STAT' in process_output:
                 process_status = process_output['STAT']
                 return self._handle_status(process_status, process_output, external_job_id)
 
-        return status
+        return None
 
     def status(self, external_job_id):
         """Parse LSF status
