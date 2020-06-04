@@ -116,12 +116,17 @@ def check_status_of_jobs(self):
             lsf_status_info = submiter.status(job.external_id)
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info
-                job.status = lsf_status
-                if lsf_message:
-                    job.message = lsf_message
                 if lsf_status == Status.COMPLETED:
-                    outputs = submiter.get_outputs()
-                    job.outputs = outputs
+                    outputs, error_message = submiter.get_outputs()
+                    if outputs:
+                        job.track_cache = None
+                        job.outputs = outputs
+                        job.status = lsf_status
+                    if error_message:
+                        job.message = error_message
+                else:
+                    job.status = lsf_status
+                    job.message = lsf_message
             else:
                 logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,job.external_id))
                 job.message = 'Job [{}], Could not retrieve status'.format(job.id)
