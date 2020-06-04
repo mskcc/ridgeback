@@ -118,7 +118,7 @@ class LSFClient():
                 "Job [%s] completed", external_job_id)
             return (Status.COMPLETED, None)
         if process_status == 'PEND':
-            pending_info = None
+            pending_info = ""
             if 'PEND_REASON' in process_output:
                 if process_output['PEND_REASON']:
                     pending_info = process_output['PEND_REASON']
@@ -126,7 +126,7 @@ class LSFClient():
             return (Status.PENDING, pending_info.strip())
         if process_status == 'EXIT':
             exit_code = 1
-            exit_info = None
+            exit_info = ""
             if 'EXIT_CODE' in process_output:
                 if process_output['EXIT_CODE']:
                     exit_code = process_output['EXIT_CODE']
