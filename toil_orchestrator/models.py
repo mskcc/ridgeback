@@ -33,6 +33,9 @@ class Job(BaseModel):
     outputs = JSONField(blank=True, null=True)
     job_store_clean_up = models.DateTimeField(blank=True, null=True)
     working_dir_clean_up = models.DateTimeField(blank=True, null=True)
+    started = models.DateTimeField(blank=True, null=True)
+    submitted = models.DateTimeField(blank=True, null=True)
+    finished = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
 
 
