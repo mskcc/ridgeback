@@ -48,6 +48,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Failed to submit job: %s' % job_id)
     job = Job.objects.get(id=job_id)
     job.status = Status.FAILED
+    job.finished = now()
     job.save()
     logger.error('Job Saved')
 
@@ -108,6 +109,7 @@ def check_status_of_jobs(self):
                     job.working_dir = job_info_data['working_dir']
                     job.output_directory = job_info_data['output_directory']
                     job.status = Status.PENDING
+                    job.submitted = now()
                 except Exception as e:
                     error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
                     logger.info(error_message)
@@ -122,17 +124,24 @@ def check_status_of_jobs(self):
                         job.track_cache = None
                         job.outputs = outputs
                         job.status = lsf_status
+                        job.finished = now()
                     if error_message:
                         job.message = error_message
                 else:
                     job.status = lsf_status
                     job.message = lsf_message
+                if lsf_status != Status.PENDING:
+                    if not job.submitted:
+                        job.submitted = now()
+                if lsf_status == Status.FAILED:
+                    job.finished = now()
             else:
                 logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,job.external_id))
                 job.message = 'Job [{}], Could not retrieve status'.format(job.id)
         else:
             logger.info('Job [{}] not submitted to lsf'.format(job.id))
             job.status = Status.FAILED
+            job.finished = now()
             job.message = 'Job [{}], External id not provided'.format(job.id)
         job.save()
 
