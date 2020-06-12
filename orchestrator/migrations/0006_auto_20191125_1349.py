@@ -8,7 +8,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0005_auto_20191105_2140'),
+        ('orchestrator', '0005_auto_20191105_2140'),
     ]
 
     operations = [

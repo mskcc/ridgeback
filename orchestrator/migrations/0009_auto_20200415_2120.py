@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0008_remove_job_output_dir'),
+        ('orchestrator', '0008_remove_job_output_dir'),
     ]
 
     operations = [

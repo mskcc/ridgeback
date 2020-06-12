@@ -1,6 +1,6 @@
-from toil_orchestrator.models import Job, Status
-from toil_orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer
-from toil_orchestrator.tasks import submit_jobs_to_lsf
+from orchestrator.models import Job, Status
+from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer
+from orchestrator.tasks import submit_jobs_to_lsf
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.viewsets import GenericViewSet
@@ -50,7 +50,6 @@ class JobViewSet(mixins.CreateModelMixin,
     def create(self, request, *args, **kwargs):
         return self.validate_and_save(request.data)
 
-
     def list(self, request, *args, **kwargs):
         queryset = Job.objects.order_by('created_date').all()
         status_param = request.query_params.get('status')
@@ -67,7 +66,6 @@ class JobViewSet(mixins.CreateModelMixin,
             return super().destroy(request, *args, **kwargs)
         else:
             return Response("Only admins can delete job objects", status=status.HTTP_401_UNAUTHORIZED)
-
 
     @property
     def paginator(self):

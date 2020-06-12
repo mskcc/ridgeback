@@ -13,6 +13,11 @@ class Status(IntEnum):
     UNKOWN = 5
 
 
+class PipelineType(IntEnum):
+    CWL = 0
+    NEXTFLOW = 1
+
+
 class BaseModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_date = models.DateTimeField(auto_now_add=True, editable=False)
@@ -21,6 +26,7 @@ class BaseModel(models.Model):
 
 
 class Job(BaseModel):
+    type = models.IntegerField(choices=[(pipeline_type.value, pipeline_type.name) for pipeline_type in PipelineType])
     app = JSONField(null=False)
     external_id = models.CharField(max_length=50, null=True, blank=True)
     root_dir = models.CharField(max_length=1000)
