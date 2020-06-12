@@ -10,7 +10,7 @@ class Status(IntEnum):
     RUNNING = 2
     COMPLETED = 3
     FAILED = 4
-    UNKOWN = 5
+    UNKNOWN = 5
 
 
 class PipelineType(IntEnum):
@@ -38,6 +38,10 @@ class Job(BaseModel):
     inputs = JSONField(blank=True, null=True)
     outputs = JSONField(blank=True, null=True)
     job_store_clean_up = models.DateTimeField(blank=True, null=True)
+    working_dir_clean_up = models.DateTimeField(blank=True, null=True)
+    started = models.DateTimeField(blank=True, null=True)
+    submitted = models.DateTimeField(blank=True, null=True)
+    finished = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
 
 

@@ -147,6 +147,10 @@ STATIC_URL = '/static/'
 LOGIN_URL='/admin/login/'
 LOGOUT_URL='/admin/logout/'
 
+SWAGGER_SETTINGS = {
+    'VALIDATOR_URL':None
+}
+
 
 CORS_ORIGIN_ALLOW_ALL = True
 

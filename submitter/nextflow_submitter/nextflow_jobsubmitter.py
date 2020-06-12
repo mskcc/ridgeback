@@ -48,7 +48,7 @@ class NextflowJobSubmitter(JobSubmitter):
 
     def get_outputs(self):
         with open(os.path.join(self.job_work_dir, 'lsf.log'), 'r') as f:
-            return {}
+            return {}, ""
 
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
