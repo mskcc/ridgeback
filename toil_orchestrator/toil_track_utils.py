@@ -350,7 +350,7 @@ class ToilTrack():
                                                 if single_worker_obj["job_stream"].split("/")[2] == single_job_stream_path.split("/")[2]:
                                                     single_worker_obj["job_memory"] = single_job['memory']
                                                     single_worker_obj["job_cpu"] = single_job['clock']
-                except IOError:
+                except:
                     continue
 
     def check_jobs(self):
