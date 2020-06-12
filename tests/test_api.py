@@ -12,6 +12,7 @@ class JobTestCase(APITestCase):
 	def setUp(self):
 		example_app = {'github': {'repository':'example_repository','entrypoint':'example_entrypoint'}}
 		self.example_job = Job.objects.create(
+			type=0,
 			app=example_app,
 			root_dir='example_rootdir',
 			id='7aacda86-b12f-4068-b2e3-a96552430a0f',
@@ -41,6 +42,7 @@ class JobTestCase(APITestCase):
 		url = self.api_root + 'jobs/'
 		submit_jobs_mock.return_value = None
 		data = {
+			'type': 0,
 			'app': self.example_job.app,
 			'root_dir': self.example_job.root_dir,
 			'inputs': {'example_input': True}
@@ -71,6 +73,7 @@ class JobTestCase(APITestCase):
 		url = '{}jobs/{}/resume/'.format(self.api_root, self.example_job.id)
 		submit_jobs_mock.return_value = None
 		data = {
+			'type': 0,
 			'root_dir': self.example_job.root_dir
 		}
 		response = self.client.post(url, data=data, format='json')
