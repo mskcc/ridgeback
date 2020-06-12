@@ -20,13 +20,13 @@ app.autodiscover_tasks()
 
 # app.conf.beat_schedule = {
 #     "submit_jobs_to_toil": {
-#         "task": "toil_orchestrator.tasks.submit_jobs_to_lsf",
+#         "task": "orchestrator.tasks.submit_jobs_to_lsf",
 #         "schedule": 60.0
 #     }
 # }
 
-app.conf.task_routes = {'toil_orchestrator.tasks.submit_jobs_to_lsf': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
-                        'toil_orchestrator.tasks.cleanup_folder': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE}}
+app.conf.task_routes = {'orchestrator.tasks.submit_jobs_to_lsf': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
+                        'orchestrator.tasks.cleanup_folder': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE}}
 #
 # app.conf.task_queues = (
 #     Queue('toil', routing_key='submit'),
@@ -34,12 +34,12 @@ app.conf.task_routes = {'toil_orchestrator.tasks.submit_jobs_to_lsf': {'queue': 
 
 app.conf.beat_schedule = {
     "check_status_of_jobs": {
-        "task": "toil_orchestrator.tasks.check_status_of_jobs",
+        "task": "orchestrator.tasks.check_status_of_jobs",
         "schedule": 60.0,
         "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     },
     "check_status_of_command_line_jobs": {
-        "task": "toil_orchestrator.tasks.check_status_of_command_line_jobs",
+        "task": "orchestrator.tasks.check_status_of_command_line_jobs",
         "schedule": 10.0,
         "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     }

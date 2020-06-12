@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Job, CommandLineToolJob
-from toil_orchestrator.tasks import cleanup_folder
+from orchestrator.tasks import cleanup_folder
 from django.contrib import messages
 
 

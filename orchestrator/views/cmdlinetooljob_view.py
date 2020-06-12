@@ -1,5 +1,5 @@
-from toil_orchestrator.models import CommandLineToolJob
-from toil_orchestrator.serializers import CommandLineToolJobSerializer
+from orchestrator.models import CommandLineToolJob
+from orchestrator.serializers import CommandLineToolJobSerializer
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 

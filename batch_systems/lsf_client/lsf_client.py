@@ -8,11 +8,10 @@ import json
 import logging
 from random import randint
 from django.conf import settings
-from toil_orchestrator.models import Status
+from orchestrator.models import Status
 
 
 class LSFClient():
-
     '''
     Client for LSF
 

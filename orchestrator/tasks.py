@@ -3,7 +3,7 @@ import logging
 from .models import Job, Status, CommandLineToolJob
 from .toil_track_utils import ToilTrack
 from celery import shared_task
-from submitter.jobsubmitter import JobSubmitter
+from submitter.factory import JobSubmitterFactory
 import json
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
@@ -20,6 +20,7 @@ def get_aware_datetime(date_str):
     if not is_aware(datetime_obj):
         datetime_obj = make_aware(datetime_obj)
     return datetime_obj
+
 
 def get_job_info_path(job_id):
     work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, str(job_id))
@@ -41,7 +42,6 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
         logger.error('Working directory %s does not exist', working_dir)
 
 
-
 def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('On failure to submit')
     job_id = args[0]
@@ -58,7 +58,9 @@ def submit_jobs_to_lsf(self, job_id):
     job = Job.objects.get(id=job_id)
     try:
         logger.info("Submitting job %s to lsf" % job.id)
-        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+        submitter = JobSubmitterFactory.factory(job.type, job_id, job.app, job.inputs, job.root_dir,
+                                                job.resume_job_store_location)
+        print(submitter)
         external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
         save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
@@ -71,6 +73,7 @@ def submit_jobs_to_lsf(self, job_id):
     except Exception as e:
         logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
         self.retry(exc=e, countdown=10)
+
 
 @shared_task(bind=True)
 def cleanup_folder(self,path, job_id,is_jobstore):
@@ -112,7 +115,7 @@ def check_status_of_jobs(self):
                     error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
                     logger.info(error_message)
         elif job.external_id:
-            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+            submiter = JobSubmitterFactory.factory(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
             lsf_status_info = submiter.status(job.external_id)
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info
@@ -123,7 +126,8 @@ def check_status_of_jobs(self):
                     outputs = submiter.get_outputs()
                     job.outputs = outputs
             else:
-                logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,job.external_id))
+                logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,
+                                                                                                         job.external_id))
                 job.message = 'Job [{}], Could not retrieve status'.format(job.id)
         else:
             logger.info('Job [{}] not submitted to lsf'.format(job.id))

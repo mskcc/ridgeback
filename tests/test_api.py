@@ -2,7 +2,7 @@ from mock import patch
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from toil_orchestrator.models import Job, Status
+from orchestrator.models import Job, Status
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 
@@ -36,7 +36,7 @@ class JobTestCase(APITestCase):
 		response = self.client.get(url)
 		self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-	@patch('toil_orchestrator.tasks.submit_jobs_to_lsf.delay')
+	@patch('orchestrator.tasks.submit_jobs_to_lsf.delay')
 	def test_create(self, submit_jobs_mock):
 		url = self.api_root + 'jobs/'
 		submit_jobs_mock.return_value = None
@@ -66,7 +66,7 @@ class JobTestCase(APITestCase):
 		response = self.client.delete(url)
 		self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-	@patch('toil_orchestrator.tasks.submit_jobs_to_lsf.delay')
+	@patch('orchestrator.tasks.submit_jobs_to_lsf.delay')
 	def test_resume(self, submit_jobs_mock):
 		url = '{}jobs/{}/resume/'.format(self.api_root, self.example_job.id)
 		submit_jobs_mock.return_value = None

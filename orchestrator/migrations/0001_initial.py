@@ -26,23 +26,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Job',
             fields=[
-                ('basemodel_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='toil_orchestrator.BaseModel')),
+                ('basemodel_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='orchestrator.BaseModel')),
                 ('app', django.contrib.postgres.fields.jsonb.JSONField()),
                 ('status', models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED')])),
                 ('inputs', django.contrib.postgres.fields.jsonb.JSONField(blank=True)),
                 ('outputs', django.contrib.postgres.fields.jsonb.JSONField(blank=True)),
             ],
-            bases=('toil_orchestrator.basemodel',),
+            bases=('orchestrator.basemodel',),
         ),
         migrations.CreateModel(
             name='CommandLineToolJob',
             fields=[
-                ('basemodel_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='toil_orchestrator.BaseModel')),
+                ('basemodel_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='orchestrator.BaseModel')),
                 ('status', models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED')])),
                 ('job_name', models.CharField(max_length=100)),
                 ('details', django.contrib.postgres.fields.jsonb.JSONField(blank=True, null=True)),
-                ('root', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='toil_orchestrator.Job')),
+                ('root', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='orchestrator.Job')),
             ],
-            bases=('toil_orchestrator.basemodel',),
+            bases=('orchestrator.basemodel',),
         ),
     ]
