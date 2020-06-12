@@ -27,13 +27,22 @@ class ToilJobSubmitter(JobSubmitter):
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def get_outputs(self):
-        with open(os.path.join(self.job_work_dir, 'lsf.log'), 'r') as f:
-            data = f.readlines()
-            data = ''.join(data)
-            substring = data.split('\n{')[1]
-            result = ('{' + substring).split('-----------')[0]
-            result_json = json.loads(result)
-            return result_json
+        error_message = None
+        result_json = None
+        lsf_log_path = os.path.join(self.job_work_dir, 'lsf.log')
+        try:
+            with open(lsf_log_path, 'r') as f:
+                data = f.readlines()
+                data = ''.join(data)
+                substring = data.split('\n{')[1]
+                result = ('{' + substring).split('-----------')[0]
+                result_json = json.loads(result)
+        except (IndexError, ValueError):
+            error_message = 'Could not parse json from %s' % lsf_log_path
+        except FileNotFoundError:
+            error_message = 'Could not find %s' % lsf_log_path
+
+        return result_json, error_message
 
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
