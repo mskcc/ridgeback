@@ -148,7 +148,7 @@ LOGIN_URL='/admin/login/'
 LOGOUT_URL='/admin/logout/'
 
 SWAGGER_SETTINGS = {
-    'VALIDATOR_URL':None
+    'VALIDATOR_URL': None
 }
 
 
