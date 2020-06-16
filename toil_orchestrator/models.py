@@ -3,7 +3,6 @@ from enum import IntEnum
 from django.db import models
 from django.contrib.postgres.fields import JSONField
 
-
 class Status(IntEnum):
     CREATED = 0
     PENDING = 1
@@ -37,6 +36,18 @@ class Job(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.status != Status.CREATED:
+            if not self.submitted:
+                self.submitted = self.created_date
+            if self.status != Status.PENDING:
+                if not self.started:
+                    self.started = self.created_date
+        if self.status == Status.COMPLETED or self.status == Status.FAILED:
+            if not self.finished:
+                self.finished = self.modified_date
+        super().save(*args, **kwargs)
 
 
 class CommandLineToolJob(BaseModel):
