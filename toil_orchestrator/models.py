@@ -2,7 +2,6 @@ import uuid
 from enum import IntEnum
 from django.db import models
 from django.contrib.postgres.fields import JSONField
-from django.utils.timezone import now
 
 class Status(IntEnum):
     CREATED = 0
@@ -41,13 +40,13 @@ class Job(BaseModel):
     def save(self, *args, **kwargs):
         if self.status != Status.CREATED:
             if not self.submitted:
-                self.submitted = now()
+                self.submitted = self.created_date
             if self.status != Status.PENDING:
                 if not self.started:
-                    self.started = now()
+                    self.started = self.created_date
         if self.status == Status.COMPLETED or self.status == Status.FAILED:
             if not self.finished:
-                self.finished = now()
+                self.finished = self.modified_date
         super().save(*args, **kwargs)
 
 
