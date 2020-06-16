@@ -2,7 +2,7 @@ import uuid
 from enum import IntEnum
 from django.db import models
 from django.contrib.postgres.fields import JSONField
-
+from django.utils.timezone import now
 
 class Status(IntEnum):
     CREATED = 0
@@ -37,6 +37,18 @@ class Job(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.status != Status.CREATED:
+            if not self.submitted:
+                self.submitted = now()
+            if self.status != Status.PENDING:
+                if not self.started:
+                    self.started = now()
+        if self.status == Status.COMPLETED or self.status == Status.FAILED:
+            if not self.finished:
+                self.finished = now()
+        super().save(*args, **kwargs)
 
 
 class CommandLineToolJob(BaseModel):
