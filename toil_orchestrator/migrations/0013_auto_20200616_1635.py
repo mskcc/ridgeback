@@ -14,7 +14,7 @@ def update_dates(apps, _):
             if single_job.status != Status.PENDING:
                 if not single_job.started:
                     single_job.started = single_job.created_date
-        single_job.save()
+            single_job.save()
 
 class Migration(migrations.Migration):
 
