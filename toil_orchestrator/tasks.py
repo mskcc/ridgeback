@@ -131,8 +131,8 @@ def check_status_of_jobs(self):
                     job.status = lsf_status
                     job.message = lsf_message
                 if lsf_status != Status.PENDING:
-                    if not job.submitted:
-                        job.submitted = now()
+                    if not job.started:
+                        job.started = now()
                 if lsf_status == Status.FAILED:
                     job.finished = now()
             else:
