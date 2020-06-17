@@ -16,13 +16,25 @@ Including another URLconf
 from django.contrib import admin
 from django.conf.urls import url
 from django.urls import path, include
-from rest_framework_swagger.views import get_swagger_view
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+from rest_framework import permissions
+from ridgeback import __version__
 
 
-schema_view = get_swagger_view(title='Ridgeback API')
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Ridgeback API",
+      default_version=__version__
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
-    url(r'^$', schema_view),
+    url(r'^$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('admin/', admin.site.urls),
     path('v0/', include('toil_orchestrator.urls')),
 ]

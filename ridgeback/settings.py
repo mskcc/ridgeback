@@ -25,7 +25,7 @@ SECRET_KEY = '3gpghwoqas_6ei_efvb%)5s&lwgs#o99c9(ovmi=1od*e6ezvw'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['silo', 'localhost']
+ALLOWED_HOSTS = os.environ.get('RIDGEBACK_ALLOWED_HOSTS', 'localhost').split(',')
 
 
 # Application definition
@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'toil_orchestrator.apps.ToilOrchestratorConfig',
     'rest_framework',
-    'rest_framework_swagger'
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [
@@ -144,6 +144,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+LOGIN_URL='/admin/login/'
+LOGOUT_URL='/admin/logout/'
+
+SWAGGER_SETTINGS = {
+    'VALIDATOR_URL':None
+}
+
 
 CORS_ORIGIN_ALLOW_ALL = True
 

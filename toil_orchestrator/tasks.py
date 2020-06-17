@@ -48,6 +48,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Failed to submit job: %s' % job_id)
     job = Job.objects.get(id=job_id)
     job.status = Status.FAILED
+    job.finished = now()
     job.save()
     logger.error('Job Saved')
 
@@ -58,7 +59,7 @@ def submit_jobs_to_lsf(self, job_id):
     job = Job.objects.get(id=job_id)
     try:
         logger.info("Submitting job %s to lsf" % job.id)
-        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir)
+        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
         external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
         logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
         save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
@@ -95,7 +96,7 @@ def cleanup_folder(self,path, job_id,is_jobstore):
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED)).all()
+    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKNOWN)).all()
     for job in jobs:
         if job.status == Status.CREATED:
             job_info_path = get_job_info_path(job.id)
@@ -108,26 +109,39 @@ def check_status_of_jobs(self):
                     job.working_dir = job_info_data['working_dir']
                     job.output_directory = job_info_data['output_directory']
                     job.status = Status.PENDING
+                    job.submitted = now()
                 except Exception as e:
                     error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
                     logger.info(error_message)
         elif job.external_id:
-            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir)
+            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
             lsf_status_info = submiter.status(job.external_id)
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info
-                job.status = lsf_status
-                if lsf_message:
-                    job.message = lsf_message
                 if lsf_status == Status.COMPLETED:
-                    outputs = submiter.get_outputs()
-                    job.outputs = outputs
+                    outputs, error_message = submiter.get_outputs()
+                    if outputs:
+                        job.track_cache = None
+                        job.outputs = outputs
+                        job.status = lsf_status
+                        job.finished = now()
+                    if error_message:
+                        job.message = error_message
+                else:
+                    job.status = lsf_status
+                    job.message = lsf_message
+                if lsf_status != Status.PENDING:
+                    if not job.started:
+                        job.started = now()
+                if lsf_status == Status.FAILED:
+                    job.finished = now()
             else:
                 logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,job.external_id))
                 job.message = 'Job [{}], Could not retrieve status'.format(job.id)
         else:
             logger.info('Job [{}] not submitted to lsf'.format(job.id))
             job.status = Status.FAILED
+            job.finished = now()
             job.message = 'Job [{}], External id not provided'.format(job.id)
         job.save()
 
@@ -244,5 +258,5 @@ def check_status_of_command_line_jobs(self):
     commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING,Status.PENDING))
     for single_command_line_tool in commandLineToolJobs:
         if single_command_line_tool.root.status != Status.RUNNING:
-            single_command_line_tool.__dict__['status'] = Status.UNKOWN
+            single_command_line_tool.__dict__['status'] = Status.UNKNOWN
             single_command_line_tool.save()
