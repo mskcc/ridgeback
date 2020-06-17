@@ -113,7 +113,21 @@ class JobSubmitter(object):
             os.mkdir(self.job_tmp_dir)
 
     def _command_line(self):
-        command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--disable-host-provenance','--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir, '--maxLocalJobs', '500']
+
+        if "access" in self.app.github.lower():
+            """
+            Start ACCESS-specific code
+            In addition to different arguments and required bins, ACCESS requires a specific version of Toil that prevents the following PATH from recursively appending itself on every job, causing "OSExit Too many argument".
+            """
+            path = "PATH=/juno/work/ci/access-pipelines/toil-msk-3.21.1-MSK-rc1/bin:/juno/work/ci/access-pipelines/miniconda3/envs/ACCESS_1.3.26/bin:{}".format(os.environ.get('PATH'))
+            command_line = [path, 'toil-cwl-runner', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--logLevel', 'DEBUG','--disable-host-provenance','--stats', '--debug', '--cleanWorkDir', 'always', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '_JAVA_OPTIONS', 'PYTHONPATH', 'TEMP', '--defaultMemory', '10G', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir]
+            """
+            End ACCESS-specific code
+            """
+        else:
+            command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--disable-host-provenance','--stats', '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk', '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir, '--maxLocalJobs', '500']
+
+
         app_location, inputs_location = self._dump_app_inputs()
         if self.resume_jobstore:
             command_line.extend(['--restart',app_location])
