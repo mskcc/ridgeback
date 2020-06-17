@@ -118,7 +118,7 @@ class LSFClient():
                 "Job [%s] completed", external_job_id)
             return (Status.COMPLETED, None)
         if process_status == 'PEND':
-            pending_info = None
+            pending_info = ""
             if 'PEND_REASON' in process_output:
                 if process_output['PEND_REASON']:
                     pending_info = process_output['PEND_REASON']
@@ -126,7 +126,7 @@ class LSFClient():
             return (Status.PENDING, pending_info.strip())
         if process_status == 'EXIT':
             exit_code = 1
-            exit_info = None
+            exit_info = ""
             if 'EXIT_CODE' in process_output:
                 if process_output['EXIT_CODE']:
                     exit_code = process_output['EXIT_CODE']
@@ -150,7 +150,7 @@ class LSFClient():
         self.logger.debug(
             "Job [%s] is in an unhandled state (%s)", external_job_id, process_status)
         status_info = "Job is in an unhandles state: {}".format(process_status)
-        return (Status.UNKOWN, status_info.strip())
+        return (Status.UNKNOWN, status_info.strip())
 
 
     def _parse_status(self, stdout, external_job_id):
@@ -164,14 +164,18 @@ class LSFClient():
             tuple: (Ridgeback Status int, extra info)
         """
         bjobs_records = self.parse_bjobs(stdout)
-        status = None
         if bjobs_records:
             process_output = bjobs_records[0]
             if 'STAT' in process_output:
                 process_status = process_output['STAT']
                 return self._handle_status(process_status, process_output, external_job_id)
+            if 'ERROR' in process_output:
+                error_message = ""
+                if process_output['ERROR']:
+                    error_message = process_output['ERROR']
+                return (Status.UNKNOWN, error_message.strip())
 
-        return status
+        return None
 
     def status(self, external_job_id):
         """Parse LSF status
