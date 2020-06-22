@@ -92,7 +92,7 @@ class JobSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     app = AppField()
-    message = MessageField()
+    message = MessageField(required=False)
 
 class JobSubmitSerializer(JobSerializer):
 
