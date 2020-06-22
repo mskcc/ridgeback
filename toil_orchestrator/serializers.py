@@ -54,6 +54,33 @@ class AppField(serializers.JSONField):
             }
          }
 
+class MessageField(serializers.JSONField):
+
+    class Meta:
+        swagger_schema_fields = {
+            "type": openapi.TYPE_OBJECT,
+            "title": "message",
+            "properties": {
+                "log": openapi.Schema(
+                    title="log",
+                    type=openapi.TYPE_STRING,
+                ),
+                "failed_jobs": openapi.Schema(
+                    title="failed_jobs",
+                    type=openapi.TYPE_OBJECT,
+                ),
+                "unknown_jobs": openapi.Schema(
+                    title="unknown_jobs",
+                    type=openapi.TYPE_OBJECT,
+                ),
+                "info": openapi.Schema(
+                    title="info",
+                    type=openapi.TYPE_STRING,
+                )
+            }
+         }
+
+
 class JobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
 
@@ -65,6 +92,7 @@ class JobSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     app = AppField()
+    message = MessageField(required=False)
 
 class JobSubmitSerializer(JobSerializer):
 
