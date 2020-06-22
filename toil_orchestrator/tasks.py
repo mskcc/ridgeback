@@ -68,6 +68,13 @@ def submit_jobs_to_lsf(self, job_id):
         job.working_dir = job_work_dir
         job.output_directory = job_output_dir
         job.status = Status.PENDING
+        log_path = os.path.join(job_work_dir,'lsf.log')
+        job.message = {
+            'log': log_path,
+            'failed_jobs': [],
+            'unknown_jobs':[],
+            'info': ''
+        }
         job.save()
     except Exception as e:
         logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
@@ -126,23 +133,43 @@ def check_status_of_jobs(self):
                         job.status = lsf_status
                         job.finished = now()
                     if error_message:
-                        job.message = error_message
+                        job.message['info'] = error_message
                 else:
                     job.status = lsf_status
-                    job.message = lsf_message
+                    job.message['info'] = lsf_message
                 if lsf_status != Status.PENDING:
                     if not job.started:
                         job.started = now()
                 if lsf_status == Status.FAILED:
+                    failed_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.FAILED)
+                    unknown_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.UNKNOWN)
+                    failed_jobs = {}
+                    unknown_jobs = {}
+                    for single_tool_job in failed_command_line_tool_jobs:
+                        job_name = single_tool_job.job_name
+                        job_id = single_tool_job.job_id
+                        if job_name not in failed_jobs:
+                            failed_jobs[job_name] = [job_id]
+                        else:
+                            failed_jobs[job_name].append(job_id)
+                    for single_tool_job in unknown_command_line_tool_jobs:
+                        job_name = single_tool_job.job_name
+                        job_id = single_tool_job.job_id
+                        if job_name not in unknown_jobs:
+                            unknown_jobs[job_name] = [job_id]
+                        else:
+                            unknown_jobs[job_name].append(job_id)
+                    job.message['failed_jobs'] = failed_jobs
+                    job.message['unknown_jobs'] = unknown_jobs
                     job.finished = now()
             else:
                 logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,job.external_id))
-                job.message = 'Job [{}], Could not retrieve status'.format(job.id)
+                job.message['info'] = 'Job [{}], Could not retrieve status'.format(job.id)
         else:
             logger.info('Job [{}] not submitted to lsf'.format(job.id))
             job.status = Status.FAILED
             job.finished = now()
-            job.message = 'Job [{}], External id not provided'.format(job.id)
+            job.message['info'] = 'Job [{}], External id not provided'.format(job.id)
         job.save()
 
 
