@@ -141,18 +141,18 @@ def check_status_of_jobs(self):
                     if not job.started:
                         job.started = now()
                 if lsf_status == Status.FAILED:
-                    failed_commandLineToolJobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.FAILED)
-                    unknown_commandLineToolJobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.UNKNOWN)
+                    failed_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.FAILED)
+                    unknown_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.UNKNOWN)
                     failed_jobs = {}
                     unknown_jobs = {}
-                    for single_tool_job in failed_commandLineToolJobs:
+                    for single_tool_job in failed_command_line_tool_jobs:
                         job_name = single_tool_job.job_name
                         job_id = single_tool_job.job_id
                         if job_name not in failed_jobs:
                             failed_jobs[job_name] = [job_id]
                         else:
                             failed_jobs[job_name].append(job_id)
-                    for single_tool_job in unknown_commandLineToolJobs:
+                    for single_tool_job in unknown_command_line_tool_jobs:
                         job_name = single_tool_job.job_name
                         job_id = single_tool_job.job_id
                         if job_name not in unknown_jobs:
