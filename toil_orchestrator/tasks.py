@@ -166,6 +166,7 @@ def check_status_of_jobs(self):
                             failed_jobs[job_name] = [job_id]
                         else:
                             failed_jobs[job_name].append(job_id)
+                            failed_jobs[job_name].sort()
                     for single_tool_job in unknown_command_line_tool_jobs:
                         job_name = single_tool_job.job_name
                         job_id = single_tool_job.job_id
@@ -173,6 +174,7 @@ def check_status_of_jobs(self):
                             unknown_jobs[job_name] = [job_id]
                         else:
                             unknown_jobs[job_name].append(job_id)
+                            unknown_jobs[job_name].sort()
                     update_message_by_key(job,'failed_jobs',failed_jobs)
                     update_message_by_key(job,'unknown_jobs',unknown_jobs)
                     job.finished = now()
