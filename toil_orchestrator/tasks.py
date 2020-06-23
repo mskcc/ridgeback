@@ -26,6 +26,24 @@ def get_job_info_path(job_id):
     job_info_path = os.path.join(work_dir,'.run.info')
     return job_info_path
 
+def get_message(job_obj):
+    job_message = {}
+    if job_obj.message:
+        if type(job_obj.message) == str:
+            job_message = json.loads(job_obj.message)
+        else:
+            job_message = job_obj.message
+    return job_message
+
+def set_message(job_obj, message_obj):
+    message_str = json.dumps(message_obj, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
+    job_obj.message = message_str
+    job_obj.save()
+
+def update_message_by_key(job_obj, key, value):
+    message = get_message(job_obj)
+    message[key] = value
+    set_message(job_obj, message)
 
 def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
     if os.path.exists(working_dir):
@@ -48,6 +66,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Failed to submit job: %s' % job_id)
     job = Job.objects.get(id=job_id)
     job.status = Status.FAILED
+    update_message_by_key(job,'info','Failed to submit job')
     job.finished = now()
     job.save()
     logger.error('Job Saved')
@@ -68,13 +87,8 @@ def submit_jobs_to_lsf(self, job_id):
         job.working_dir = job_work_dir
         job.output_directory = job_output_dir
         job.status = Status.PENDING
-        log_path = os.path.join(job_work_dir,'lsf.log')
-        job.message = {
-            'log': log_path,
-            'failed_jobs': [],
-            'unknown_jobs':[],
-            'info': ''
-        }
+        log_path = os.path.join(job_work_dir, 'lsf.log')
+        update_message_by_key(job,'log',log_path)
         job.save()
     except Exception as e:
         logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
@@ -133,10 +147,10 @@ def check_status_of_jobs(self):
                         job.status = lsf_status
                         job.finished = now()
                     if error_message:
-                        job.message['info'] = error_message
+                        update_message_by_key(job,'info',error_message)
                 else:
                     job.status = lsf_status
-                    job.message['info'] = lsf_message
+                    update_message_by_key(job,'info',lsf_message)
                 if lsf_status != Status.PENDING:
                     if not job.started:
                         job.started = now()
@@ -159,17 +173,19 @@ def check_status_of_jobs(self):
                             unknown_jobs[job_name] = [job_id]
                         else:
                             unknown_jobs[job_name].append(job_id)
-                    job.message['failed_jobs'] = failed_jobs
-                    job.message['unknown_jobs'] = unknown_jobs
+                    update_message_by_key(job,'failed_jobs',failed_jobs)
+                    update_message_by_key(job,'unknown_jobs',unknown_jobs)
                     job.finished = now()
             else:
                 logger.info('Job [{}], Failed to retrieve job status for job with external id {}'.format(job.id,job.external_id))
-                job.message['info'] = 'Job [{}], Could not retrieve status'.format(job.id)
+                error_message = 'Job [{}], Could not retrieve status'.format(job.id)
+                update_message_by_key(job,'info',error_message)
         else:
             logger.info('Job [{}] not submitted to lsf'.format(job.id))
             job.status = Status.FAILED
             job.finished = now()
-            job.message['info'] = 'Job [{}], External id not provided'.format(job.id)
+            error_message = 'Job [{}], External id not provided'.format(job.id)
+            update_message_by_key(job,'info',error_message)
         job.save()
 
 
