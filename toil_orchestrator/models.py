@@ -37,7 +37,7 @@ class Job(BaseModel):
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
     status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=Status.CREATED)
-    message = JSONField(blank=True, null=True, default=message_default)
+    message = JSONField(default=message_default)
     inputs = JSONField(blank=True, null=True)
     outputs = JSONField(blank=True, null=True)
     job_store_clean_up = models.DateTimeField(blank=True, null=True)
