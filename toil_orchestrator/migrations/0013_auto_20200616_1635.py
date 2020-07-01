@@ -15,6 +15,9 @@ def update_dates(apps, _):
                 single_job.started = single_job.created_date
             single_job.save()
 
+def revert_dates(apps, _):
+    pass
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -22,5 +25,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(update_dates)
+        migrations.RunPython(update_dates, revert_dates)
     ]
