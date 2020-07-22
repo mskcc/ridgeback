@@ -195,6 +195,12 @@ def check_status_of_jobs(self):
 def check_status_of_command_line_jobs(self):
     jobs = Job.objects.filter(status__in=(Status.CREATED, Status.RUNNING))
     for current_job in jobs:
+        if current_job.app != None:
+            if 'github' in current_job.app:
+                github_repo = current_job.app['github']['repository']
+                if github_repo:
+                    if "access" in github_repo.lower():
+                        continue
         current_job_str = current_job.track_cache
         job_updated = False
         if current_job_str:
