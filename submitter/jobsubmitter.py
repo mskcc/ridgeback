@@ -120,7 +120,7 @@ class JobSubmitter(object):
             In addition to different arguments and required bins, ACCESS requires a specific version of Toil that prevents the following PATH from recursively appending itself on every job, causing "OSExit Too many argument".
             """
             path = "PATH=/juno/work/ci/access-pipelines/env/conda/envs/ACCESS/bin:{}".format(os.environ.get('PATH'))
-            toil_lsf_args="TOIL_LSF_ARGS='-W3600";
+            toil_lsf_args="TOIL_LSF_ARGS=-W3600";
             command_line = [path, toil_lsf_args, 'toil-cwl-runner', '--no-container', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--logLevel', 'DEBUG','--disable-host-provenance','--stats', '--debug', '--cleanWorkDir', 'always', '--disableCaching', '--disableChaining', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '_JAVA_OPTIONS', 'PYTHONPATH', 'TEMP', '--defaultMemory', '10G', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir]
             """
             End ACCESS-specific code
