@@ -26,7 +26,7 @@ class LSFClient():
         '''
         self.logger = logging.getLogger('LSF_client')
 
-    def submit(self, command, stdout):
+    def submit(self, command, job_args, stdout):
         '''
         Submit command to LSF and store log in stdout
 
@@ -37,11 +37,9 @@ class LSFClient():
         Returns:
             int: lsf job id
         '''
-        bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout]
-        toil_lsf_args = '-sla %s' % settings.LSF_SLA
-        if settings.LSF_WALLTIME:
-            bsub_command.extend(['-W', settings.LSF_WALLTIME])
-            toil_lsf_args = '%s -W %s' % (toil_lsf_args, settings.LSF_WALLTIME)
+        bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout] + job_args
+        toil_lsf_args = '-sla %s %s' % (settings.LSF_SLA, " ".join(job_args))
+
         bsub_command.extend(command)
         current_env = os.environ
         current_env['TOIL_LSF_ARGS'] = toil_lsf_args
