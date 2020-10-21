@@ -125,10 +125,18 @@ class JobSubmitter(object):
         if "access" in self.app.github.lower():
             """
             Start ACCESS-specific code
-            In addition to different arguments and required bins, ACCESS requires a specific version of Toil that prevents the following PATH from recursively appending itself on every job, causing "OSExit Too many argument".
+            In addition to different arguments and required bins, ACCESS requires a specific version of Toil that prevents
+            the following PATH from recursively appending itself on every job, causing "OSExit Too many argument".
             """
             path = "PATH=/juno/work/ci/access-pipelines/env/conda/envs/ACCESS/bin:{}".format(os.environ.get('PATH'))
-            command_line = [path, 'toil-cwl-runner', '--no-container', '--logFile', 'toil_log.log', '--batchSystem','lsf','--disable-user-provenance','--logLevel', 'DEBUG','--disable-host-provenance','--stats', '--debug', '--cleanWorkDir', 'always', '--disableCaching', '--defaultMemory', '10G', '--disableChaining', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', '_JAVA_OPTIONS', 'PYTHONPATH', 'TEMP', '--maxCores', '16', '--realTimeLogging', '--jobStore', self.job_store_dir, '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir, '--outdir', self.job_outputs_dir]
+            command_line = [path, 'toil-cwl-runner', '--no-container', '--logFile', 'toil_log.log',
+                            '--batchSystem','lsf','--logLevel', 'DEBUG','--stats', '--cleanWorkDir',
+                            'onSuccess', '--disableCaching', '--defaultMemory', '10G',
+                            '--disableChaining', '--preserve-environment', 'PATH', 'TMPDIR',
+                            'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD',
+                            '_JAVA_OPTIONS', 'PYTHONPATH', 'TEMP', '--jobStore', self.job_store_dir,
+                            '--tmpdir-prefix', self.job_tmp_dir, '--workDir', self.job_work_dir,
+                            '--outdir', self.job_outputs_dir]
             """
             End ACCESS-specific code
             """
