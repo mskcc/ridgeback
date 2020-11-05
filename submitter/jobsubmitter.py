@@ -115,7 +115,7 @@ class JobSubmitter(object):
 
     def _job_args(self):
         if "access" in self.app.github.lower():
-            return ["-W", "3600"]
+            return ["-W", "3600", "-M", "10"]
         elif settings.LSF_WALLTIME:
             return ['-W', settings.LSF_WALLTIME]
         return []
@@ -125,8 +125,6 @@ class JobSubmitter(object):
         if "access" in self.app.github.lower():
             """
             Start ACCESS-specific code
-            In addition to different arguments and required bins, ACCESS requires a specific version of Toil that prevents
-            the following PATH from recursively appending itself on every job, causing "OSExit Too many argument".
             """
             path = "PATH=/juno/work/ci/access-pipelines/env/conda/envs/ACCESS/bin:{}".format(os.environ.get('PATH'))
             command_line = [path, 'toil-cwl-runner', '--no-container', '--logFile', 'toil_log.log',
