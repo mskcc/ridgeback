@@ -10,7 +10,8 @@ class Status(IntEnum):
     RUNNING = 2
     COMPLETED = 3
     FAILED = 4
-    UNKNOWN = 5
+    ABORT = 6
+    UNKNOWN = 6
 
 
 class PipelineType(IntEnum):

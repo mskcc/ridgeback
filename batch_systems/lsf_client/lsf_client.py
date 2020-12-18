@@ -192,3 +192,11 @@ class LSFClient():
                                  universal_newlines=True)
         status = self._parse_status(process.stdout, external_job_id)
         return status
+
+    def abort(self, external_job_id):
+        bill_command = ['bkill', external_job_id]
+        self.logger.debug("Killing lsf job: %s", external_job_id)
+        process = subprocess.run(bill_command, check=True, stdout=subprocess.PIPE,
+                                 universal_newlines=True)
+        pass
+        ## TODO: Check exit code

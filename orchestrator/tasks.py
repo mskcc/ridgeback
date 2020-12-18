@@ -57,6 +57,8 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
 def submit_jobs_to_lsf(self, job_id):
     logger.info("Submitting jobs to lsf")
     job = Job.objects.get(id=job_id)
+    if job.status == Status.ABORTING:
+        return
     try:
         logger.info("Submitting job %s to lsf" % job.id)
         submitter = JobSubmitterFactory.factory(job.type, job_id, job.app, job.inputs, job.root_dir,
@@ -74,6 +76,10 @@ def submit_jobs_to_lsf(self, job_id):
     except Exception as e:
         logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
         self.retry(exc=e, countdown=10)
+
+
+def terminate_job(self, job_id):
+    logger.info("Submitting jobs to lsf")
 
 
 @shared_task(bind=True)
@@ -117,7 +123,8 @@ def check_status_of_jobs(self):
                     error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
                     logger.info(error_message)
         elif job.external_id:
-            submiter = JobSubmitterFactory.factory(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+            submiter = JobSubmitterFactory.factory(str(job.id), job.app, job.inputs, job.root_dir,
+                                                   job.resume_job_store_location)
             lsf_status_info = submiter.status(job.external_id)
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info

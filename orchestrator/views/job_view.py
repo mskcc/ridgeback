@@ -93,3 +93,17 @@ class JobViewSet(mixins.CreateModelMixin,
         assert self.paginator is not None
         return self.paginator.get_paginated_response(data)
 
+
+class JobAbortViewSet(mixins.RetrieveModelMixin,
+                      GenericViewSet):
+    queryset = Job.objects.order_by('created_date').all()
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            job = Job.objects.get(id=kwargs.get('pk', None))
+        except Job.DoesNotExist as e:
+            return Response(status.HTTP_404_NOT_FOUND)
+        job.status = Status.ABORT
+        job.save()
+        serializer = JobSerializer(job)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
