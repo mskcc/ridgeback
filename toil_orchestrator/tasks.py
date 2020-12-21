@@ -21,10 +21,12 @@ def get_aware_datetime(date_str):
         datetime_obj = make_aware(datetime_obj)
     return datetime_obj
 
+
 def get_job_info_path(job_id):
     work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, str(job_id))
     job_info_path = os.path.join(work_dir,'.run.info')
     return job_info_path
+
 
 def get_message(job_obj):
     job_message = {}
@@ -35,15 +37,18 @@ def get_message(job_obj):
             job_message = job_obj.message
     return job_message
 
+
 def set_message(job_obj, message_obj):
     message_str = json.dumps(message_obj, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
     job_obj.message = message_str
     job_obj.save()
 
+
 def update_message_by_key(job_obj, key, value):
     message = get_message(job_obj)
     message[key] = value
     set_message(job_obj, message)
+
 
 def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
     if os.path.exists(working_dir):
@@ -57,7 +62,6 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
             json.dump(job_info,job_info_file)
     else:
         logger.error('Working directory %s does not exist', working_dir)
-
 
 
 def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
@@ -93,6 +97,33 @@ def submit_jobs_to_lsf(self, job_id):
     except Exception as e:
         logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
         self.retry(exc=e, countdown=10)
+
+
+@shared_task(bind=True, max_retries=10, retry_jitter=True, retry_backoff=60)
+def abort_job(self, job_id):
+    logger.info("Abort job %s" % job_id)
+    job = Job.objects.get(id=job_id)
+    try:
+        if job.status in (Status.PENDING, Status.RUNNING,):
+            submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+            job_killed = submitter.abort(job.external_id)
+            if job_killed:
+                job.status = Status.ABORTED
+                job.save()
+                return
+            else:
+                logger.info("Failed to abort job %s" % job_id)
+                raise Exception("Failed to abort job %s" % job_id)
+        elif job.status in (Status.CREATED, Status.UNKNOWN,):
+            logger.info("Job aborting %s but still not submitted" % job_id)
+            raise Exception("Job aborting %s but still not submitted" % job_id)
+        else:
+            logger.info("Job %s already in final state %s")
+            return
+    except Exception as e:
+        logger.info("Error happened %s. Retrying..." % str(e))
+        self.retry(exc=e, countdown=10)
+
 
 @shared_task(bind=True)
 def cleanup_folder(self,path, job_id,is_jobstore):
