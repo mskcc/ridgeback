@@ -53,7 +53,7 @@ class JobViewSet(mixins.CreateModelMixin,
             job = Job.objects.get(id=pk)
         except Job.DoesNotExist:
             return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
-        abort_job.delay(pk)
+        abort_job.delay(str(pk))
         return Response("Job aborted", status=status.HTTP_200_OK)
 
     @swagger_auto_schema(request_body=JobSubmitSerializer, responses={201: JobSerializer})
