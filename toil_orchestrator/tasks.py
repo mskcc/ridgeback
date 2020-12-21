@@ -72,7 +72,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Job Saved')
 
 
-@shared_task(bind=True, max_retries=3, on_failure=on_failure_to_submit)
+@shared_task(bind=True, max_retries=3, retry_jitter=True, retry_backoff=60, on_failure=on_failure_to_submit)
 def submit_jobs_to_lsf(self, job_id):
     logger.info("Submitting jobs to lsf")
     job = Job.objects.get(id=job_id)
