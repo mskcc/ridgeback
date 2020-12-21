@@ -19,7 +19,8 @@ class Status(IntEnum):
     RUNNING = 2
     COMPLETED = 3
     FAILED = 4
-    UNKNOWN = 5
+    ABORTED = 5
+    UNKNOWN = 6
 
 
 class BaseModel(models.Model):
