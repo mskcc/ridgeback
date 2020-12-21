@@ -20,7 +20,7 @@ class JobViewSet(mixins.CreateModelMixin,
     def get_serializer_class(self):
         return JobSerializer
 
-    def validate_and_save(self,data):
+    def validate_and_save(self, data):
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
             response = serializer.save()
@@ -37,7 +37,8 @@ class JobViewSet(mixins.CreateModelMixin,
         try:
             parent_job = Job.objects.get(id=pk)
             if parent_job.job_store_clean_up != None:
-                return Response("The job store of the job indicated to be resumed has been cleaned up", status=status.HTTP_410_GONE)
+                return Response("The job store of the job indicated to be resumed has been cleaned up",
+                                status=status.HTTP_410_GONE)
             resume_data['app'] = parent_job.app
             resume_data['inputs'] = parent_job.inputs
             resume_data['resume_job_store_location'] = parent_job.job_store_location
@@ -64,7 +65,8 @@ class JobViewSet(mixins.CreateModelMixin,
         status_param = request.query_params.get('status')
         if status_param:
             if status_param not in [s.name for s in Status]:
-                return Response({'details': 'Invalid status value %s: expected values %s' % (status_param, [s.name for s in Status])}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'details': 'Invalid status value %s: expected values %s' % (
+                status_param, [s.name for s in Status])}, status=status.HTTP_400_BAD_REQUEST)
             queryset = queryset.filter(status=Status[status_param].value)
         page = self.paginate_queryset(queryset)
         serializer = JobSerializer(page, many=True)
