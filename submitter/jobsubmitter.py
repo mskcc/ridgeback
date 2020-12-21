@@ -74,6 +74,9 @@ class JobSubmitter(object):
     def status(self, external_id):
         return self.lsf_client.status(external_id)
 
+    def abort(self, external_id):
+        return self.lsf_client.abort(external_id)
+
     def get_outputs(self):
         error_message = None
         result_json = None
