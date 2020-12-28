@@ -84,7 +84,6 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
              retry_kwargs={"max_retries": 4},
              on_failure=on_failure_to_submit)
 def submit_jobs_to_lsf(self, job_id):
-    try:
     logger.info("Submitting jobs to lsf")
     job = Job.objects.get(id=job_id)
     logger.info("Submitting job %s to lsf" % job.id)
