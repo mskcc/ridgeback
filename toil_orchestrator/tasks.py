@@ -76,27 +76,29 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Job Saved')
 
 
-@shared_task(bind=True, max_retries=3, retry_jitter=True, retry_backoff=60, on_failure=on_failure_to_submit)
+# Retry is 6 to 48 minutes with addee randomness from jittering
+@shared_task(bind=True,
+             autoretry_for=(Exception,),
+             retry_jitter=True,
+             retry_backoff=360,
+             retry_kwargs={"max_retries": 4},
+             on_failure=on_failure_to_submit)
 def submit_jobs_to_lsf(self, job_id):
     logger.info("Submitting jobs to lsf")
     job = Job.objects.get(id=job_id)
-    try:
-        logger.info("Submitting job %s to lsf" % job.id)
-        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
-        external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
-        logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
-        save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
-        job.external_id = external_job_id
-        job.job_store_location = job_store_dir
-        job.working_dir = job_work_dir
-        job.output_directory = job_output_dir
-        job.status = Status.PENDING
-        log_path = os.path.join(job_work_dir, 'lsf.log')
-        update_message_by_key(job,'log',log_path)
-        job.save()
-    except Exception as e:
-        logger.info("Failed to submit job %s\n%s" % (job_id, str(e)))
-        self.retry(exc=e, countdown=10)
+    logger.info("Submitting job %s to lsf" % job.id)
+    submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+    external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
+    logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
+    save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
+    job.external_id = external_job_id
+    job.job_store_location = job_store_dir
+    job.working_dir = job_work_dir
+    job.output_directory = job_output_dir
+    job.status = Status.PENDING
+    log_path = os.path.join(job_work_dir, 'lsf.log')
+    update_message_by_key(job,'log',log_path)
+    job.save()
 
 
 @shared_task(bind=True, max_retries=10, retry_jitter=True, retry_backoff=60)
