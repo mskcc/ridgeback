@@ -49,6 +49,24 @@ class LSFClient():
             universal_newlines=True, env=current_env)
         return self._parse_procid(process.stdout)
 
+    def abort(self, external_job_id):
+        '''
+        Kill LSF job
+
+        Args:
+            external_job_id (str): external_job_id
+
+        Returns:
+            bool: successful
+        '''
+        bkill_command = ['bkill', external_job_id]
+        process = subprocess.run(
+            bkill_command, check=True, stdout=subprocess.PIPE,
+            universal_newlines=True)
+        if process.returncode == 0:
+            return True
+        return False
+
     def parse_bjobs(self, bjobs_output_str):
         """
         Parse the output of bjobs into a descriptive dict
