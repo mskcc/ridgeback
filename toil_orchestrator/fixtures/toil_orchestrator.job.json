@@ -145,7 +145,7 @@
     "pk": "316a4495-ad98-4799-9b73-b4990d3cc259",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 5,
+        "status": 6,
         "started": null,
         "submitted": null,
         "finished": null,
@@ -159,7 +159,7 @@
     "pk": "ca899e87-0f7c-4e81-9eb2-0ffd47d0935b",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 5,
+        "status": 6,
         "started": null,
         "submitted": null,
         "finished": null,
