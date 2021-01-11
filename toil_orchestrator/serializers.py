@@ -103,8 +103,10 @@ class JobSerializer(serializers.ModelSerializer):
 
     app = AppField()
     message = MessageField(required=False)
+    commandlinetooljob_set = CommandLineToolJobSerializer(many=True)
 
 class JobSubmitSerializer(JobSerializer):
+
 
     class Meta:
         model = Job
