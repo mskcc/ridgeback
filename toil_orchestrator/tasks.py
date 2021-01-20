@@ -110,12 +110,12 @@ def cleanup_jobs(status, time_delta):
 
 @shared_task(bind=True)
 def cleanup_completed_jobs(self):
-    cleanup_jobs(Status.COMPLETED, 30)
+    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS)
 
 
 @shared_task(bind=True)
 def cleanup_failed_jobs(self):
-    cleanup_jobs(Status.FAILED, 30)
+    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS)
 
 
 @shared_task(bind=True)
