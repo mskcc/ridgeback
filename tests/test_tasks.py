@@ -1,12 +1,14 @@
 from mock import patch
 from django.test import TestCase
 from toil_orchestrator.models import Job, Status
-from toil_orchestrator.tasks import submit_jobs_to_lsf, check_status_of_jobs, on_failure_to_submit, get_message
+from toil_orchestrator.tasks import submit_jobs_to_lsf, check_status_of_jobs, on_failure_to_submit, get_message, cleanup_completed_jobs, cleanup_failed_jobs
+from datetime import datetime, timedelta
+from mock import patch, call
 
 
 class TestTasks(TestCase):
     fixtures = [
-    "toil_orchestrator.job.json"
+        "toil_orchestrator.job.json"
     ]
 
     def setUp(self):
@@ -75,7 +77,7 @@ class TestTasks(TestCase):
         }
         self.assertEqual(info_message,'submitter reason')
         self.assertEqual(failed_jobs, expected_failed_jobs)
-        self.assertEqual(unknown_jobs,expected_unknown_jobs)
+        self.assertEqual(unknown_jobs, expected_unknown_jobs)
 
     @patch('toil_orchestrator.tasks.get_job_info_path')
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
@@ -107,5 +109,24 @@ class TestTasks(TestCase):
         expected_unknown_jobs = {}
         self.assertTrue('External id not provided' in info_message)
         self.assertEqual(failed_jobs, expected_failed_jobs)
-        self.assertEqual(unknown_jobs,expected_unknown_jobs)
+        self.assertEqual(unknown_jobs, expected_unknown_jobs)
 
+    @patch('toil_orchestrator.tasks.cleanup_folders')
+    def test_cleanup(self, cleanup_folders):
+        job_new = Job.objects.create(app={'app': 'link'},
+                                     status=Status.COMPLETED, created_date=datetime.now() - timedelta(days=1))
+        testtime = datetime.now() - timedelta(days=32)
+        with patch('django.utils.timezone.now') as mock_now:
+            mock_now.return_value = testtime
+            job_old_completed = Job.objects.create(app={'app': 'link'}, status=Status.COMPLETED)
+            job_old_failed = Job.objects.create(app={'app': 'link'}, status=Status.FAILED)
+
+        cleanup_completed_jobs()
+        cleanup_failed_jobs()
+
+        calls = [
+            call(str(job_old_completed.id)),
+            call(str(job_old_failed.id)),
+        ]
+
+        cleanup_folders.delay.assert_has_calls(calls, any_order=True)
