@@ -21,6 +21,7 @@ class JobAdmin(admin.ModelAdmin):
 			if all([job.job_store_clean_up, job.working_dir_clean_up]):
 				cleaned_up_projects = cleaned_up_projects + 1
 			elif any([job.job_store_clean_up, job.working_dir_clean_up]):
+				cleaned_up_projects = cleaned_up_projects + 1
 				partially_cleaned_up_projects = partially_cleaned_up_projects + 1
 			else:
 				already_cleaned_up_projects = already_cleaned_up_projects + 1
@@ -31,7 +32,7 @@ class JobAdmin(admin.ModelAdmin):
 											 partial_cleaning=partially_cleaned_up_projects,
 											 cleaned_up=already_cleaned_up_projects)
 
-		self.message_user(request, message, level=messages.INFO)
+		self.message_user(request, message, level=messages.WARNING)
 
 	cleanup_files.short_description = "Cleanup up the TOIL jobstore and workdir"
 	list_display = ("id", "status", "created_date", "modified_date", "external_id")
