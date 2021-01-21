@@ -20,8 +20,8 @@ app.autodiscover_tasks()
 
 
 app.conf.task_routes = {'toil_orchestrator.tasks.submit_jobs_to_lsf': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
-                        'toil_orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE}}
-
+                        'toil_orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
+                        'toil_orchestrator.tasks.abort_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE}}
 
 app.conf.beat_schedule = {
     "check_status_of_jobs": {
