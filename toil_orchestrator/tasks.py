@@ -127,10 +127,10 @@ def cleanup_folders(self, job_id, job_store=True, work_dir=True):
         logger.error("Job with id:%s not found" % job_id)
         return
     if job_store:
-        if clean_directory(job.job_store_clean_up):
+        if clean_directory(job.job_store_location):
             job.job_store_clean_up = now()
     if work_dir:
-        if clean_directory(job.working_dir_clean_up):
+        if clean_directory(job.working_dir):
             job.working_dir_clean_up = now()
     job.save()
 
