@@ -143,7 +143,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
-STATIC_URL = '/static/'
 LOGIN_URL='/admin/login/'
 LOGOUT_URL='/admin/logout/'
 
@@ -204,3 +203,12 @@ TOIL_TMP_DIR_ROOT = os.environ['RIDGEBACK_TOIL_TMP_DIR_ROOT']
 LSF_WALLTIME = os.environ['RIDGEBACK_LSF_WALLTIME']
 LSF_SLA = os.environ['RIDGEBACK_LSF_SLA']
 CWLTOIL = os.environ.get('RIDGEBACK_TOIL', 'cwltoil')
+
+
+# Cleanup periods
+
+CLEANUP_COMPLETED_JOBS = os.environ.get('RIDGEBACK_CLEANUP_COMPLETED_JOBS', 30)
+CLEANUP_FAILED_JOBS = os.environ.get('RIDGEBACK_CLEANUP_FAILED_JOBS', 30)
+
+STATIC_ROOT = 'ridgeback_staticfiles'
+STATIC_URL = '/static/'

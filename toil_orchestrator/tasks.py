@@ -1,7 +1,6 @@
 import os
 import logging
-from .models import Job, Status, CommandLineToolJob
-from .toil_track_utils import ToilTrack
+from datetime import timedelta
 from celery import shared_task
 from submitter.jobsubmitter import JobSubmitter
 import json
@@ -9,6 +8,8 @@ from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
+from .toil_track_utils import ToilTrack
+from .models import Job, Status, CommandLineToolJob
 import shutil
 
 
@@ -24,7 +25,7 @@ def get_aware_datetime(date_str):
 
 def get_job_info_path(job_id):
     work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, str(job_id))
-    job_info_path = os.path.join(work_dir,'.run.info')
+    job_info_path = os.path.join(work_dir, '.run.info')
     return job_info_path
 
 
@@ -106,6 +107,19 @@ def abort_job(self, job_id):
     logger.info("Abort job %s" % job_id)
     job = Job.objects.get(id=job_id)
     try:
+        logger.info("Submitting job %s to lsf" % job.id)
+        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+        external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
+        logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
+        save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
+        job.external_id = external_job_id
+        job.job_store_location = job_store_dir
+        job.working_dir = job_work_dir
+        job.output_directory = job_output_dir
+        job.status = Status.PENDING
+        log_path = os.path.join(job_work_dir, 'lsf.log')
+        update_message_by_key(job, 'log', log_path)
+        job.save()
         if job.status in (Status.PENDING, Status.RUNNING,):
             submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
             job_killed = submitter.abort(job.external_id)
@@ -127,24 +141,48 @@ def abort_job(self, job_id):
         self.retry(exc=e, countdown=10)
 
 
+def cleanup_jobs(status, time_delta):
+    time_threshold = now() - timedelta(days=time_delta)
+    jobs = Job.objects.filter(status__in=(status,), modified_date__lte=time_threshold, job_store_clean_up=None,
+                              working_dir_clean_up=None)
+    for job in jobs:
+        cleanup_folders.delay(str(job.id))
+
+
 @shared_task(bind=True)
-def cleanup_folder(self,path, job_id,is_jobstore):
-    logger.info("Cleaning up %s" % path)
-    job_obj_list = Job.objects.filter(id__exact=job_id)
-    job_obj = None
-    if len(job_obj_list) > 0:
-        if job_obj_list[0] != None:
-            job_obj = job_obj_list[0]
+def cleanup_completed_jobs(self):
+    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS)
+
+
+@shared_task(bind=True)
+def cleanup_failed_jobs(self):
+    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS)
+
+
+@shared_task(bind=True)
+def cleanup_folders(self, job_id, job_store=True, work_dir=True):
+    logger.info("Cleaning up %s" % job_id)
+    try:
+        job = Job.objects.get(id=job_id)
+    except Job.DoesNotExist:
+        logger.error("Job with id:%s not found" % job_id)
+        return
+    if job_store:
+        if clean_directory(job.job_store_location):
+            job.job_store_clean_up = now()
+    if work_dir:
+        if clean_directory(job.working_dir):
+            job.working_dir_clean_up = now()
+    job.save()
+
+
+def clean_directory(path):
     try:
         shutil.rmtree(path)
-        logger.info("Cleaning of %s successful" % path)
-        if is_jobstore:
-            if job_obj != None:
-                job_obj.job_store_clean_up = now()
-                job_obj.save()
     except Exception as e:
-        error_message = "Failed to remove folder: %s\n%s" % (path,str(e))
-        logger.info(error_message)
+        logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
+        return False
+    return True
 
 
 @shared_task(bind=True)

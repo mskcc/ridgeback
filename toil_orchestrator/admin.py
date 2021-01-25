@@ -1,51 +1,38 @@
 from django.contrib import admin
 from .models import Job, CommandLineToolJob
-from toil_orchestrator.tasks import cleanup_folder
+from toil_orchestrator.tasks import cleanup_folders
 from django.contrib import messages
 
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
 	actions = ['cleanup_files']
+	report_message = """
+	Cleaning up {cleaning} job(s) [{partial_cleaning} partial]
+	Already cleaned up {cleaned_up}
+	"""
 
 	def cleanup_files(self, request, queryset):
 		cleaned_up_projects = 0
 		partially_cleaned_up_projects = 0
 		already_cleaned_up_projects = 0
-		cleaned_up_message = None
-		for single_query in queryset:
-			jobstore_location = single_query.job_store_location
-			working_dir = single_query.working_dir
-			jobstore_cleaned_up = False
-			workdir_dir_cleaned_up = False
-			if not single_query.job_store_clean_up:
-				cleanup_folder.delay(str(jobstore_location), single_query.id, True)
-				jobstore_cleaned_up = True
-			if not single_query.working_dir_clean_up:
-				cleanup_folder.delay(str(working_dir), single_query.id, False)
-				workdir_dir_cleaned_up = True
-			if jobstore_cleaned_up and workdir_dir_cleaned_up:
+		for job in queryset:
+
+			if all([job.job_store_clean_up, job.working_dir_clean_up]):
 				cleaned_up_projects = cleaned_up_projects + 1
-			elif not jobstore_cleaned_up and not workdir_dir_cleaned_up:
-				already_cleaned_up_projects = already_cleaned_up_projects + 1
-			else:
+			elif any([job.job_store_clean_up, job.working_dir_clean_up]):
+				cleaned_up_projects = cleaned_up_projects + 1
 				partially_cleaned_up_projects = partially_cleaned_up_projects + 1
-				cleaned_up_projects = cleaned_up_projects + 1
-			if cleaned_up_projects > 0:
-				if partially_cleaned_up_projects > 0:
-					cleaned_up_message = "Cleaning up %s job(s) [ %s partial ]" % (cleaned_up_projects, partially_cleaned_up_projects)
-				else:
-					cleaned_up_message = "Cleaning up %s job(s)" % cleaned_up_projects
-				level = messages.SUCCESS
-			if already_cleaned_up_projects > 0:
-				if cleaned_up_message != None:
-					cleaned_up_message = "%s , and already cleaned up %s job(s)" % (
-						cleaned_up_message, already_cleaned_up_projects)
-					level = messages.WARNING
-				else:
-					cleaned_up_message = "Already cleaned up %s job(s)" % already_cleaned_up_projects
-					level = messages.ERROR
-		self.message_user(request, cleaned_up_message, level=level)
+			else:
+				already_cleaned_up_projects = already_cleaned_up_projects + 1
+
+			cleanup_folders.delay(str(job.id))
+
+		message = self.report_message.format(cleaning=cleaned_up_projects,
+											 partial_cleaning=partially_cleaned_up_projects,
+											 cleaned_up=already_cleaned_up_projects)
+
+		self.message_user(request, message, level=messages.WARNING)
 
 	cleanup_files.short_description = "Cleanup up the TOIL jobstore and workdir"
 	list_display = ("id", "status", "created_date", "modified_date", "external_id")

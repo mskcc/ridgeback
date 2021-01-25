@@ -132,7 +132,7 @@ class JobSubmitter(object):
             """
             Start ACCESS-specific code
             """
-            path = "PATH=/juno/work/ci/access-pipelines/env/conda/envs/ACCESS/bin:{}".format(os.environ.get('PATH'))
+            path = "PATH=/juno/home/accessbot/miniconda3/envs/ACCESS_2.0.0/bin:{}".format(os.environ.get('PATH'))
             command_line = [path, 'toil-cwl-runner', '--no-container', '--logFile', 'toil_log.log',
                             '--batchSystem','lsf','--logLevel', 'DEBUG','--stats', '--cleanWorkDir',
                             'onSuccess', '--disableCaching', '--defaultMemory', '10G',
