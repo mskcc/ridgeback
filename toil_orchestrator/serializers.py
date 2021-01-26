@@ -80,6 +80,16 @@ class MessageField(serializers.JSONField):
             }
          }
 
+class CommandLineToolJobSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    def get_status(self, obj):
+        return Status(obj.status).name
+
+    class Meta:
+        model = CommandLineToolJob
+        fields = '__all__'
+
 
 class JobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
@@ -93,8 +103,10 @@ class JobSerializer(serializers.ModelSerializer):
 
     app = AppField()
     message = MessageField(required=False)
+    commandlinetooljob_set = CommandLineToolJobSerializer(many=True, required=False)
 
 class JobSubmitSerializer(JobSerializer):
+
 
     class Meta:
         model = Job
@@ -106,8 +118,3 @@ class JobResumeSerializer(JobSerializer):
         model = Job
         fields = ['root_dir']
 
-class CommandLineToolJobSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = CommandLineToolJob
-        fields = '__all__'
