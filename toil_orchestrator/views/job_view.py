@@ -54,8 +54,14 @@ class JobViewSet(mixins.CreateModelMixin,
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
-        resp_serializer = JobSerializer(self.queryset.filter(id__in=serializer.data.get("job_ids")), many=True)
-        return Response(resp_serializer.data)
+        resp_serializer = JobStatusSerializer(data={
+            "jobs": {str(j["id"]): j for j in self.queryset.filter(id__in=serializer.validated_data.get("job_ids")).values()}
+        })
+        if resp_serializer.is_valid():
+            return Response(resp_serializer.validated_data)
+        else:
+            return Response(resp_serializer.errors,
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
     @action(detail=True, methods=['get'])
