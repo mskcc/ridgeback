@@ -90,6 +90,12 @@ class CommandLineToolJobSerializer(serializers.ModelSerializer):
         model = CommandLineToolJob
         fields = '__all__'
 
+class JobIdsSerializer(serializers.Serializer):
+    job_ids = serializers.ListField(
+        allow_empty=True,
+        child=serializers.UUIDField(required=True),
+    )
+
 
 class JobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
@@ -104,6 +110,11 @@ class JobSerializer(serializers.ModelSerializer):
     app = AppField()
     message = MessageField(required=False)
     commandlinetooljob_set = CommandLineToolJobSerializer(many=True, required=False)
+
+
+class JobStatusSerializer(serializers.Serializer):
+    jobs = serializers.DictField(child=JobSerializer())
+
 
 class JobSubmitSerializer(JobSerializer):
 
