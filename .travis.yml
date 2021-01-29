@@ -21,7 +21,7 @@ before_install:
 install:
   - psql -p 5433 -c 'create database travis_ci_test;' -U postgres
   - pip install -r requirements.txt
-  - pip install toil
+  - pip install toil==3.24.0
   - source travis_env.sh
   - python manage.py migrate
 script:
