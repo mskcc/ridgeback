@@ -54,6 +54,43 @@ class AppField(serializers.JSONField):
             }
          }
 
+class MessageField(serializers.JSONField):
+
+    class Meta:
+        swagger_schema_fields = {
+            "type": openapi.TYPE_OBJECT,
+            "title": "message",
+            "properties": {
+                "log": openapi.Schema(
+                    title="log",
+                    type=openapi.TYPE_STRING,
+                ),
+                "failed_jobs": openapi.Schema(
+                    title="failed_jobs",
+                    type=openapi.TYPE_OBJECT,
+                ),
+                "unknown_jobs": openapi.Schema(
+                    title="unknown_jobs",
+                    type=openapi.TYPE_OBJECT,
+                ),
+                "info": openapi.Schema(
+                    title="info",
+                    type=openapi.TYPE_STRING,
+                )
+            }
+         }
+
+class CommandLineToolJobSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    def get_status(self, obj):
+        return Status(obj.status).name
+
+    class Meta:
+        model = CommandLineToolJob
+        fields = '__all__'
+
+
 
 class JobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
@@ -66,21 +103,20 @@ class JobSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     app = AppField()
+    message = MessageField(required=False)
+    commandlinetooljob_set = CommandLineToolJobSerializer(many=True, required=False)
 
 
 class JobSubmitSerializer(JobSerializer):
+
     class Meta:
         model = Job
         fields = ('app', 'inputs', 'root_dir')
 
 
 class JobResumeSerializer(JobSerializer):
+
     class Meta:
         model = Job
         fields = ['root_dir']
 
-
-class CommandLineToolJobSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CommandLineToolJob
-        fields = '__all__'

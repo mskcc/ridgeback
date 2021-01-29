@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '3gpghwoqas_6ei_efvb%)5s&lwgs#o99c9(ovmi=1od*e6ezvw'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get('RIDGEBACK_ALLOWED_HOSTS', 'localhost').split(',')
 
@@ -143,7 +143,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
-STATIC_URL = '/static/'
 LOGIN_URL='/admin/login/'
 LOGOUT_URL='/admin/logout/'
 
@@ -167,6 +166,35 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
+#Logging
+
+LOG_PATH = os.environ.get('RIDGEBACK_LOG_PATH', 'ridgeback-server.log')
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_PATH,
+            "maxBytes": 209715200,
+            "backupCount": 10
+        }
+    },
+    "loggers": {
+        "django_auth_ldap": {
+            "level": "DEBUG", "handlers": ["console"]
+        },
+        "django": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+    },
+}
+
 # Toil settings
 
 TOIL_JOB_STORE_ROOT = os.environ['RIDGEBACK_TOIL_JOB_STORE_ROOT']
@@ -183,3 +211,11 @@ NEXTFLOW_TMP_DIR_ROOT = os.environ['RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT']
 
 NEXTFLOW = os.environ.get('RIDGEBACK_NEXTFLOW', 'nextflow')
 
+
+# Cleanup periods
+
+CLEANUP_COMPLETED_JOBS = os.environ.get('RIDGEBACK_CLEANUP_COMPLETED_JOBS', 30)
+CLEANUP_FAILED_JOBS = os.environ.get('RIDGEBACK_CLEANUP_FAILED_JOBS', 30)
+
+STATIC_ROOT = 'ridgeback_staticfiles'
+STATIC_URL = '/static/'

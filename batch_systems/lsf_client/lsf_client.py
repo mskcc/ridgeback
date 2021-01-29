@@ -25,7 +25,7 @@ class LSFClient(object):
         '''
         self.logger = logging.getLogger('LSF_client')
 
-    def submit(self, command, stdout):
+    def submit(self, command, job_args, stdout):
         '''
         Submit command to LSF and store log in stdout
 
@@ -36,11 +36,9 @@ class LSFClient(object):
         Returns:
             int: lsf job id
         '''
-        bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout]
-        toil_lsf_args = '-sla %s' % settings.LSF_SLA
-        if settings.LSF_WALLTIME:
-            bsub_command.extend(['-W', settings.LSF_WALLTIME])
-            toil_lsf_args = '%s -W %s' % (toil_lsf_args, settings.LSF_WALLTIME)
+        bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout] + job_args
+        toil_lsf_args = '-sla %s %s' % (settings.LSF_SLA, " ".join(job_args))
+
         bsub_command.extend(command)
         current_env = os.environ
         current_env['TOIL_LSF_ARGS'] = toil_lsf_args # TODO: Logic related to Toil shouldn't be here
@@ -49,6 +47,24 @@ class LSFClient(object):
             bsub_command, check=True, stdout=subprocess.PIPE,
             universal_newlines=True, env=current_env)
         return self._parse_procid(process.stdout)
+
+    def abort(self, external_job_id):
+        '''
+        Kill LSF job
+
+        Args:
+            external_job_id (str): external_job_id
+
+        Returns:
+            bool: successful
+        '''
+        bkill_command = ['bkill', external_job_id]
+        process = subprocess.run(
+            bkill_command, check=True, stdout=subprocess.PIPE,
+            universal_newlines=True)
+        if process.returncode == 0:
+            return True
+        return False
 
     def parse_bjobs(self, bjobs_output_str):
         """
