@@ -36,8 +36,9 @@ class GithubApp(App):
         self.version = version
 
     def resolve(self, location):
-        git.Git(location).clone(self.github, '--branch', self.version, '--recurse-submodules')
         dirname = self._extract_dirname_from_github_link()
+        if not os.path.exists(os.path.join(location, dirname)):
+            git.Git(location).clone(self.github, '--branch', self.version, '--recurse-submodules')
         return os.path.join(location, dirname, self.entrypoint)
 
     def _extract_dirname_from_github_link(self):
