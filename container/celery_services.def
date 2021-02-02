@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: ubuntu:19.10
+From: ubuntu:18.04
 Includecmd: no
 
 %startscript
@@ -98,7 +98,8 @@ Includecmd: no
         libldap2-dev libsasl2-dev libssl-dev \
         postgresql postgresql-contrib libpq-dev \
         gawk build-essential nodejs \
-        git
+        git \
+        default-jdk
 
     if [ -z "$RIDGEBACK_BRANCH" ]; then
     export RIDGEBACK_BRANCH=master
