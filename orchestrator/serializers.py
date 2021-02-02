@@ -17,7 +17,6 @@ class AppField(serializers.JSONField):
 
     default_validators = [validate_app]
 
-
     class Meta:
         swagger_schema_fields = {
             "type": openapi.TYPE_OBJECT,
@@ -91,7 +90,6 @@ class CommandLineToolJobSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-
 class JobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
 
@@ -111,7 +109,7 @@ class JobSubmitSerializer(JobSerializer):
 
     class Meta:
         model = Job
-        fields = ('app', 'inputs', 'root_dir')
+        fields = ('type', 'app', 'inputs', 'root_dir')
 
 
 class JobResumeSerializer(JobSerializer):
