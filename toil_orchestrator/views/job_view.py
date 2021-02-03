@@ -53,12 +53,16 @@ class JobViewSet(mixins.CreateModelMixin,
         if not serializer.is_valid():
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
-
-        resp_serializer = JobStatusSerializer(data={
-            "jobs": {str(j["id"]): j for j in self.queryset.filter(id__in=serializer.validated_data.get("job_ids")).values()}
-        })
+        job_ids = serializer.validated_data.get("job_ids")
+        job_status_data = {}
+        for single_job in self.queryset.filter(id__in=job_ids):
+            job_obj = JobSerializer(single_job)
+            job_data = job_obj.data
+            job_id = job_data["id"]
+            job_status_data[job_id] = job_data
+        resp_serializer = JobStatusSerializer(data={'jobs':job_status_data})
         if resp_serializer.is_valid():
-            return Response(resp_serializer.validated_data)
+            return Response(resp_serializer.data)
         else:
             return Response(resp_serializer.errors,
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
