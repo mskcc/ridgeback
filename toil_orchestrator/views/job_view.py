@@ -1,5 +1,5 @@
 from toil_orchestrator.models import Job, Status
-from toil_orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer
+from toil_orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
 from toil_orchestrator.tasks import submit_jobs_to_lsf, abort_job
 from rest_framework import mixins
 from rest_framework import status
@@ -46,6 +46,23 @@ class JobViewSet(mixins.CreateModelMixin,
         except Job.DoesNotExist:
             return Response("Could not find the indicated job to resume", status=status.HTTP_404_NOT_FOUND)
 
+    @swagger_auto_schema(request_body=JobIdsSerializer(), responses={status.HTTP_200_OK: JobStatusSerializer})
+    @action(detail=False, methods=['post'])
+    def statuses(self, request):
+        serializer = JobIdsSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        resp_serializer = JobStatusSerializer(data={
+            "jobs": {str(j["id"]): j for j in self.queryset.filter(id__in=serializer.validated_data.get("job_ids")).values()}
+        })
+        if resp_serializer.is_valid():
+            return Response(resp_serializer.validated_data)
+        else:
+            return Response(resp_serializer.errors,
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
     @action(detail=True, methods=['get'])
     def abort(self, request, pk=None, *args, **kwargs):
@@ -56,7 +73,7 @@ class JobViewSet(mixins.CreateModelMixin,
         abort_job.delay(str(pk))
         return Response("Job aborted", status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(request_body=JobSubmitSerializer, responses={201: JobSerializer})
+    @swagger_auto_schema(request_body=JobSubmitSerializer, responses={status.HTTP_201_CREATED: JobSerializer})
     def create(self, request, *args, **kwargs):
         return self.validate_and_save(request.data)
 
