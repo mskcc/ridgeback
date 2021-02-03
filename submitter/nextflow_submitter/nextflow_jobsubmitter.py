@@ -23,7 +23,11 @@ class NextflowJobSubmitter(JobSubmitter):
                 "name": "input_name",
                 "content": "content"
                 }
-            ]
+            ],
+            "params": {
+                "param_1": True,
+                "param_2": "val2"
+            }
         }
         :param root_dir:
         :param resume_jobstore:
@@ -55,12 +59,13 @@ class NextflowJobSubmitter(JobSubmitter):
         profile = self.inputs.get('profile')
         input_map = dict()
         inputs = self.inputs.get('inputs', [])
+        params = self.inputs.get('params', [])
         for i in inputs:
             input_map[i['name']] = self._dump_input(i['name'], i['content'])
         config = self.inputs.get('config')
         if config:
             self._dump_config(config)
-        return app_location, input_map, config, profile
+        return app_location, input_map, config, profile, params
 
     def _dump_input(self, name, content):
         file_path = os.path.join(self.job_work_dir, name)
@@ -88,12 +93,18 @@ class NextflowJobSubmitter(JobSubmitter):
             os.mkdir(self.job_tmp_dir)
 
     def _command_line(self):
-        app_location, input_map, config, profile = self._dump_app_inputs()
+        app_location, input_map, config, profile, params = self._dump_app_inputs()
         command_line = [settings.NEXTFLOW, 'run', app_location, '-profile', profile, '-w', self.job_store_dir, '--outDir', self.job_outputs_dir]
         for k, v in input_map.items():
             command_line.extend(["--%s" % k, v])
         if config:
             command_line.extend(['-c', config])
+        if params:
+            for k, v in params.items():
+                if v == True:
+                    command_line.extend(['-%s' % k])
+                else:
+                    command_line.extend(['-%s' % k, v])
         if self.resume_jobstore:
             command_line.extend(['-resume'])
         return command_line
