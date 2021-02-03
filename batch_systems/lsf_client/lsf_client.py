@@ -25,7 +25,7 @@ class LSFClient(object):
         '''
         self.logger = logging.getLogger('LSF_client')
 
-    def submit(self, command, job_args, stdout):
+    def submit(self, command, job_args, stdout, env={}):
         '''
         Submit command to LSF and store log in stdout
 
@@ -41,7 +41,8 @@ class LSFClient(object):
 
         bsub_command.extend(command)
         current_env = os.environ
-        current_env['TOIL_LSF_ARGS'] = toil_lsf_args # TODO: Logic related to Toil shouldn't be here
+        for k, v in env.items():
+            current_env[k] = v
         self.logger.debug("Running command: %s\nEnv: %s", bsub_command, current_env)
         process = subprocess.run(
             bsub_command, check=True, stdout=subprocess.PIPE,

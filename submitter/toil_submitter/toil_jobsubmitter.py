@@ -23,7 +23,10 @@ class ToilJobSubmitter(JobSubmitter):
         self._prepare_directories()
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, 'lsf.log')
-        external_id = self.lsf_client.submit(command_line, [], log_path)
+        env = dict()
+        toil_lsf_args = '-sla %s %s' % (settings.LSF_SLA, " ".join(self._job_args()))
+        env['TOIL_LSF_ARGS'] = toil_lsf_args
+        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def get_outputs(self):
