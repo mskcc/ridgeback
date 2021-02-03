@@ -53,6 +53,7 @@ class AppField(serializers.JSONField):
             }
          }
 
+
 class MessageField(serializers.JSONField):
 
     class Meta:
@@ -78,6 +79,7 @@ class MessageField(serializers.JSONField):
                 )
             }
          }
+
 
 class CommandLineToolJobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
