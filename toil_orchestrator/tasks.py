@@ -42,7 +42,7 @@ def get_message(job_obj):
 def set_message(job_obj, message_obj):
     message_str = json.dumps(message_obj, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
     job_obj.message = message_str
-    job_obj.save()
+    job_obj.save(update_fields=['message'])
 
 
 def update_message_by_key(job_obj, key, value):
@@ -98,8 +98,12 @@ def submit_jobs_to_lsf(self, job_id):
     job.output_directory = job_output_dir
     job.status = Status.PENDING
     log_path = os.path.join(job_work_dir, 'lsf.log')
-    update_message_by_key(job,'log',log_path)
-    job.save()
+    update_message_by_key(job, 'log', log_path)
+    job.save(update_fields=['external_id',
+                            'job_store_location',
+                            'working_dir',
+                            'output_directory',
+                            'status'])
 
 
 @shared_task(bind=True, max_retries=10, retry_jitter=True, retry_backoff=60)
