@@ -113,7 +113,7 @@ class JobSerializer(serializers.ModelSerializer):
 
 
 class JobStatusSerializer(serializers.Serializer):
-    jobs = serializers.DictField(child=JobSerializer())
+    jobs = serializers.DictField()
 
 
 class JobSubmitSerializer(JobSerializer):
