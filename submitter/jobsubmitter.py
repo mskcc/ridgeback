@@ -119,7 +119,7 @@ class JobSubmitter(object):
     def _job_args(self):
         if "access" in self.app.github.lower():
             if self.app.entrypoint == "workflows/ACCESS_pipeline.cwl":
-                return ["-W", "3600", "-M", "10"]
+                return ["-W", "7200", "-M", "10"]
             else:
                 return ["-W", "360", "-M", "5"]
         elif settings.LSF_WALLTIME:
