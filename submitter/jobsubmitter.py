@@ -135,7 +135,7 @@ class JobSubmitter(object):
             path = "PATH=/juno/home/accessbot/miniconda3/envs/ACCESS_2.0.0/bin:{}".format(os.environ.get('PATH'))
             command_line = [path, 'toil-cwl-runner', '--no-container', '--logFile', 'toil_log.log',
                             '--batchSystem','lsf','--logLevel', 'DEBUG','--stats', '--cleanWorkDir',
-                            'onSuccess', '--disableCaching', '--defaultMemory', '10G',
+                            'onSuccess', '--disableCaching', '--defaultMemory', '10G', '--retryCount', '2',
                             '--disableChaining', '--preserve-environment', 'PATH', 'TMPDIR',
                             'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD',
                             '_JAVA_OPTIONS', 'PYTHONPATH', 'TEMP', '--jobStore', self.job_store_dir,
