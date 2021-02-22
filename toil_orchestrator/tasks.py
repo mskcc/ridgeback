@@ -77,16 +77,22 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Job Saved')
 
 
-# Retry is 6 to 48 minutes with addee randomness from jittering
-@shared_task(bind=True,
-             autoretry_for=(Exception,),
-             retry_jitter=True,
-             retry_backoff=360,
-             retry_kwargs={"max_retries": 4},
-             on_failure=on_failure_to_submit)
-def submit_jobs_to_lsf(self, job_id):
-    logger.info("Submitting jobs to lsf")
-    job = Job.objects.get(id=job_id)
+MAX_RUNNING_JOBS = 100
+
+@shared_task
+def submit_pending_jobs():
+    jobs_running = Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)).count()
+    jobs_to_submit = jobs_running - MAX_RUNNING_JOBS
+    if MAX_RUNNING_JOBS < 1:
+        return
+
+    jobs = Job.objects.filter(status__in=(Status.CREATED)).order_by("created_date")[:jobs_to_submit]
+
+    for job in jobs:
+        submit_job_to_lsf(job)
+
+
+def submit_job_to_lsf(job):
     logger.info("Submitting job %s to lsf" % job.id)
     submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
