@@ -82,7 +82,7 @@ MAX_RUNNING_JOBS = 100
 @shared_task
 def submit_pending_jobs():
     jobs_running = Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)).count()
-    jobs_to_submit = jobs_running - MAX_RUNNING_JOBS
+    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
     if MAX_RUNNING_JOBS < 1:
         return
 
