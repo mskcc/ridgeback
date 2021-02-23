@@ -28,7 +28,7 @@ app.conf.beat_schedule = {
         "schedule": 60.0,
         "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     },
-    "check_status_of_jobs": {
+    "submit_pending_jobs": {
         "task": "toil_orchestrator.tasks.submit_pending_jobs",
         "schedule": 60.0 * 5,
         "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}

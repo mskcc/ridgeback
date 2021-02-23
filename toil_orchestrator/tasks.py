@@ -11,6 +11,7 @@ from django.utils.timezone import is_aware, make_aware, now
 from .toil_track_utils import ToilTrack
 from .models import Job, Status, CommandLineToolJob
 import shutil
+from ridgeback.settings import MAX_RUNNING_JOBS
 
 
 logger = logging.getLogger(__name__)
@@ -77,27 +78,25 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Job Saved')
 
 
-MAX_RUNNING_JOBS = 100
-
 @shared_task
 def submit_pending_jobs():
-    jobs_running = Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)).count()
-    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
-    if MAX_RUNNING_JOBS < 1:
+    jobs_running = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
+    if jobs_running >= MAX_RUNNING_JOBS:
         return
 
-    jobs = Job.objects.filter(status__in=(Status.CREATED)).order_by("created_date")[:jobs_to_submit]
+    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
+    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
 
     for job in jobs:
         submit_job_to_lsf(job)
 
 
 def submit_job_to_lsf(job):
-    logger.info("Submitting job %s to lsf" % job.id)
-    submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+    logger.info("Submitting job %s to lsf" % str(job.id))
+    submitter = JobSubmitter(job.id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
-    logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
-    save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
+    logger.info("Job %s submitted to lsf with id: %s" % (job.id, external_job_id))
+    save_job_info(job.id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
     job.external_id = external_job_id
     job.job_store_location = job_store_dir
     job.working_dir = job_work_dir
