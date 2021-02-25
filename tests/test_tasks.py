@@ -111,7 +111,11 @@ class TestTasks(TestCase):
         self.assertNotEqual(self.current_job.started, None)
         self.assertEqual(self.current_job.finished, None)
 
-    def test_fail_not_submitted(self):
+    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
+    @patch('submitter.jobsubmitter.JobSubmitter.status')
+    def test_fail_not_submitted(self, status, init):
+        init.return_value = None
+        status.return_value = Status.PENDING, None
         self.current_job.status = Status.PENDING
         self.current_job.external_id = None
         self.current_job.save()
