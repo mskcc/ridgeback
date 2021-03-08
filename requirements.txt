@@ -4,12 +4,13 @@ markdown==3.1.1
 django-filter==2.1.0
 django-cors-headers==3.0.2
 django-test-migrations==1.0.0
-python_slugify==1.2.4
+python-slugify==3.0.2
 drf-yasg==1.17.1
 GitPython==3.0.8
 celery==4.4.7
 cwltool==2.0.20200122124526
 ruamel.yaml<=0.16.5
+schema-salad==5.0.20200122085940
 psycopg2-binary==2.8.6
 mock==4.0.2
 dj-static==0.0.6
