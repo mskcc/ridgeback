@@ -81,10 +81,10 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
 @shared_task
 def submit_pending_jobs():
     jobs_running = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
-    if jobs_running >= MAX_RUNNING_JOBS:
+    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
+    if jobs_to_submit <= 0:
         return
 
-    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
     jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
 
     for job in jobs:
