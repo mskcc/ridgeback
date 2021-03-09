@@ -1,6 +1,6 @@
 import os
-import json
 import shutil
+import hashlib
 from django.conf import settings
 from submitter import JobSubmitter
 
@@ -24,6 +24,7 @@ class NextflowJobSubmitter(JobSubmitter):
                 "content": "content"
                 }
             ],
+            "outputs": "file_name",
             "params": {
                 "param_1": True,
                 "param_2": "val2"
@@ -52,9 +53,62 @@ class NextflowJobSubmitter(JobSubmitter):
         external_id = self.lsf_client.submit(command_line, [], log_path, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
+    def _sha1(self, path, buffersize=1024 * 1024):
+        try:
+            hasher = hashlib.sha1()
+            with open(path, 'rb') as f:
+                contents = f.read(buffersize)
+                while contents != b"":
+                    hasher.update(contents)
+                    contents = f.read(buffersize)
+            return 'sha1$%s' % hasher.hexdigest().lower()
+        except Exception as e:
+            return None
+
+    def _nameext(self, path):
+        return path.split('.')[-1]
+
+    def _basename(self, path):
+        return path.split('/')[-1]
+
+    def _location(self, path):
+        return "file://{path}".format(path=path)
+
+    def _nameroot(self, path):
+        return path.split('/')[-1].split('.')[0]
+
+    def _checksum(self, path):
+        return self._sha1(path)
+
+    def _size(self, path):
+        try:
+            return os.path.getsize(path)
+        except Exception:
+            return 0
+
     def get_outputs(self):
-        with open(os.path.join(self.job_work_dir, 'lsf.log'), 'r') as f:
-            return {}, ""
+        result = list()
+        with open(os.path.join(self.job_work_dir, self.inputs['outputs'])) as f:
+            files = f.readlines()
+            for f in files:
+                path = f.strip()
+                location = self._location(path)
+                basename = self._basename(path)
+                checksum = self._checksum(path)
+                size = self._size(path)
+                nameroot = self._nameroot(path)
+                nameext = self._nameext(path)
+                file_obj = {
+                    "location": location,
+                    "basename": basename,
+                    "checksum": checksum,
+                    "size": size,
+                    "nameroot": nameroot,
+                    "nameext": nameext,
+                    "class": "File"
+                }
+                result.append(file_obj)
+        return result
 
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
