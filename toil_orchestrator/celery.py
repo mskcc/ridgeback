@@ -19,14 +19,18 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 
-app.conf.task_routes = {'toil_orchestrator.tasks.submit_jobs_to_lsf': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
-                        'toil_orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
+app.conf.task_routes = {'toil_orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
                         'toil_orchestrator.tasks.abort_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE}}
 
 app.conf.beat_schedule = {
     "check_status_of_jobs": {
         "task": "toil_orchestrator.tasks.check_status_of_jobs",
         "schedule": 60.0,
+        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
+    },
+    "submit_pending_jobs": {
+        "task": "toil_orchestrator.tasks.submit_pending_jobs",
+        "schedule": 60.0 * 5,
         "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     },
     "check_status_of_command_line_jobs": {
