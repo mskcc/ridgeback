@@ -49,9 +49,15 @@ class NextflowJobSubmitter(JobSubmitter):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, 'lsf.log')
         env = dict()
+        env['NXF_OPTS'] = "-Xms8g -Xmx16g"
+        env['JAVA_HOME'] = '/opt/common/CentOS_7/java/jdk1.8.0_202/'
+        env['PATH'] = env['JAVA_HOME'] + 'bin:' + os.environ['PATH']
         env['TMPDIR'] = self.job_tmp_dir
-        external_id = self.lsf_client.submit(command_line, [], log_path, env)
+        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
+
+    def _job_args(self):
+        return ["-M", "20"]
 
     def _sha1(self, path, buffersize=1024 * 1024):
         try:
@@ -150,7 +156,11 @@ class NextflowJobSubmitter(JobSubmitter):
 
     def _command_line(self):
         app_location, input_map, config, profile, params = self._dump_app_inputs()
-        command_line = [settings.NEXTFLOW, 'run', app_location, '-profile', profile, '-w', self.job_store_dir, '--outDir', self.job_outputs_dir]
+
+        command_line = [settings.NEXTFLOW, '-log', '%s/nextflow.log' % self.job_work_dir, '-c',
+                        '/juno/work/ci/temp/nextflow/work/27fc9108-af5b-4f26-85e9-0b0085282950/config-nextflow.config',
+                        'run', app_location, '-profile', profile, '-w', self.job_store_dir, '--outDir',
+                        self.job_outputs_dir]
         for k, v in input_map.items():
             command_line.extend(["--%s" % k, v])
         if config:
