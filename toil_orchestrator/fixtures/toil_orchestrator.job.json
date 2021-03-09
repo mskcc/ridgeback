@@ -19,6 +19,26 @@
 },
 {
     "model": "toil_orchestrator.basemodel",
+    "pk": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1b",
+    "fields": {
+        "created_date": "2020-06-23T18:55:33.363Z",
+        "modified_date": "2020-06-23T18:55:33.363Z",
+        "output_directory": "/sample/output/dir"
+    }
+},
+
+{
+    "model": "toil_orchestrator.basemodel",
+    "pk": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1c",
+    "fields": {
+        "created_date": "2020-06-23T18:55:33.363Z",
+        "modified_date": "2020-06-23T18:55:33.363Z",
+        "output_directory": "/sample/output/dir"
+    }
+},
+
+{
+    "model": "toil_orchestrator.basemodel",
     "pk": "2d7aaabd-9fa1-4a60-9eda-67681fe7da49",
     "fields": {
         "created_date": "2020-06-23T18:56:41.639Z",
@@ -78,6 +98,71 @@
         "created_date": "2020-06-23T18:56:18.067Z",
         "modified_date": "2020-06-23T18:56:18.067Z",
         "output_directory": "/sample/output/dir"
+    }
+},
+{
+    "model": "toil_orchestrator.job",
+    "pk": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1c",
+    "fields": {
+        "app": {
+            "github": {
+                "entrypoint": "tempo.cwl",
+                "repository": "https://github.com/mskcc-cwl/tempo"
+            }
+        },
+        "external_id": "1234",
+        "root_dir": "/sample/root/dir",
+        "job_store_location": "/sample/job_store/dir",
+        "resume_job_store_location": null,
+        "working_dir": "/sample/work/dir",
+        "status": 2,
+        "message": {
+            "log": "",
+            "info": "",
+            "failed_jobs": {},
+            "unknown_jobs": {}
+        },
+        "inputs": null,
+        "outputs": null,
+        "job_store_clean_up": null,
+        "working_dir_clean_up": null,
+        "started": "2020-06-23T18:56:18.067Z",
+        "submitted": "2020-06-23T18:56:18.067Z",
+        "finished": null,
+        "track_cache": null
+    }
+},
+
+{
+    "model": "toil_orchestrator.job",
+    "pk": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1b",
+    "fields": {
+        "app": {
+            "github": {
+                "entrypoint": "tempo.cwl",
+                "repository": "https://github.com/mskcc-cwl/tempo"
+            }
+        },
+        "external_id": "1234",
+        "root_dir": "/sample/root/dir",
+        "job_store_location": "/sample/job_store/dir",
+        "resume_job_store_location": null,
+        "working_dir": "/sample/work/dir",
+        "status": 1,
+        "message": {
+            "log": "",
+            "info": "",
+            "failed_jobs": {},
+            "unknown_jobs": {}
+        },
+        "inputs": null,
+        "outputs": null,
+        "job_store_clean_up": null,
+        "working_dir_clean_up": null,
+        "started": "2020-06-23T18:56:18.067Z",
+        "submitted": "2020-06-23T18:56:18.067Z",
+        "finished": null,
+        "track_cache": null
     }
 },
 {
