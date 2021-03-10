@@ -80,10 +80,10 @@ install: conda toil
 	anaconda::postgresql=11.2 \
 	conda-forge::ncurses \
 	rabbitmq-server=3.7.16 && \
-	pip install -r requirements.txt
-	pip install -r requirements-toil.txt && \
+	pip3 install -r requirements.txt
+	pip3 install -r requirements-toil.txt && \
 	cd toil && \
-	pip install -e .[cwl]
+	pip3 install -e .[cwl]
 
 # Ridgeback environment variables for configuration
 export RIDGEBACK_PATH:=$(CURDIR)
@@ -301,6 +301,8 @@ bash:
 jobs:
 	curl "http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
 
+test:
+	python3 manage.py test --verbosity=2
 # submit a sample job to Ridgeback
 demo-submit:
 	curl -H "Content-Type: application/json" \

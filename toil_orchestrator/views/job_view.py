@@ -1,6 +1,6 @@
 from toil_orchestrator.models import Job, Status
 from toil_orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
-from toil_orchestrator.tasks import submit_jobs_to_lsf, abort_job
+from toil_orchestrator.tasks import abort_job
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.viewsets import GenericViewSet
@@ -24,7 +24,6 @@ class JobViewSet(mixins.CreateModelMixin,
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
             response = serializer.save()
-            submit_jobs_to_lsf.delay(str(response.id))
             response = JobSerializer(response)
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:

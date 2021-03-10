@@ -11,6 +11,7 @@ from django.utils.timezone import is_aware, make_aware, now
 from .toil_track_utils import ToilTrack
 from .models import Job, Status, CommandLineToolJob
 import shutil
+from ridgeback.settings import MAX_RUNNING_JOBS
 
 
 logger = logging.getLogger(__name__)
@@ -77,21 +78,25 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Job Saved')
 
 
-# Retry is 6 to 48 minutes with addee randomness from jittering
-@shared_task(bind=True,
-             autoretry_for=(Exception,),
-             retry_jitter=True,
-             retry_backoff=360,
-             retry_kwargs={"max_retries": 4},
-             on_failure=on_failure_to_submit)
-def submit_jobs_to_lsf(self, job_id):
-    logger.info("Submitting jobs to lsf")
-    job = Job.objects.get(id=job_id)
-    logger.info("Submitting job %s to lsf" % job.id)
-    submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+@shared_task
+def submit_pending_jobs():
+    jobs_running = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
+    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
+    if jobs_to_submit <= 0:
+        return
+
+    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
+
+    for job in jobs:
+        submit_job_to_lsf(job)
+
+
+def submit_job_to_lsf(job):
+    logger.info("Submitting job %s to lsf" % str(job.id))
+    submitter = JobSubmitter(job.id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
-    logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
-    save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
+    logger.info("Job %s submitted to lsf with id: %s" % (job.id, external_job_id))
+    save_job_info(job.id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
     job.external_id = external_job_id
     job.job_store_location = job_store_dir
     job.working_dir = job_work_dir
