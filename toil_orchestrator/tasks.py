@@ -116,19 +116,6 @@ def abort_job(self, job_id):
     logger.info("Abort job %s" % job_id)
     job = Job.objects.get(id=job_id)
     try:
-        logger.info("Submitting job %s to lsf" % job.id)
-        submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
-        external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
-        logger.info("Job %s submitted to lsf with id: %s" % (job_id, external_job_id))
-        save_job_info(job_id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
-        job.external_id = external_job_id
-        job.job_store_location = job_store_dir
-        job.working_dir = job_work_dir
-        job.output_directory = job_output_dir
-        job.status = Status.PENDING
-        log_path = os.path.join(job_work_dir, 'lsf.log')
-        update_message_by_key(job, 'log', log_path)
-        job.save()
         if job.status in (Status.PENDING, Status.RUNNING,):
             submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
             job_killed = submitter.abort(job.external_id)
@@ -139,11 +126,15 @@ def abort_job(self, job_id):
             else:
                 logger.info("Failed to abort job %s" % job_id)
                 raise Exception("Failed to abort job %s" % job_id)
-        elif job.status in (Status.CREATED, Status.UNKNOWN,):
-            logger.info("Job aborting %s but still not submitted" % job_id)
+        elif job.status == Status.CREATED:
+            job.status = Status.ABORTED
+            job.save()
+            return
+        elif job.status == Status.UNKNOWN:
+            logger.info("Job aborting %s is unknown" % job_id)
             raise Exception("Job aborting %s but still not submitted" % job_id)
         else:
-            logger.info("Job %s already in final state %s")
+            logger.info("Job %s already in final state %s", job_id, job.status)
             return
     except Exception as e:
         logger.info("Error happened %s. Retrying..." % str(e))
