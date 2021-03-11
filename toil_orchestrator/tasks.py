@@ -93,10 +93,10 @@ def submit_pending_jobs():
 
 def submit_job_to_lsf(job):
     logger.info("Submitting job %s to lsf" % str(job.id))
-    submitter = JobSubmitter(job.id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+    submitter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
-    logger.info("Job %s submitted to lsf with id: %s" % (job.id, external_job_id))
-    save_job_info(job.id, external_job_id, job_store_dir, job_work_dir, job_output_dir)
+    logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
+    save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
     job.external_id = external_job_id
     job.job_store_location = job_store_dir
     job.working_dir = job_work_dir
