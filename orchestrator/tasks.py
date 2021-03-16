@@ -144,7 +144,6 @@ def abort_job(self, job_id):
         self.retry(exc=e, countdown=10)
 
 
-
 def cleanup_jobs(status, time_delta):
     time_threshold = now() - timedelta(days=time_delta)
     jobs = Job.objects.filter(status__in=(status,), modified_date__lte=time_threshold, job_store_clean_up=None,
