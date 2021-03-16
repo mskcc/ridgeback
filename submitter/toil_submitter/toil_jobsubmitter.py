@@ -70,15 +70,12 @@ class ToilJobSubmitter(JobSubmitter):
 
     def _job_args(self):
         if "access" in self.app.github.lower():
-            return ["-W", "3600", "-M", "10"]
+            return ["-W", "7200", "-M", "10"]
         elif settings.LSF_WALLTIME:
             return ['-W', settings.LSF_WALLTIME]
         return []
 
     def _command_line(self):
-        """
-                :return: CommandLine for submitting pipeline
-                """
         if "access" in self.app.github.lower():
             """
             Start ACCESS-specific code
@@ -86,7 +83,7 @@ class ToilJobSubmitter(JobSubmitter):
             path = "PATH=/juno/home/accessbot/miniconda3/envs/ACCESS_2.0.0/bin:{}".format(os.environ.get('PATH'))
             command_line = [path, 'toil-cwl-runner', '--no-container', '--logFile', 'toil_log.log',
                             '--batchSystem', 'lsf', '--logLevel', 'DEBUG', '--stats', '--cleanWorkDir',
-                            'onSuccess', '--disableCaching', '--defaultMemory', '10G',
+                            'onSuccess', '--disableCaching', '--defaultMemory', '10G', '--retryCount', '2',
                             '--disableChaining', '--preserve-environment', 'PATH', 'TMPDIR',
                             'TOIL_LSF_ARGS', 'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD',
                             '_JAVA_OPTIONS', 'PYTHONPATH', 'TEMP', '--jobStore', self.job_store_dir,
@@ -96,9 +93,9 @@ class ToilJobSubmitter(JobSubmitter):
             End ACCESS-specific code
             """
         else:
-            command_line = [settings.CWLTOIL, '--singularity', '--logFile', 'toil_log.log', '--batchSystem', 'lsf',
-                            '--disable-user-provenance', '--disable-host-provenance', '--stats', '--debug',
-                            '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS',
+            command_line = [settings.CWLTOIL, '--singularity', '--coalesceStatusCalls', '--logFile', 'toil_log.log',
+                            '--batchSystem', 'lsf', '--disable-user-provenance', '--disable-host-provenance', '--stats',
+                            '--debug', '--disableCaching', '--preserve-environment', 'PATH', 'TMPDIR', 'TOIL_LSF_ARGS',
                             'SINGULARITY_PULLDIR', 'SINGULARITY_CACHEDIR', 'PWD', 'SINGULARITY_DOCKER_USERNAME',
                             'SINGULARITY_DOCKER_PASSWORD', '--defaultMemory', '8G', '--maxCores', '16', '--maxDisk',
                             '128G', '--maxMemory', '256G', '--not-strict', '--realTimeLogging', '--jobStore',
