@@ -157,8 +157,7 @@ class NextflowJobSubmitter(JobSubmitter):
     def _command_line(self):
         app_location, input_map, config, profile, params = self._dump_app_inputs()
 
-        command_line = [settings.NEXTFLOW, '-log', '%s/nextflow.log' % self.job_work_dir, '-c',
-                        '/juno/work/ci/temp/nextflow/work/27fc9108-af5b-4f26-85e9-0b0085282950/config-nextflow.config',
+        command_line = [settings.NEXTFLOW, '-log', '%s/nextflow.log' % self.job_work_dir,
                         'run', app_location, '-profile', profile, '-w', self.job_store_dir, '--outDir',
                         self.job_outputs_dir]
         for k, v in input_map.items():
