@@ -120,14 +120,15 @@ class NextflowJobSubmitter(JobSubmitter):
         app_location = self.app.resolve(self.job_work_dir)
         profile = self.inputs.get('profile')
         input_map = dict()
+        config_path = None
         inputs = self.inputs.get('inputs', [])
         params = self.inputs.get('params', [])
         for i in inputs:
             input_map[i['name']] = self._dump_input(i['name'], i['content'])
         config = self.inputs.get('config')
         if config:
-            self._dump_config(config)
-        return app_location, input_map, config, profile, params
+            config_path = self._dump_config(config)
+        return app_location, input_map, config_path, profile, params
 
     def _dump_input(self, name, content):
         file_path = os.path.join(self.job_work_dir, name)
@@ -139,6 +140,7 @@ class NextflowJobSubmitter(JobSubmitter):
         file_path = os.path.join(self.job_work_dir, 'nf.config')
         with open(file_path, 'w') as f:
             f.write(config)
+        return file_path
 
     def _prepare_directories(self):
         if not os.path.exists(self.job_work_dir):
