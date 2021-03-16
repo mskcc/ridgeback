@@ -7,7 +7,7 @@ from mock import patch, call
 
 
 MAX_RUNNING_JOBS = 3
-@patch('toil_orchestrator.tasks.MAX_RUNNING_JOBS', MAX_RUNNING_JOBS)
+@patch('orchestrator.tasks.MAX_RUNNING_JOBS', MAX_RUNNING_JOBS)
 class TestTasks(TestCase):
     fixtures = [
         "orchestrator.job.json"
@@ -26,12 +26,12 @@ class TestTasks(TestCase):
         self.assertEqual(info_message, 'Failed to submit job')
         self.assertNotEqual(log_path, None)
 
-    @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
-    @patch('submitter.toil_submitter.ToilJobSubmitter.submit')
+    @patch('submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__')
+    @patch('submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.submit')
     @patch('orchestrator.tasks.save_job_info')
-    def test_submit_polling(self, job_submitter, save_job_info, init):
+    def test_submit_polling(self, save_job_info, submitter, init):
         init.return_value = None
-        job_submitter.return_value = self.current_job.external_id, self.current_job.job_store_location, self.current_job.working_dir, self.current_job.output_directory
+        submitter.return_value = self.current_job.external_id, self.current_job.job_store_location, self.current_job.working_dir, self.current_job.output_directory
         save_job_info.return_value = None
         created_jobs = len(Job.objects.filter(status=Status.CREATED))
         running_jobs = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
@@ -41,9 +41,9 @@ class TestTasks(TestCase):
         submit_pending_jobs()
         self.assertEqual(save_job_info.call_count, 0)
 
-    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.submit')
-    @patch('toil_orchestrator.tasks.save_job_info')
+    @patch('submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__')
+    @patch('submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.submit')
+    @patch('orchestrator.tasks.save_job_info')
     def test_submit(self, save_job_info, submit, init):
         init.return_value = None
         save_job_info.return_value = None
