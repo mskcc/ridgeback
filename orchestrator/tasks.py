@@ -95,12 +95,6 @@ def submit_job_to_lsf(job):
     logger.info("Submitting job %s to lsf" % str(job.id))
     submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
                                             job.resume_job_store_location)
-# Retry is 6 to 48 minutes with addee randomness from jittering
-    logger.info("Submitting jobs to lsf")
-    job = Job.objects.get(id=str(job.id))
-    logger.info("Submitting job %s to lsf" % job.id)
-    submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
-                                            job.resume_job_store_location)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
     logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
     save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
