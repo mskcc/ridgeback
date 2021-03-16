@@ -47,6 +47,12 @@ class JobSubmitter(object):
         """
 
     def _job_args(self):
+        if "access" in self.app.github.lower():
+            return ["-W", "7200", "-M", "10"]
+        elif settings.LSF_WALLTIME:
+            return ['-W', settings.LSF_WALLTIME]
+        return []
+
         pass
 
     def _command_line(self):

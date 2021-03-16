@@ -1,6 +1,6 @@
 from orchestrator.models import Job, Status
-from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer
-from orchestrator.tasks import submit_jobs_to_lsf, abort_job
+from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
+from orchestrator.tasks import abort_job
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.viewsets import GenericViewSet
@@ -24,7 +24,6 @@ class JobViewSet(mixins.CreateModelMixin,
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
             response = serializer.save()
-            submit_jobs_to_lsf.delay(str(response.id))
             response = JobSerializer(response)
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:
@@ -46,6 +45,27 @@ class JobViewSet(mixins.CreateModelMixin,
         except Job.DoesNotExist:
             return Response("Could not find the indicated job to resume", status=status.HTTP_404_NOT_FOUND)
 
+    @swagger_auto_schema(request_body=JobIdsSerializer(), responses={status.HTTP_200_OK: JobStatusSerializer})
+    @action(detail=False, methods=['post'])
+    def statuses(self, request):
+        serializer = JobIdsSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+        job_ids = serializer.validated_data.get("job_ids")
+        job_status_data = {}
+        for single_job in self.queryset.filter(id__in=job_ids):
+            job_obj = JobSerializer(single_job)
+            job_data = job_obj.data
+            job_id = job_data["id"]
+            job_status_data[job_id] = job_data
+        resp_serializer = JobStatusSerializer(data={'jobs':job_status_data})
+        if resp_serializer.is_valid():
+            return Response(resp_serializer.data)
+        else:
+            return Response(resp_serializer.errors,
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
     @action(detail=True, methods=['get'])
     def abort(self, request, pk=None, *args, **kwargs):
@@ -56,7 +76,7 @@ class JobViewSet(mixins.CreateModelMixin,
         abort_job.delay(str(pk))
         return Response("Job aborted", status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(request_body=JobSubmitSerializer, responses={201: JobSerializer})
+    @swagger_auto_schema(request_body=JobSubmitSerializer, responses={status.HTTP_201_CREATED: JobSerializer})
     def create(self, request, *args, **kwargs):
         return self.validate_and_save(request.data)
 
