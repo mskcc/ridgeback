@@ -1,11 +1,13 @@
 from mock import patch
 from django.test import TestCase
 from orchestrator.models import Job, Status, PipelineType
-from orchestrator.tasks import submit_jobs_to_lsf, check_status_of_jobs, on_failure_to_submit, get_message, cleanup_completed_jobs, cleanup_failed_jobs
+from orchestrator.tasks import submit_job_to_lsf, submit_pending_jobs, check_status_of_jobs, on_failure_to_submit, get_message, cleanup_completed_jobs, cleanup_failed_jobs
 from datetime import datetime, timedelta
 from mock import patch, call
 
 
+MAX_RUNNING_JOBS = 3
+@patch('toil_orchestrator.tasks.MAX_RUNNING_JOBS', MAX_RUNNING_JOBS)
 class TestTasks(TestCase):
     fixtures = [
         "orchestrator.job.json"
@@ -27,11 +29,26 @@ class TestTasks(TestCase):
     @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
     @patch('submitter.toil_submitter.ToilJobSubmitter.submit')
     @patch('orchestrator.tasks.save_job_info')
+    def test_submit_polling(self, job_submitter, save_job_info, init):
+        init.return_value = None
+        job_submitter.return_value = self.current_job.external_id, self.current_job.job_store_location, self.current_job.working_dir, self.current_job.output_directory
+        save_job_info.return_value = None
+        created_jobs = len(Job.objects.filter(status=Status.CREATED))
+        running_jobs = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
+        submit_pending_jobs()
+        self.assertEqual(save_job_info.call_count, created_jobs)
+        save_job_info.reset_mock()
+        submit_pending_jobs()
+        self.assertEqual(save_job_info.call_count, 0)
+
+    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
+    @patch('submitter.jobsubmitter.JobSubmitter.submit')
+    @patch('toil_orchestrator.tasks.save_job_info')
     def test_submit(self, save_job_info, submit, init):
         init.return_value = None
         save_job_info.return_value = None
         submit.return_value = self.current_job.external_id, self.current_job.job_store_location, self.current_job.working_dir, self.current_job.output_directory
-        submit_jobs_to_lsf(str(self.current_job.id))
+        submit_job_to_lsf(self.current_job)
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.PENDING)
         self.assertEqual(self.current_job.finished, None)
@@ -94,7 +111,11 @@ class TestTasks(TestCase):
         self.assertNotEqual(self.current_job.started, None)
         self.assertEqual(self.current_job.finished, None)
 
-    def test_fail_not_submitted(self):
+    @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.status')
+    def test_fail_not_submitted(self, status, init):
+        init.return_value = None
+        status.return_value = Status.PENDING, None
         self.current_job.status = Status.PENDING
         self.current_job.external_id = None
         self.current_job.save()

@@ -29,6 +29,11 @@ app.conf.beat_schedule = {
         "schedule": 60.0,
         "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     },
+    "submit_pending_jobs": {
+        "task": "orchestrator.tasks.submit_pending_jobs",
+        "schedule": 60.0 * 5,
+        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
+    },
     "check_status_of_command_line_jobs": {
         "task": "orchestrator.tasks.check_status_of_command_line_jobs",
         "schedule": 10.0,
