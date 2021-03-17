@@ -7,7 +7,6 @@ from .views.cmdlinetooljob_view import JobCmdLineToolViewSet
 router = routers.DefaultRouter()
 
 router.register('jobs', JobViewSet)
-# router.register('jobs/abort', JobAbortViewSet)
 router.register('status', JobCmdLineToolViewSet)
 
 
