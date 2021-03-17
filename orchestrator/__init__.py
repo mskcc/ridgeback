@@ -1,3 +1,3 @@
-from orchestrator.celery import app as ridgeback_toil
+from orchestrator.celery import app as ridgeback_orchestrator
 
-__all__ = ['ridgeback_toil']
+__all__ = ['ridgeback_orchestrator']
