@@ -120,7 +120,8 @@ def abort_job(self, job_id):
     job = Job.objects.get(id=job_id)
     try:
         if job.status in (Status.PENDING, Status.RUNNING,):
-            submitter = JobSubmitterFactory.factory(job.type, job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+            submitter = JobSubmitterFactory.factory(job.type, job_id, job.app, job.inputs, job.root_dir,
+                                                    job.resume_job_store_location)
             job_killed = submitter.abort(job.external_id)
             if job_killed:
                 job.status = Status.ABORTED
@@ -381,7 +382,7 @@ def check_status_of_command_line_jobs(self):
                 updated = True
             if updated:
                 single_tool_module.save()
-    commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING,Status.PENDING))
+    commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING, Status.PENDING))
     for single_command_line_tool in commandLineToolJobs:
         if single_command_line_tool.root.status != Status.RUNNING:
             single_command_line_tool.__dict__['status'] = Status.UNKNOWN
