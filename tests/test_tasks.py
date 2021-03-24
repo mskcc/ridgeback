@@ -17,7 +17,7 @@ class TestTasks(TestCase):
         self.current_job = Job.objects.first()
 
     def test_failure_to_submit(self):
-        on_failure_to_submit(None, None, None, [self.current_job.id], None, None)
+        on_failure_to_submit(self.current_job.id], Exception("Test exception"))
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.FAILED)
         self.assertNotEqual(self.current_job.finished, None)
