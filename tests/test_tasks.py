@@ -1,3 +1,4 @@
+from unittest import skip
 from mock import patch
 from django.test import TestCase
 from toil_orchestrator.models import Job, Status
@@ -27,19 +28,19 @@ class TestTasks(TestCase):
         self.assertNotEqual(log_path, None)
 
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('toil_orchestrator.tasks.save_job_info')
+    @patch('toil_orchestrator.tasks.submit_job_to_lsf')
     @patch('submitter.jobsubmitter.JobSubmitter.submit')
-    def test_submit_polling(self, job_submitter, save_job_info, init):
+    def test_submit_polling(self, job_submitter, submit_job_to_lsf, init):
         init.return_value = None
         job_submitter.return_value = self.current_job.external_id, self.current_job.job_store_location, self.current_job.working_dir, self.current_job.output_directory
-        save_job_info.return_value = None
+        submit_job_to_lsf.return_value = None
         created_jobs = len(Job.objects.filter(status=Status.CREATED))
         running_jobs = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
         submit_pending_jobs()
-        self.assertEqual(save_job_info.call_count, created_jobs)
-        save_job_info.reset_mock()
+        self.assertEqual(submit_job_to_lsf.delay.call_count, created_jobs)
+        submit_job_to_lsf.reset_mock()
         submit_pending_jobs()
-        self.assertEqual(save_job_info.call_count, 0)
+        self.assertEqual(submit_job_to_lsf.delay.call_count, 0)
 
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
     @patch('submitter.jobsubmitter.JobSubmitter.submit')
@@ -47,11 +48,11 @@ class TestTasks(TestCase):
     def test_submit(self, save_job_info, submit, init):
         init.return_value = None
         save_job_info.return_value = None
-        submit.return_value = self.current_job.external_id, self.current_job.job_store_location, self.current_job.working_dir, self.current_job.output_directory
+        submit.return_value = self.current_job.external_id, "/new/job_store_location", self.current_job.working_dir, self.current_job.output_directory
         submit_job_to_lsf(self.current_job)
         self.current_job.refresh_from_db()
-        self.assertEqual(self.current_job.status, Status.PENDING)
         self.assertEqual(self.current_job.finished, None)
+        self.assertEqual(self.current_job.job_store_location, "/new/job_store_location")
 
     @patch('toil_orchestrator.tasks.get_job_info_path')
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
@@ -113,6 +114,7 @@ class TestTasks(TestCase):
 
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
     @patch('submitter.jobsubmitter.JobSubmitter.status')
+    @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
     def test_fail_not_submitted(self, status, init):
         init.return_value = None
         status.return_value = Status.PENDING, None
