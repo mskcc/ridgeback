@@ -1,3 +1,4 @@
+from unittest import skip
 from mock import patch
 from django.test import TestCase
 from toil_orchestrator.models import Job, Status
@@ -113,6 +114,7 @@ class TestTasks(TestCase):
 
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
     @patch('submitter.jobsubmitter.JobSubmitter.status')
+    @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
     def test_fail_not_submitted(self, status, init):
         init.return_value = None
         status.return_value = Status.PENDING, None
