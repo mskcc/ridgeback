@@ -211,6 +211,8 @@ def check_status_of_jobs(self):
                 except Exception as e:
                     error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
                     logger.info(error_message)
+        elif not job.external_id and job.status == Status.PENDING:
+            continue
         elif job.external_id:
             submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
             lsf_status_info = submiter.status(job.external_id)
