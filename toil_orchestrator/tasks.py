@@ -97,7 +97,7 @@ def submit_pending_jobs():
              retry_backoff=360,
              retry_kwargs={"max_retries": 4},
              on_failure=on_failure_to_submit)
-def submit_job_to_lsf(job_id):
+def submit_job_to_lsf(self, job_id):
     logger.info("Submitting job %s to lsf" % str(job_id))
     job = Job.objects.get(pk=job_id)
     submitter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
