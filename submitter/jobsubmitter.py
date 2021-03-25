@@ -39,7 +39,12 @@ class GithubApp(App):
         self.version = version
 
     def resolve(self, location):
-        git.Git(location).clone(self.github, '--branch', self.version, '--recurse-submodules')
+        try:
+            git.Git(location).clone(self.github, '--branch', self.version, '--recurse-submodules')
+        except git.exc.GitCommandError as err:
+            if "already exists" not in err.stderr:
+                raise(err)
+
         dirname = self._extract_dirname_from_github_link()
         return os.path.join(location, dirname, self.entrypoint)
 
