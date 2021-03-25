@@ -75,7 +75,6 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     update_message_by_key(job,'info','Failed to submit job')
     job.finished = now()
     job.save()
-    logger.error('Job Saved')
 
 
 @shared_task
@@ -85,14 +84,22 @@ def submit_pending_jobs():
     if jobs_to_submit <= 0:
         return
 
-    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
+    job_ids = Job.objects.filter(status=Status.CREATED).order_by("created_date").values_list('pk', flat=True)[:jobs_to_submit]
 
-    for job in jobs:
-        submit_job_to_lsf(job)
+    Job.objects.filter(pk__in=list(job_ids)).update(status=Status.PENDING)
 
+    for job_id in job_ids:
+        submit_job_to_lsf.delay(job_id)
 
-def submit_job_to_lsf(job):
-    logger.info("Submitting job %s to lsf" % str(job.id))
+@shared_task(bind=True,
+             autoretry_for=(Exception,),
+             retry_jitter=True,
+             retry_backoff=360,
+             retry_kwargs={"max_retries": 4},
+             on_failure=on_failure_to_submit)
+def submit_job_to_lsf(self, job_id):
+    logger.info("Submitting job %s to lsf" % str(job_id))
+    job = Job.objects.get(pk=job_id)
     submitter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
     logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
@@ -101,14 +108,13 @@ def submit_job_to_lsf(job):
     job.job_store_location = job_store_dir
     job.working_dir = job_work_dir
     job.output_directory = job_output_dir
-    job.status = Status.PENDING
     log_path = os.path.join(job_work_dir, 'lsf.log')
     update_message_by_key(job, 'log', log_path)
     job.save(update_fields=['external_id',
                             'job_store_location',
                             'working_dir',
                             'output_directory',
-                            'status'])
+                            ])
 
 
 @shared_task(bind=True, max_retries=10, retry_jitter=True, retry_backoff=60)
@@ -205,6 +211,8 @@ def check_status_of_jobs(self):
                 except Exception as e:
                     error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
                     logger.info(error_message)
+        elif not job.external_id and job.status == Status.PENDING:
+            continue
         elif job.external_id:
             submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
             lsf_status_info = submiter.status(job.external_id)
