@@ -84,12 +84,12 @@ def submit_pending_jobs():
     if jobs_to_submit <= 0:
         return
 
-    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
+    job_ids = Job.objects.filter(status=Status.CREATED).order_by("created_date").values_list('pk', flat=True)[:jobs_to_submit]
 
-    jobs.update(status=Status.PENDING)
+    Job.objects.filter(pk__in=list(job_ids)).update(status=Status.PENDING)
 
-    for job in jobs:
-        submit_job_to_lsf.delay(job.id)
+    for job_id in job_ids:
+        submit_job_to_lsf.delay(job_id)
 
 
 @shared_task(autoretry_for=(Exception,),
