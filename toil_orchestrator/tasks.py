@@ -91,11 +91,11 @@ def submit_pending_jobs():
     for job_id in job_ids:
         submit_job_to_lsf.delay(job_id)
 
-
-@shared_task(autoretry_for=(Exception,),
+@shared_task(bind=True,
+             autoretry_for=(Exception,),
              retry_jitter=True,
-             retry_backoff=60,
-             retry_kwargs={"max_retries": 2},
+             retry_backoff=360,
+             retry_kwargs={"max_retries": 4},
              on_failure=on_failure_to_submit)
 def submit_job_to_lsf(job_id):
     logger.info("Submitting job %s to lsf" % str(job_id))
