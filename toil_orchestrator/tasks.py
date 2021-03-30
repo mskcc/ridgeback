@@ -150,13 +150,13 @@ def abort_job(self, job_id):
 
 
 @shared_task(bind=True)
-def suspend_job(job_id):
+def suspend_job(self, job_id):
     client = LSFClient()
     client.suspend(job_id)
 
 
 @shared_task(bind=True)
-def resume_job(job_id):
+def resume_job(self, job_id):
     client = LSFClient()
     client.resume(job_id)
 
@@ -208,7 +208,8 @@ def clean_directory(path):
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKNOWN)).all()
+    jobs = Job.objects.filter(
+        status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKNOWN, Status.SUSPENDED)).all()
     for job in jobs:
         if job.status == Status.CREATED:
             job_info_path = get_job_info_path(job.id)
