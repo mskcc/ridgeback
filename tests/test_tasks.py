@@ -30,7 +30,6 @@ class TestTasks(TestCase):
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
     @patch('toil_orchestrator.tasks.submit_job_to_lsf')
     @patch('submitter.jobsubmitter.JobSubmitter.submit')
-    @patch('submitter.jobsubmitter.JobSubmitter.submit')
     @skip("Need to mock memcached lock")
     def test_submit_polling(self, job_submitter, submit_job_to_lsf, init):
         init.return_value = None
