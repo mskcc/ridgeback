@@ -130,7 +130,7 @@ class JobSubmitter(object):
         return args
 
     def _walltime(self):
-        return ['-W', self.walltime] if self.walltime else []
+        return ['-W', str(self.walltime)] if self.walltime else []
 
     def _memlimit(self):
         return ['-M', self.memlimit] if self.memlimit else []
