@@ -28,7 +28,7 @@ class JobAdmin(admin.ModelAdmin):
     ordering = ('-created_date',)
     list_filter = (StatusFilter,)
 
-    actions = ['cleanup_files']
+    actions = ['cleanup_files', 'suspend', 'resume']
 
     def cleanup_files(self, request, queryset):
         cleaned_up_projects = 0
