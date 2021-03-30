@@ -38,7 +38,7 @@ app.conf.beat_schedule = {
     },
     "check_status_of_command_line_jobs": {
         "task": "toil_orchestrator.tasks.check_status_of_command_line_jobs",
-        "schedule": 10.0,
+        "schedule": 60.0,
         "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     },
     "cleanup_completed_jobs": {
