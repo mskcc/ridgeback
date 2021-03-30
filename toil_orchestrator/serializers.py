@@ -1,7 +1,7 @@
+from drf_yasg import openapi
 from rest_framework import serializers
 from .models import Job, CommandLineToolJob, Status
 from django.core.exceptions import ValidationError
-from drf_yasg import openapi
 
 
 class AppField(serializers.JSONField):
@@ -16,7 +16,6 @@ class AppField(serializers.JSONField):
                 raise ValidationError("Invalid app reference type", code=400)
 
     default_validators = [validate_app]
-
 
     class Meta:
         swagger_schema_fields = {
@@ -54,6 +53,7 @@ class AppField(serializers.JSONField):
             }
          }
 
+
 class MessageField(serializers.JSONField):
 
     class Meta:
@@ -80,6 +80,7 @@ class MessageField(serializers.JSONField):
             }
          }
 
+
 class CommandLineToolJobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
 
@@ -90,6 +91,7 @@ class CommandLineToolJobSerializer(serializers.ModelSerializer):
         model = CommandLineToolJob
         fields = '__all__'
 
+
 class JobIdsSerializer(serializers.Serializer):
     job_ids = serializers.ListField(
         allow_empty=True,
@@ -99,6 +101,9 @@ class JobIdsSerializer(serializers.Serializer):
 
 class JobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
+    app = AppField()
+    message = MessageField(required=False)
+    commandlinetooljob_set = CommandLineToolJobSerializer(many=True, required=False)
 
     def get_status(self, obj):
         return Status(obj.status).name
@@ -107,25 +112,18 @@ class JobSerializer(serializers.ModelSerializer):
         model = Job
         fields = '__all__'
 
-    app = AppField()
-    message = MessageField(required=False)
-    commandlinetooljob_set = CommandLineToolJobSerializer(many=True, required=False)
-
 
 class JobStatusSerializer(serializers.Serializer):
     jobs = serializers.DictField()
 
 
 class JobSubmitSerializer(JobSerializer):
-
-
     class Meta:
         model = Job
-        fields = ('app','inputs','root_dir')
+        fields = ('app', 'inputs', 'root_dir')
+
 
 class JobResumeSerializer(JobSerializer):
-
     class Meta:
         model = Job
         fields = ['root_dir']
-
