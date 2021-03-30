@@ -86,6 +86,7 @@ install: conda toil
 	pip3 install -e .[cwl]
 
 # Ridgeback environment variables for configuration
+export ENVIRONMENT:=dev
 export RIDGEBACK_PATH:=$(CURDIR)
 export RIDGEBACK_DB_NAME:=db
 export RIDGEBACK_DB_USERNAME:=$(shell whoami)
