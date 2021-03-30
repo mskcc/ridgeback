@@ -1,8 +1,7 @@
 from django.contrib import admin
 from .models import Job, CommandLineToolJob, Status
-from toil_orchestrator.tasks import cleanup_folders
 from django.contrib import messages
-from batch_systems.lsf_client import LSFClient
+from toil_orchestrator.tasks import cleanup_folders, resume_job, suspend_job
 
 
 class StatusFilter(admin.SimpleListFilter):
@@ -57,16 +56,14 @@ Already cleaned up {cleaned_up}
             self.message_user(request, message, level=messages.WARNING)
 
     def suspend(self, request, queryset):
-        client = LSFClient()
         for job in queryset:
             if job.external_id:
-                client.suspend(job.external_id)
+                suspend_job.delay(job.external_id)
 
     def resume(self, request, queryset):
-        client = LSFClient()
         for job in queryset:
             if job.external_id:
-                client.resume(job.external_id)
+                resume_job.delay(job.external_id)
 
     suspend.short_description = "Suspend Jobs"
     resume.short_description = "Resume Jobs"
