@@ -94,6 +94,28 @@ DATABASES = {
     }
 }
 
+MEMCACHED_PORT = os.environ.get('BEAGLE_MEMCACHED_PORT', 11211)
+
+if ENVIRONMENT == "dev":
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'ridgeback-cache',
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'djpymemcache.backend.PyMemcacheCache',
+            'LOCATION': '127.0.0.1:%s' % MEMCACHED_PORT,
+            'OPTIONS': {# see https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client
+                'default_noreply': False
+            }
+        }
+    }
+
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators

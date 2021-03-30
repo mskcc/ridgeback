@@ -301,6 +301,9 @@ bash:
 jobs:
 	curl "http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
 
+shell:
+	python3 manage.py shell
+
 test:
 	python3 manage.py test --verbosity=2
 # submit a sample job to Ridgeback
