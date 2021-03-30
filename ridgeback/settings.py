@@ -23,8 +23,10 @@ MAX_RUNNING_JOBS = int(os.environ.get('MAX_RUNNING_JOBS', 100))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '3gpghwoqas_6ei_efvb%)5s&lwgs#o99c9(ovmi=1od*e6ezvw'
 
+ENVIRONMENT = os.environ.get('ENVIRONMENT', 'prod')
+
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = ENVIRONMENT == 'dev'
 
 ALLOWED_HOSTS = os.environ.get('RIDGEBACK_ALLOWED_HOSTS', 'localhost').split(',')
 
@@ -93,6 +95,28 @@ DATABASES = {
         'PORT': DB_PORT
     }
 }
+
+MEMCACHED_PORT = os.environ.get('BEAGLE_MEMCACHED_PORT', 11211)
+
+if ENVIRONMENT == "dev":
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'ridgeback-cache',
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'djpymemcache.backend.PyMemcacheCache',
+            'LOCATION': '127.0.0.1:%s' % MEMCACHED_PORT,
+            'OPTIONS': {# see https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client
+                'default_noreply': False
+            }
+        }
+    }
+
+
 
 
 # Password validation
