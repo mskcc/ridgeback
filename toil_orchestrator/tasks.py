@@ -1,9 +1,10 @@
 import os
+import json
 import logging
 from datetime import timedelta
 from celery import shared_task
+from batch_systems.lsf_client import LSFClient
 from submitter.jobsubmitter import JobSubmitter
-import json
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
@@ -146,6 +147,18 @@ def abort_job(self, job_id):
     except Exception as e:
         logger.info("Error happened %s. Retrying..." % str(e))
         self.retry(exc=e, countdown=10)
+
+
+@shared_task(bind=True)
+def suspend_job(job_id):
+    client = LSFClient()
+    client.suspend(job_id)
+
+
+@shared_task(bind=True)
+def resume_job(job_id):
+    client = LSFClient()
+    client.resume(job_id)
 
 
 def cleanup_jobs(status, time_delta):
