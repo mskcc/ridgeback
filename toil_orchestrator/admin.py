@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import Job, CommandLineToolJob, Status
 from toil_orchestrator.tasks import cleanup_folders
 from django.contrib import messages
+from batch_systems.lsf_client import LSFClient
 
 
 class StatusFilter(admin.SimpleListFilter):
@@ -55,7 +56,22 @@ Already cleaned up {cleaned_up}
 
             self.message_user(request, message, level=messages.WARNING)
 
+    def suspend(self, request, queryset):
+        client = LSFClient()
+        for job in queryset:
+            if job.external_id:
+                client.suspend(job.external_id)
+
+    def resume(self, request, queryset):
+        client = LSFClient()
+        for job in queryset:
+            if job.external_id:
+                client.resume(job.external_id)
+
+    suspend.short_description = "Suspend Jobs"
+    resume.short_description = "Resume Jobs"
     cleanup_files.short_description = "Cleanup up the TOIL jobstore and workdir"
+
 
 @admin.register(CommandLineToolJob)
 class CommandLineToolJobAdmin(admin.ModelAdmin):
