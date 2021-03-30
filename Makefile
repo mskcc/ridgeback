@@ -86,6 +86,7 @@ install: conda toil
 	pip3 install -e .[cwl]
 
 # Ridgeback environment variables for configuration
+export ENVIRONMENT:=dev
 export RIDGEBACK_PATH:=$(CURDIR)
 export RIDGEBACK_DB_NAME:=db
 export RIDGEBACK_DB_USERNAME:=$(shell whoami)
@@ -300,6 +301,9 @@ bash:
 # curl http://localhost:8000/v0/status/
 jobs:
 	curl "http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
+
+shell:
+	python3 manage.py shell
 
 test:
 	python3 manage.py test --verbosity=2
