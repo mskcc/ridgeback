@@ -23,8 +23,10 @@ MAX_RUNNING_JOBS = int(os.environ.get('MAX_RUNNING_JOBS', 100))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '3gpghwoqas_6ei_efvb%)5s&lwgs#o99c9(ovmi=1od*e6ezvw'
 
+ENVIRONMENT = os.environ.get('ENVIRONMENT', 'prod')
+
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = ENVIRONMENT == 'dev'
 
 ALLOWED_HOSTS = os.environ.get('RIDGEBACK_ALLOWED_HOSTS', 'localhost').split(',')
 
