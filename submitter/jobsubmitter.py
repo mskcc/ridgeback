@@ -54,7 +54,7 @@ class GithubApp(App):
 
 class JobSubmitter(object):
 
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime=settings.LSF_WALLTIME, memlimit=None):
         self.job_id = job_id
         self.app = App.factory(app)
         self.inputs = inputs
@@ -67,6 +67,9 @@ class JobSubmitter(object):
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
         self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(settings.TOIL_TMP_DIR_ROOT, self.job_id)
+        # Job configuration
+        self.walltime = walltime
+        self.memlimit = memlimit
 
     def submit(self):
         self._prepare_directories()
@@ -122,11 +125,15 @@ class JobSubmitter(object):
             os.mkdir(self.job_tmp_dir)
 
     def _job_args(self):
-        if "access" in self.app.github.lower():
-            return ["-W", "7200", "-M", "10"]
-        elif settings.LSF_WALLTIME:
-            return ['-W', settings.LSF_WALLTIME]
-        return []
+        args = self._walltime()
+        args.extend(self._memlimit())
+        return args
+
+    def _walltime(self):
+        return ['-W', self.walltime] if self.walltime else []
+
+    def _memlimit(self):
+        return ['-M', self.memlimit] if self.memlimit else []
 
     def _command_line(self):
         if "access" in self.app.github.lower():

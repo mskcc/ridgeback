@@ -84,12 +84,14 @@ def submit_pending_jobs():
     if jobs_to_submit <= 0:
         return
 
-    job_ids = Job.objects.filter(status=Status.CREATED).order_by("created_date").values_list('pk', flat=True)[:jobs_to_submit]
+    job_ids = Job.objects.filter(status=Status.CREATED).order_by("created_date").values_list('pk', flat=True)[
+              :jobs_to_submit]
 
     Job.objects.filter(pk__in=list(job_ids)).update(status=Status.PENDING)
 
     for job_id in job_ids:
         submit_job_to_lsf.delay(job_id)
+
 
 @shared_task(bind=True,
              autoretry_for=(Exception,),
@@ -100,7 +102,8 @@ def submit_pending_jobs():
 def submit_job_to_lsf(self, job_id):
     logger.info("Submitting job %s to lsf" % str(job_id))
     job = Job.objects.get(pk=job_id)
-    submitter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+    submitter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location,
+                             job.walltime, job.memlimit)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
     logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
     save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
