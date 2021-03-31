@@ -96,7 +96,7 @@ DATABASES = {
     }
 }
 
-MEMCACHED_PORT = os.environ.get('BEAGLE_MEMCACHED_PORT', 11211)
+MEMCACHED_PORT = os.environ.get('RIDGEBACK_MEMCACHED_PORT', 11211)
 
 if ENVIRONMENT == "dev":
     CACHES = {
