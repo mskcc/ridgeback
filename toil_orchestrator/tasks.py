@@ -99,6 +99,8 @@ def submit_pending_jobs():
 def submit_job_to_lsf(self, job_id):
     logger.info("Submitting job %s to lsf" % str(job_id))
     job = Job.objects.get(pk=job_id)
+    if job.status != Status.PENDING:
+        return
     submitter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location,
                              job.walltime, job.memlimit)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
