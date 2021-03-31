@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'orchestrator.apps.OrchestratorConfig',
     'rest_framework',
-    'drf_yasg'
+    'drf_yasg',
+    'toil_orchestrator'
 ]
 
 MIDDLEWARE = [
