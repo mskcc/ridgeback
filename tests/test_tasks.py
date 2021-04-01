@@ -16,6 +16,7 @@ class TestTasks(TestCase):
 
     def setUp(self):
         self.current_job = Job.objects.first()
+        self.pending_job = Job.objects.filter(status=Status.PENDING).first()
 
     def test_failure_to_submit(self):
         on_failure_to_submit(None, None, None, [self.current_job.id], None, None)
@@ -49,11 +50,11 @@ class TestTasks(TestCase):
     def test_submit(self, save_job_info, submit, init):
         init.return_value = None
         save_job_info.return_value = None
-        submit.return_value = self.current_job.external_id, "/new/job_store_location", self.current_job.working_dir, self.current_job.output_directory
-        submit_job_to_lsf(self.current_job)
-        self.current_job.refresh_from_db()
-        self.assertEqual(self.current_job.finished, None)
-        self.assertEqual(self.current_job.job_store_location, "/new/job_store_location")
+        submit.return_value = self.pending_job.external_id, "/new/job_store_location", self.current_job.working_dir, self.current_job.output_directory
+        submit_job_to_lsf(self.pending_job)
+        self.pending_job.refresh_from_db()
+        self.assertEqual(self.pending_job.finished, None)
+        self.assertEqual(self.pending_job.job_store_location, "/new/job_store_location")
 
     @patch('toil_orchestrator.tasks.get_job_info_path')
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
