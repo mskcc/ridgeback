@@ -3,11 +3,12 @@ from enum import IntEnum
 from django.db import models
 from django.contrib.postgres.fields import JSONField
 
+
 def message_default():
     message_default_dict = {
         'log': '',
         'failed_jobs': {},
-        'unknown_jobs':{},
+        'unknown_jobs': {},
         'info': ''
     }
     return message_default_dict
@@ -47,6 +48,8 @@ class Job(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
+    walltime = models.IntegerField(blank=True, null=True, default=None)
+    memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
 
     def save(self, *args, **kwargs):
         if self.status != Status.CREATED:
