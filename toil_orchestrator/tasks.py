@@ -1,9 +1,10 @@
 import os
+import json
 import logging
 from datetime import timedelta
 from celery import shared_task
+from batch_systems.lsf_client import LSFClient
 from submitter.jobsubmitter import JobSubmitter
-import json
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
@@ -150,6 +151,18 @@ def abort_job(self, job_id):
         self.retry(exc=e, countdown=10)
 
 
+@shared_task(bind=True)
+def suspend_job(self, job_id):
+    client = LSFClient()
+    client.suspend(job_id)
+
+
+@shared_task(bind=True)
+def resume_job(self, job_id):
+    client = LSFClient()
+    client.resume(job_id)
+
+
 def cleanup_jobs(status, time_delta):
     time_threshold = now() - timedelta(days=time_delta)
     jobs = Job.objects.filter(status__in=(status,), modified_date__lte=time_threshold, job_store_clean_up=None,
@@ -197,7 +210,8 @@ def clean_directory(path):
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
-    jobs = Job.objects.filter(status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKNOWN)).all()
+    jobs = Job.objects.filter(
+        status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKNOWN, Status.SUSPENDED)).all()
     for job in jobs:
         if job.status == Status.CREATED:
             job_info_path = get_job_info_path(job.id)
