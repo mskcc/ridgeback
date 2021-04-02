@@ -19,36 +19,39 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 
-app.conf.task_routes = {'toil_orchestrator.tasks.submit_job_to_lsf': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
-                        'toil_orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
-                        'toil_orchestrator.tasks.abort_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE}}
+app.conf.task_routes = {'toil_orchestrator.tasks.submit_job_to_lsf': {'queue':
+                                                                      settings.RIDGEBACK_SUBMIT_JOB_LSF_QUEUE},
+                        'toil_orchestrator.tasks.cleanup_folders': {'queue':
+                                                                    settings.RIDGEBACK_ACTION_QUEUE},
+                        'toil_orchestrator.tasks.abort_job': {'queue':
+                                                              settings.RIDGEBACK_ACTION_QUEUE}}
 
 app.conf.beat_schedule = {
     "check_status_of_jobs": {
         "task": "toil_orchestrator.tasks.check_status_of_jobs",
-        "schedule": 60.0,
-        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
+        "schedule": 47.0,
+        "options": {"queue": settings.RIDGEBACK_CHECK_STATUS_QUEUE}
     },
     "submit_pending_jobs": {
         "task": "toil_orchestrator.tasks.submit_pending_jobs",
         "schedule": 60.0 * 5,
-        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
+        "options": {"queue": settings.RIDGEBACK_SUBMIT_JOB_QUEUE}
     },
     "check_status_of_command_line_jobs": {
         "task": "toil_orchestrator.tasks.check_status_of_command_line_jobs",
-        "schedule": 10.0,
-        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
+        "schedule": 60.0,
+        "options": {"queue": settings.RIDGEBACK_CHECK_STATUS_QUEUE}
     },
     "cleanup_completed_jobs": {
         "task": "toil_orchestrator.tasks.cleanup_completed_jobs",
         "schedule": crontab(hour='0',
                             ),
-        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
+        "options": {"queue": settings.RIDGEBACK_CLEANUP_QUEUE}
     },
     "cleanup_failed_jobs": {
         "task": "toil_orchestrator.tasks.cleanup_failed_jobs",
-        "schedule": crontab(hour='0',
+        "schedule": crontab(hour='6',
                             ),
-        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
+        "options": {"queue": settings.RIDGEBACK_CLEANUP_QUEUE}
     }
 }

@@ -185,8 +185,15 @@ RABBITMQ_PASSWORD = os.environ.get('RIDGEBACK_RABBITMQ_PASSWORD', 'guest')
 RABBITMQ_URL = os.environ.get('RIDGEBACK_RABBITMQ_URL', 'localhost')
 
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://%s:%s@%s/' % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL) )
-RIDGEBACK_DEFAULT_QUEUE = os.environ.get(
-    'RIDGEBACK_DEFAULT_QUEUE', 'ridgeback_default_queue')
+RIDGEBACK_SUBMIT_JOB_QUEUE = os.environ.get('RIDGEBACK_SUBMIT_JOB_QUEUE',
+                                            'ridgeback_submit_job_queue')
+RIDGEBACK_CHECK_STATUS_QUEUE = os.environ.get('RIDGEBACK_CHECK_STATUS_QUEUE',
+                                              'ridgeback_check_status_queue')
+RIDGEBACK_ACTION_QUEUE = os.environ.get('RIDGEBACK_ACTION_QUEUE', 'ridgeback_action_queue')
+RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get('RIDGEBACK_SUBMIT_JOB_LSF_QUEUE',
+                                                'ridgeback_submit_job_lsf_queue')
+RIDGEBACK_CLEANUP_QUEUE = os.environ.get('RIDGEBACK_CLEANUP_QUEUE', 'ridgeback_cleanup_queue')
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
