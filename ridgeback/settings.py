@@ -38,10 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'toil_orchestrator.apps.ToilOrchestratorConfig',
     'orchestrator.apps.OrchestratorConfig',
     'rest_framework',
     'drf_yasg',
-    'toil_orchestrator'
 ]
 
 MIDDLEWARE = [
