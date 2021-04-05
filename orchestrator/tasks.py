@@ -282,11 +282,11 @@ def check_status_of_command_line_jobs(self):
         if current_job_str:
             track_cache = json.loads(current_job_str)
         else:
-            track_cache = { 'current_jobs': [], 'jobs_path': {}, 'jobs': {}, 'worker_jobs': {} }
+            track_cache = {'current_jobs': [], 'jobs_path': {}, 'jobs': {}, 'worker_jobs': {}}
             job_updated = True
         jobstore_path = current_job.job_store_location
         workdir_path = current_job.working_dir
-        toil_track_obj = ToilTrack(jobstore_path,workdir_path,False,0,False,None)
+        toil_track_obj = ToilTrack(jobstore_path, workdir_path, False, 0, False, None)
         cache_current_jobs = track_cache['current_jobs']
         cache_jobs_path = track_cache['jobs_path']
         cache_jobs = track_cache['jobs']
