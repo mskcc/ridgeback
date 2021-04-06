@@ -6,10 +6,12 @@ from batch_systems.lsf_client.lsf_client import LSFClient
 
 class JobSubmitter(object):
 
-    def __init__(self, app, inputs):
+    def __init__(self, app, inputs, walltime=settings.LSF_WALLTIME, memlimit=None):
         self.app = App.factory(app)
         self.inputs = inputs
         self.lsf_client = LSFClient()
+        self.walltime = walltime
+        self.memlimit = memlimit
 
     def submit(self):
         """
