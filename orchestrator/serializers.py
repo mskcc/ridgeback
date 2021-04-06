@@ -1,7 +1,7 @@
+from drf_yasg import openapi
 from rest_framework import serializers
 from .models import Job, CommandLineToolJob, Status
 from django.core.exceptions import ValidationError
-from drf_yasg import openapi
 
 
 class AppField(serializers.JSONField):
@@ -101,6 +101,9 @@ class JobIdsSerializer(serializers.Serializer):
 
 class JobSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
+    app = AppField()
+    message = MessageField(required=False)
+    commandlinetooljob_set = CommandLineToolJobSerializer(many=True, required=False)
 
     def get_status(self, obj):
         return Status(obj.status).name
@@ -108,10 +111,6 @@ class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = '__all__'
-
-    app = AppField()
-    message = MessageField(required=False)
-    commandlinetooljob_set = CommandLineToolJobSerializer(many=True, required=False)
 
 
 class JobStatusSerializer(serializers.Serializer):
@@ -126,8 +125,6 @@ class JobSubmitSerializer(JobSerializer):
 
 
 class JobResumeSerializer(JobSerializer):
-
     class Meta:
         model = Job
         fields = ['root_dir']
-
