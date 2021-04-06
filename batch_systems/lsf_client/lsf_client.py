@@ -1,5 +1,5 @@
 '''
-Submit and monitor LSF jobs
+Submit, monitor, and control LSF jobs
 '''
 import os
 import re
@@ -10,24 +10,35 @@ from random import randint
 from django.conf import settings
 from toil_orchestrator.models import Status
 
+def get_LSF_job_group(job_id):
+    """
+    helper function to get the job group
+
+    Args:
+        job_id (str): id of job
+
+    Returns:
+        str: LSF job group
+    """
+    return '/%s/%s' % (settings.RIDGEBACK_DEFAULT_QUEUE,job_id)
 
 class LSFClient():
 
-    '''
+    """
     Client for LSF
 
     Attributes:
         logger (logging): logging module
-    '''
+    """
 
     def __init__(self):
-        '''
+        """
         init function
-        '''
+        """
         self.logger = logging.getLogger('LSF_client')
 
-    def submit(self, command, job_args, stdout):
-        '''
+    def submit(self, command, job_args, stdout, job_id):
+        """
         Submit command to LSF and store log in stdout
 
         Args:
@@ -36,9 +47,10 @@ class LSFClient():
 
         Returns:
             int: lsf job id
-        '''
-        bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout] + job_args
-        toil_lsf_args = '-sla %s %s' % (settings.LSF_SLA, " ".join(job_args))
+        """
+        job_group = get_LSF_job_group(job_id)
+        bsub_command = ['bsub', '-sla', settings.LSF_SLA,'-g',job_group,'-oo', stdout] + job_args
+        toil_lsf_args = '-sla %s -g %s %s' % (settings.LSF_SLA,job_group," ".join(job_args))
 
         bsub_command.extend(command)
         current_env = os.environ
