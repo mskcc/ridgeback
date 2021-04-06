@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Job, CommandLineToolJob, Status
 from django.contrib import messages
-from toil_orchestrator.tasks import cleanup_folders, resume_job, suspend_job
+from toil_orchestrator.tasks import cleanup_folders, unsuspend_job, suspend_job, abort_job
 
 
 class StatusFilter(admin.SimpleListFilter):
@@ -27,7 +27,7 @@ class JobAdmin(admin.ModelAdmin):
     ordering = ('-created_date',)
     list_filter = (StatusFilter,)
 
-    actions = ['cleanup_files', 'suspend', 'resume']
+    actions = ['cleanup_files', 'suspend', 'unsuspend', 'abort']
 
     def cleanup_files(self, request, queryset):
         cleaned_up_projects = 0
@@ -58,15 +58,21 @@ Already cleaned up {cleaned_up}
     def suspend(self, request, queryset):
         for job in queryset:
             if job.external_id:
-                suspend_job.delay(job.external_id)
+                suspend_job.delay(job.id)
 
-    def resume(self, request, queryset):
+    def unsuspend(self, request, queryset):
         for job in queryset:
             if job.external_id:
-                resume_job.delay(job.external_id)
+                unsuspend_job.delay(job.id)
+
+    def abort(self, request, queryset):
+        for job in queryset:
+            if job.external_id:
+                abort_job.delay(job.id)
 
     suspend.short_description = "Suspend Jobs"
-    resume.short_description = "Resume Jobs"
+    unsuspend.short_description = "Unsuspend Jobs"
+    abort_job.short_description = "Abort Jobs"
     cleanup_files.short_description = "Cleanup up the TOIL jobstore and workdir"
 
 

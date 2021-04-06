@@ -1,6 +1,6 @@
 from toil_orchestrator.models import Job, Status
 from toil_orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
-from toil_orchestrator.tasks import abort_job
+from toil_orchestrator.tasks import abort_job, suspend_job, unsuspend_job
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.viewsets import GenericViewSet
@@ -66,7 +66,7 @@ class JobViewSet(mixins.CreateModelMixin,
             return Response(resp_serializer.errors,
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: "Job aborted",status.HTTP_404_NOT_FOUND: "Job not found"})
     @action(detail=True, methods=['get'])
     def abort(self, request, pk=None, *args, **kwargs):
         try:
@@ -75,6 +75,26 @@ class JobViewSet(mixins.CreateModelMixin,
             return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
         abort_job.delay(str(pk))
         return Response("Job aborted", status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(responses={status.HTTP_200_OK: "Job suspended",status.HTTP_404_NOT_FOUND: "Job not found"})
+    @action(detail=True, methods=['get'])
+    def suspend_job(self, request, pk=None, *args, **kwargs):
+        try:
+            job = Job.objects.get(id=pk)
+        except Job.DoesNotExist:
+            return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
+        suspend_job.delay(str(pk))
+        return Response("Job suspended", status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(responses={status.HTTP_200_OK: "Job unsuspended",status.HTTP_404_NOT_FOUND: "Job not found"})
+    @action(detail=True, methods=['get'])
+    def unsuspend_job(self, request, pk=None, *args, **kwargs):
+        try:
+            job = Job.objects.get(id=pk)
+        except Job.DoesNotExist:
+            return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
+        unsuspend_job.delay(str(pk))
+        return Response("Job unsuspended", status=status.HTTP_200_OK)
 
     @swagger_auto_schema(request_body=JobSubmitSerializer, responses={status.HTTP_201_CREATED: JobSerializer})
     def create(self, request, *args, **kwargs):

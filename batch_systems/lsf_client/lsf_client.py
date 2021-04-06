@@ -61,23 +61,72 @@ class LSFClient():
             universal_newlines=True, env=current_env)
         return self._parse_procid(process.stdout)
 
-    def abort(self, external_job_id):
-        '''
+    def abort(self, job_id):
+        """
         Kill LSF job
 
         Args:
-            external_job_id (str): external_job_id
+            job_id (str): id of job
 
         Returns:
             bool: successful
-        '''
-        bkill_command = ['bkill', external_job_id]
-        process = subprocess.run(
-            bkill_command, check=True, stdout=subprocess.PIPE,
-            universal_newlines=True)
-        if process.returncode == 0:
-            return True
-        return False
+        """
+        self.logger.debug("Aborting LSF jobs for job %s", job_id)
+        job_group = get_LSF_job_group(job_id)
+        bkill_command = ['bkill', '-g',job_group,'0']
+        try:
+            subprocess.run(
+                bkill_command, check=True, stdout=subprocess.PIPE,
+                universal_newlines=True)
+        except subprocess.CalledProcessError:
+            self.logger.error("Failed to abort LSF job %s", job_id)
+            return False
+
+        return True
+
+    def suspend(self, job_id):
+        """
+        Suspend LSF job
+
+        Args:
+            job_id (str): id of job
+
+        Returns:
+            bool: successful
+        """
+        self.logger.debug("Suspending LSF jobs for job %s", job_id)
+        job_group = get_LSF_job_group(job_id)
+        bsub_command = ['bstop','-g',job_group,'0']
+        try:
+            subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE,
+                                 universal_newlines=True)
+        except subprocess.CalledProcessError:
+            self.logger.error("Failed to suspend LSF job %s", job_id)
+            return False
+
+        return True
+
+    def unsuspend(self, job_id):
+        """
+        Unsuspend LSF job
+
+        Args:
+            job_id (str): id of job
+
+        Returns:
+            bool: successful
+        """
+        self.logger.debug("Unsuspending LSF jobs for job %s", job_id)
+        job_group = get_LSF_job_group(job_id)
+        bsub_command = ["bresume", '-g',job_group,'0']
+        try:
+            subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE,
+                                 universal_newlines=True)
+        except subprocess.CalledProcessError:
+            self.logger.error("Failed to unsuspend LSF job %s", job_id)
+            return False
+
+        return True
 
     def parse_bjobs(self, bjobs_output_str):
         """
@@ -217,19 +266,3 @@ class LSFClient():
                                  universal_newlines=True)
         status = self._parse_status(process.stdout, external_job_id)
         return status
-
-    def suspend(self, external_job_id):
-        bsub_command = ["bstop", str(external_job_id)]
-        process = subprocess.run(bsub_command, stdout=subprocess.PIPE,
-                                 universal_newlines=True)
-        if process.returncode == 0:
-            return True
-        return False
-
-    def resume(self, external_job_id):
-        bsub_command = ["bresume", str(external_job_id)]
-        process = subprocess.run(bsub_command, stdout=subprocess.PIPE,
-                                 universal_newlines=True)
-        if process.returncode == 0:
-            return True
-        return False
