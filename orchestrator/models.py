@@ -22,6 +22,7 @@ class Status(IntEnum):
     FAILED = 4
     ABORTED = 5
     UNKNOWN = 6
+    SUSPENDED = 7
 
 
 class PipelineType(IntEnum):
