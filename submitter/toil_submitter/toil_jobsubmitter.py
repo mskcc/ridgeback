@@ -7,7 +7,7 @@ from submitter import JobSubmitter
 
 class ToilJobSubmitter(JobSubmitter):
 
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime=settings.LSF_WALLTIME, memlimit=None):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit):
         JobSubmitter.__init__(self, app, inputs, walltime, memlimit)
         self.job_id = job_id
         self.resume_jobstore = resume_jobstore
