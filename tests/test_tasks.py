@@ -66,7 +66,9 @@ class TestTasks(TestCase):
         init.return_value = None
         get_outputs.return_value = {'outputs': True}, None
         get_job_info_path.return_value = "sample/job/path"
-        status.return_value = Status.COMPLETED, None
+        status.return_value = {
+            '1234': (Status.COMPLETED, None)
+        }
         check_status_of_jobs()
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.COMPLETED)
@@ -80,7 +82,10 @@ class TestTasks(TestCase):
         self.current_job.save()
         init.return_value = None
         get_job_info_path.return_value = "sample/job/path"
-        status.return_value = Status.FAILED, "submitter reason"
+        status.return_value = {
+            '1234': (Status.FAILED, 'submitter reason')
+        }
+
         check_status_of_jobs()
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.FAILED)
@@ -107,7 +112,10 @@ class TestTasks(TestCase):
         self.current_job.save()
         init.return_value = None
         get_job_info_path.return_value = "sample/job/path"
-        status.return_value = Status.RUNNING, None
+        status.return_value = {
+            '1234': (Status.RUNNING, None)
+        }
+
         check_status_of_jobs()
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.RUNNING)
@@ -119,7 +127,9 @@ class TestTasks(TestCase):
     @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
     def test_fail_not_submitted(self, status, init):
         init.return_value = None
-        status.return_value = Status.PENDING, None
+        status.return_value = {
+            '1234': (Status.PENDING, None)
+        }
         self.current_job.status = Status.PENDING
         self.current_job.external_id = None
         self.current_job.save()
