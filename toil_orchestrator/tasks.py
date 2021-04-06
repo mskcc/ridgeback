@@ -216,7 +216,7 @@ def check_status_of_jobs(self):
         elif not job.external_id and job.status == Status.PENDING:
             continue
         elif job.external_id:
-            lsf_status_info = lsf_client.get_statuses(job.external_id)
+            lsf_status_info = lsf_client.get_statuses([job.external_id])
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info[str(job.external_id)]
                 if lsf_status == Status.COMPLETED:
