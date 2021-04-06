@@ -58,8 +58,8 @@ class TestTasks(TestCase):
 
     @patch('toil_orchestrator.tasks.get_job_info_path')
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.status')
-    @patch('submitter.jobsubmitter.JobSubmitter.get_outputs')
+    @patch('batch_systems.lsf_client.lsf_client.get_statuses')
+    @patch('batch_systems.lsf_client.lsf_client.get_outputs')
     def test_complete(self, get_outputs, status, init, get_job_info_path):
         self.current_job.status = Status.PENDING
         self.current_job.save()
@@ -74,7 +74,7 @@ class TestTasks(TestCase):
 
     @patch('toil_orchestrator.tasks.get_job_info_path')
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.status')
+    @patch('batch_systems.lsf_client.lsf_client.get_statuses')
     def test_fail(self, status, init, get_job_info_path):
         self.current_job.status = Status.PENDING
         self.current_job.save()
@@ -101,7 +101,7 @@ class TestTasks(TestCase):
 
     @patch('toil_orchestrator.tasks.get_job_info_path')
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.status')
+    @patch('batch_systems.lsf_client.lsf_client.get_statuses')
     def test_running(self, status, init, get_job_info_path):
         self.current_job.status = Status.PENDING
         self.current_job.save()
@@ -115,7 +115,7 @@ class TestTasks(TestCase):
         self.assertEqual(self.current_job.finished, None)
 
     @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.status')
+    @patch('lsf_client.lsf_client.get_statuses')
     @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
     def test_fail_not_submitted(self, status, init):
         init.return_value = None

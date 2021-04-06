@@ -13,6 +13,7 @@ from .models import Job, Status, CommandLineToolJob
 import shutil
 from lib.memcache_lock import memcache_lock
 from ridgeback.settings import MAX_RUNNING_JOBS
+from batch_systems.lsf_client import lsf_client
 
 
 logger = logging.getLogger(__name__)
@@ -125,8 +126,7 @@ def abort_job(self, job_id):
     job = Job.objects.get(id=job_id)
     try:
         if job.status in (Status.PENDING, Status.RUNNING,):
-            submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
-            job_killed = submitter.abort(job.external_id)
+            job_killed = lsf_client.abort(job.external_id)
             if job_killed:
                 job.status = Status.ABORTED
                 job.save()
@@ -216,12 +216,11 @@ def check_status_of_jobs(self):
         elif not job.external_id and job.status == Status.PENDING:
             continue
         elif job.external_id:
-            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
-            lsf_status_info = submiter.status(job.external_id)
+            lsf_status_info = lsf_client.get_statuses(job.external_id)
             if lsf_status_info:
-                lsf_status, lsf_message = lsf_status_info
+                lsf_status, lsf_message = lsf_status_info[str(job.external_id)]
                 if lsf_status == Status.COMPLETED:
-                    outputs, error_message = submiter.get_outputs()
+                    outputs, error_message = lsf_client.get_outputs(str(job.id))
                     if outputs:
                         job.track_cache = None
                         job.outputs = outputs
