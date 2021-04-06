@@ -7,7 +7,7 @@ from submitter import JobSubmitter
 
 class NextflowJobSubmitter(JobSubmitter):
 
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit):
         """
         :param job_id:
         :param app: github.url
@@ -33,7 +33,7 @@ class NextflowJobSubmitter(JobSubmitter):
         :param root_dir:
         :param resume_jobstore:
         """
-        JobSubmitter.__init__(self, app, inputs)
+        JobSubmitter.__init__(self, app, inputs, walltime, memlimit)
         self.job_id = job_id
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
