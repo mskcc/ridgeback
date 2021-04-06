@@ -3,8 +3,7 @@ import git
 import json
 import shutil
 from django.conf import settings
-from batch_systems.lsf_client.lsf_client import LSFClient
-
+from batch_systems.lsf_client import lsf_client
 
 class App(object):
 
@@ -58,7 +57,6 @@ class JobSubmitter(object):
         self.job_id = job_id
         self.app = App.factory(app)
         self.inputs = inputs
-        self.lsf_client = LSFClient()
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
@@ -76,32 +74,8 @@ class JobSubmitter(object):
         command_line = self._command_line()
         job_args = self._job_args()
         log_path = os.path.join(self.job_work_dir, 'lsf.log')
-        external_id = self.lsf_client.submit(command_line, job_args, log_path)
+        external_id = lsf_client.submit(command_line, job_args, log_path)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
-
-    def status(self, external_id):
-        return self.lsf_client.status(external_id)
-
-    def abort(self, external_id):
-        return self.lsf_client.abort(external_id)
-
-    def get_outputs(self):
-        error_message = None
-        result_json = None
-        lsf_log_path = os.path.join(self.job_work_dir, 'lsf.log')
-        try:
-            with open(lsf_log_path, 'r') as f:
-                data = f.readlines()
-                data = ''.join(data)
-                substring = data.split('\n{')[1]
-                result = ('{' + substring).split('-----------')[0]
-                result_json = json.loads(result)
-        except (IndexError, ValueError):
-            error_message = 'Could not parse json from %s' % lsf_log_path
-        except FileNotFoundError:
-            error_message = 'Could not find %s' % lsf_log_path
-
-        return result_json, error_message
 
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
