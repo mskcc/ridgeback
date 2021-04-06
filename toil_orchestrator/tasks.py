@@ -128,7 +128,7 @@ def abort_job(self, job_id):
     try:
         if job.status in (Status.PENDING, Status.RUNNING,):
             submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
-            job_killed = submitter.abort(job.external_id)
+            job_killed = submitter.abort(job_id)
             if job_killed:
                 job.status = Status.ABORTED
                 job.save()
@@ -158,9 +158,9 @@ def suspend_job(self, job_id):
 
 
 @shared_task(bind=True)
-def resume_job(self, job_id):
+def unsuspend_job(self, job_id):
     client = LSFClient()
-    client.resume(job_id)
+    client.unsuspend(job_id)
 
 
 def cleanup_jobs(status, time_delta):
