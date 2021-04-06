@@ -69,11 +69,15 @@ class ToilJobSubmitter(JobSubmitter):
             os.mkdir(self.job_tmp_dir)
 
     def _job_args(self):
-        if "access" in self.app.github.lower():
-            return ["-W", "7200", "-M", "10"]
-        elif settings.LSF_WALLTIME:
-            return ['-W', settings.LSF_WALLTIME]
-        return []
+        args = self._walltime()
+        args.extend(self._memlimit())
+        return args
+
+    def _walltime(self):
+        return ['-W', str(self.walltime)] if self.walltime else []
+
+    def _memlimit(self):
+        return ['-M', self.memlimit] if self.memlimit else []
 
     def _command_line(self):
         if "access" in self.app.github.lower():
