@@ -38,6 +38,7 @@ class JobViewSet(mixins.CreateModelMixin,
             if parent_job.job_store_clean_up != None:
                 return Response("The job store of the job indicated to be resumed has been cleaned up",
                                 status=status.HTTP_410_GONE)
+            resume_data['type'] = parent_job.type
             resume_data['app'] = parent_job.app
             resume_data['inputs'] = parent_job.inputs
             resume_data['resume_job_store_location'] = parent_job.job_store_location
