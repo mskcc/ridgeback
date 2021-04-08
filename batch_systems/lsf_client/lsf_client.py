@@ -95,7 +95,6 @@ class LSFClient():
 
         return bjobs_records
 
-
     def _parse_procid(self, stdout):
         """
         Parse bsub output and retrieve the LSF id
@@ -141,7 +140,6 @@ class LSFClient():
             self.logger.debug("Job [%s] pending with: %s", external_job_id, pending_info)
             return (Status.PENDING, pending_info.strip())
         if process_status == 'EXIT':
-            exit_code = 1
             exit_info = ""
             if 'EXIT_CODE' in process_output:
                 if process_output['EXIT_CODE']:
@@ -162,19 +160,18 @@ class LSFClient():
             self.logger.debug(
                 "Job [%s] is suspended", external_job_id)
             suspended_info = "Job suspended"
-            return (Status.PENDING, suspended_info.strip())
+            return (Status.SUSPENDED, suspended_info.strip())
         self.logger.debug(
             "Job [%s] is in an unhandled state (%s)", external_job_id, process_status)
         status_info = "Job is in an unhandles state: {}".format(process_status)
         return (Status.UNKNOWN, status_info.strip())
-
 
     def _parse_status(self, stdout, external_job_id):
         """Parse LSF stdout helper
 
         Args:
             stdout (str): stdout of bjobs
-            external_job_id (int): LSF id
+            external_job_id (str): LSF id
 
         Returns:
             tuple: (Ridgeback Status int, extra info)
@@ -190,14 +187,13 @@ class LSFClient():
                 if process_output['ERROR']:
                     error_message = process_output['ERROR']
                 return (Status.UNKNOWN, error_message.strip())
-
         return None
 
     def status(self, external_job_id):
         """Parse LSF status
 
         Args:
-            external_job_id (int): LSF id
+            external_job_id (str): LSF id
 
         Returns:
             tuple: (Ridgeback Status int, extra info)
@@ -209,3 +205,19 @@ class LSFClient():
                                  universal_newlines=True)
         status = self._parse_status(process.stdout, external_job_id)
         return status
+
+    def suspend(self, external_job_id):
+        bsub_command = ["bstop", str(external_job_id)]
+        process = subprocess.run(bsub_command, stdout=subprocess.PIPE,
+                                 universal_newlines=True)
+        if process.returncode == 0:
+            return True
+        return False
+
+    def resume(self, external_job_id):
+        bsub_command = ["bresume", str(external_job_id)]
+        process = subprocess.run(bsub_command, stdout=subprocess.PIPE,
+                                 universal_newlines=True)
+        if process.returncode == 0:
+            return True
+        return False
