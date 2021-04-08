@@ -37,7 +37,6 @@ class LSFClient(object):
             int: lsf job id
         '''
         bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout] + job_args
-        toil_lsf_args = '-sla %s %s' % (settings.LSF_SLA, " ".join(job_args))
 
         bsub_command.extend(command)
         current_env = os.environ

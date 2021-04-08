@@ -18,12 +18,7 @@ class JobSubmitter(object):
         Submit pipeline job to lsf
         :return: lsf id, job store directory, job working directory, output directory
         """
-        self._prepare_directories()
-        command_line = self._command_line()
-        job_args = self._job_args()
-        log_path = os.path.join(self.job_work_dir, 'lsf.log')
-        external_id = self.lsf_client.submit(command_line, job_args, log_path)
-        return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
+        pass
 
     def status(self, external_id):
         return self.lsf_client.status(external_id)
