@@ -8,7 +8,7 @@ def message_default():
     message_default_dict = {
         'log': '',
         'failed_jobs': {},
-        'unknown_jobs':{},
+        'unknown_jobs': {},
         'info': ''
     }
     return message_default_dict

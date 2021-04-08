@@ -33,7 +33,8 @@ class NextflowJobSubmitter(JobSubmitter):
         :param root_dir:
         :param resume_jobstore:
         """
-        JobSubmitter.__init__(self, app, inputs, walltime, memlimit)
+        JobSubmitter.__init__(self, app, inputs, walltime, memlimit
+                              )
         self.job_id = job_id
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
@@ -68,7 +69,7 @@ class NextflowJobSubmitter(JobSubmitter):
                     hasher.update(contents)
                     contents = f.read(buffersize)
             return 'sha1$%s' % hasher.hexdigest().lower()
-        except Exception as e:
+        except Exception:
             return None
 
     def _nameext(self, path):
@@ -168,7 +169,7 @@ class NextflowJobSubmitter(JobSubmitter):
             command_line.extend(['-c', config])
         if params:
             for k, v in params.items():
-                if v == True:
+                if v:
                     command_line.extend(['--%s' % k])
                 else:
                     command_line.extend(['--%s' % k, v])
