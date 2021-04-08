@@ -41,7 +41,10 @@ class LSFClient(object):
         bsub_command.extend(command)
         current_env = os.environ
         for k, v in env.items():
-            current_env[k] = v
+            if v:
+                current_env[k] = v
+            else:
+                current_env.pop(k)
         self.logger.debug("Running command: %s\nEnv: %s", bsub_command, current_env)
         process = subprocess.run(
             bsub_command, check=True, stdout=subprocess.PIPE,
