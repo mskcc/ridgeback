@@ -1,5 +1,6 @@
 from orchestrator.models import Job, Status
-from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
+from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, \
+    JobStatusSerializer
 from orchestrator.tasks import abort_job
 from rest_framework import mixins
 from rest_framework import status
@@ -35,7 +36,7 @@ class JobViewSet(mixins.CreateModelMixin,
         resume_data = request.data
         try:
             parent_job = Job.objects.get(id=pk)
-            if parent_job.job_store_clean_up != None:
+            if parent_job.job_store_clean_up:
                 return Response("The job store of the job indicated to be resumed has been cleaned up",
                                 status=status.HTTP_410_GONE)
             resume_data['type'] = parent_job.type
@@ -60,7 +61,7 @@ class JobViewSet(mixins.CreateModelMixin,
             job_data = job_obj.data
             job_id = job_data["id"]
             job_status_data[job_id] = job_data
-        resp_serializer = JobStatusSerializer(data={'jobs':job_status_data})
+        resp_serializer = JobStatusSerializer(data={'jobs': job_status_data})
         if resp_serializer.is_valid():
             return Response(resp_serializer.data)
         else:
@@ -71,7 +72,7 @@ class JobViewSet(mixins.CreateModelMixin,
     @action(detail=True, methods=['get'])
     def abort(self, request, pk=None, *args, **kwargs):
         try:
-            job = Job.objects.get(id=pk)
+            Job.objects.get(id=pk)
         except Job.DoesNotExist:
             return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
         abort_job.delay(str(pk))
@@ -87,7 +88,7 @@ class JobViewSet(mixins.CreateModelMixin,
         if status_param:
             if status_param not in [s.name for s in Status]:
                 return Response({'details': 'Invalid status value %s: expected values %s' % (
-                status_param, [s.name for s in Status])}, status=status.HTTP_400_BAD_REQUEST)
+                    status_param, [s.name for s in Status])}, status=status.HTTP_400_BAD_REQUEST)
             queryset = queryset.filter(status=Status[status_param].value)
         page = self.paginate_queryset(queryset)
         serializer = JobSerializer(page, many=True)

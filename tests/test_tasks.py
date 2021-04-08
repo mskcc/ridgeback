@@ -1,13 +1,15 @@
 from unittest import skip
-from mock import patch
+from mock import patch, call
 from django.test import TestCase
 from orchestrator.models import Job, Status, PipelineType
-from orchestrator.tasks import submit_job_to_lsf, submit_pending_jobs, check_status_of_jobs, on_failure_to_submit, get_message, cleanup_completed_jobs, cleanup_failed_jobs
+from orchestrator.tasks import submit_job_to_lsf, submit_pending_jobs, check_status_of_jobs, on_failure_to_submit, \
+    get_message, cleanup_completed_jobs, cleanup_failed_jobs
 from datetime import datetime, timedelta
-from mock import patch, call
 
 
 MAX_RUNNING_JOBS = 3
+
+
 @patch('orchestrator.tasks.MAX_RUNNING_JOBS', MAX_RUNNING_JOBS)
 class TestTasks(TestCase):
     fixtures = [
@@ -35,7 +37,6 @@ class TestTasks(TestCase):
         job_submitter.return_value = self.current_job.external_id, self.current_job.job_store_location, self.current_job.working_dir, self.current_job.output_directory
         submit_job_to_lsf.return_value = None
         created_jobs = len(Job.objects.filter(status=Status.CREATED))
-        running_jobs = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
         submit_pending_jobs()
         self.assertEqual(submit_job_to_lsf.delay.call_count, created_jobs)
         submit_job_to_lsf.reset_mock()
@@ -136,9 +137,9 @@ class TestTasks(TestCase):
 
     @patch('orchestrator.tasks.cleanup_folders')
     def test_cleanup(self, cleanup_folders):
-        job_new = Job.objects.create(type=PipelineType.CWL,
-                                     app={'app': 'link'},
-                                     status=Status.COMPLETED, created_date=datetime.now() - timedelta(days=1))
+        Job.objects.create(type=PipelineType.CWL,
+                           app={'app': 'link'},
+                           status=Status.COMPLETED, created_date=datetime.now() - timedelta(days=1))
         testtime = datetime.now() - timedelta(days=32)
         with patch('django.utils.timezone.now') as mock_now:
             mock_now.return_value = testtime

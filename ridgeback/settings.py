@@ -145,8 +145,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
-LOGIN_URL='/admin/login/'
-LOGOUT_URL='/admin/logout/'
+LOGIN_URL = '/admin/login/'
+LOGOUT_URL = '/admin/logout/'
 
 SWAGGER_SETTINGS = {
     'VALIDATOR_URL': None
@@ -161,14 +161,15 @@ RABBITMQ_USERNAME = os.environ.get('RIDGEBACK_RABBITMQ_USERNAME', 'guest')
 RABBITMQ_PASSWORD = os.environ.get('RIDGEBACK_RABBITMQ_PASSWORD', 'guest')
 RABBITMQ_URL = os.environ.get('RIDGEBACK_RABBITMQ_URL', 'localhost')
 
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://%s:%s@%s/' % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL) )
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL',
+                                   'amqp://%s:%s@%s/' % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL))
 RIDGEBACK_DEFAULT_QUEUE = os.environ.get(
     'RIDGEBACK_DEFAULT_QUEUE', 'ridgeback_default_queue')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
-#Logging
+# Logging
 
 LOG_PATH = os.environ.get('RIDGEBACK_LOG_PATH', 'ridgeback-server.log')
 
@@ -212,7 +213,6 @@ NEXTFLOW_WORK_DIR_ROOT = os.environ['RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT']
 NEXTFLOW_TMP_DIR_ROOT = os.environ['RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT']
 
 NEXTFLOW = os.environ.get('RIDGEBACK_NEXTFLOW', 'nextflow')
-
 
 # Cleanup periods
 

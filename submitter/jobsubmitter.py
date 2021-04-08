@@ -1,6 +1,4 @@
-import os
 from submitter.app import App
-from django.conf import settings
 from batch_systems.lsf_client.lsf_client import LSFClient
 
 
@@ -48,4 +46,3 @@ class JobSubmitter(object):
 
     def _command_line(self):
         pass
-

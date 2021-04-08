@@ -6,7 +6,8 @@ from submitter import NextflowJobSubmitter, ToilJobSubmitter
 class JobSubmitterFactory(object):
 
     @staticmethod
-    def factory(type, job_id, app, inputs, root_dir, resume_jobstore=None, walltime=settings.LSF_WALLTIME, memlimit=None):
+    def factory(type, job_id, app, inputs, root_dir, resume_jobstore=None, walltime=settings.LSF_WALLTIME,
+                memlimit=None):
         if type == PipelineType.CWL:
             return ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
         elif type == PipelineType.NEXTFLOW:

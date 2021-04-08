@@ -22,7 +22,6 @@ from rest_framework import permissions
 from ridgeback import __version__
 
 
-
 schema_view = get_schema_view(
    openapi.Info(
       title="Ridgeback API",
