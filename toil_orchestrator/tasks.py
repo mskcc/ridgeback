@@ -12,6 +12,7 @@ from django.utils.timezone import is_aware, make_aware, now
 from .toil_track_utils import ToilTrack
 from .models import Job, Status, CommandLineToolJob
 import shutil
+from lib.memcache_lock import memcache_lock
 from ridgeback.settings import MAX_RUNNING_JOBS
 
 
@@ -79,6 +80,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
 
 
 @shared_task
+@memcache_lock("rb_submit_pending_jobs")
 def submit_pending_jobs():
     jobs_running = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
     jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
@@ -93,16 +95,13 @@ def submit_pending_jobs():
     for job_id in job_ids:
         submit_job_to_lsf.delay(job_id)
 
-
 @shared_task(bind=True,
-             autoretry_for=(Exception,),
-             retry_jitter=True,
-             retry_backoff=360,
-             retry_kwargs={"max_retries": 4},
              on_failure=on_failure_to_submit)
 def submit_job_to_lsf(self, job_id):
     logger.info("Submitting job %s to lsf" % str(job_id))
     job = Job.objects.get(pk=job_id)
+    if job.status != Status.PENDING:
+        return
     submitter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location,
                              job.walltime, job.memlimit)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
