@@ -18,10 +18,12 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
-
 app.conf.task_routes = {'toil_orchestrator.tasks.submit_job_to_lsf': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
                         'toil_orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
-                        'toil_orchestrator.tasks.abort_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE}}
+                        'toil_orchestrator.tasks.abort_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
+                        'toil_orchestrator.tasks.suspend_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
+                        'toil_orchestrator.tasks.resume_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
+                        }
 
 app.conf.beat_schedule = {
     "check_status_of_jobs": {
@@ -36,7 +38,7 @@ app.conf.beat_schedule = {
     },
     "check_status_of_command_line_jobs": {
         "task": "toil_orchestrator.tasks.check_status_of_command_line_jobs",
-        "schedule": 10.0,
+        "schedule": 60.0,
         "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
     },
     "cleanup_completed_jobs": {
