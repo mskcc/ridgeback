@@ -4,7 +4,7 @@ import logging
 from datetime import timedelta
 from celery import shared_task
 from batch_systems.lsf_client import LSFClient
-from submitter.jobsubmitter import JobSubmitter
+from submitter.factory import JobSubmitterFactory
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
@@ -74,7 +74,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     logger.error('Failed to submit job: %s' % job_id)
     job = Job.objects.get(id=job_id)
     job.status = Status.FAILED
-    update_message_by_key(job,'info','Failed to submit job')
+    update_message_by_key(job, 'info', 'Failed to submit job')
     job.finished = now()
     job.save()
 
@@ -95,6 +95,7 @@ def submit_pending_jobs():
     for job_id in job_ids:
         submit_job_to_lsf.delay(job_id)
 
+
 @shared_task(bind=True,
              on_failure=on_failure_to_submit)
 def submit_job_to_lsf(self, job_id):
@@ -102,8 +103,8 @@ def submit_job_to_lsf(self, job_id):
     job = Job.objects.get(pk=job_id)
     if job.status != Status.PENDING:
         return
-    submitter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location,
-                             job.walltime, job.memlimit)
+    submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
+                                            job.resume_job_store_location, job.walltime, job.memlimit)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
     logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
     save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
@@ -126,7 +127,8 @@ def abort_job(self, job_id):
     job = Job.objects.get(id=job_id)
     try:
         if job.status in (Status.PENDING, Status.RUNNING,):
-            submitter = JobSubmitter(job_id, job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+            submitter = JobSubmitterFactory.factory(job.type, job_id, job.app, job.inputs, job.root_dir,
+                                                    job.resume_job_store_location)
             job_killed = submitter.abort(job.external_id)
             if job_killed:
                 job.status = Status.ABORTED
@@ -230,7 +232,8 @@ def check_status_of_jobs(self):
         elif not job.external_id and job.status == Status.PENDING:
             continue
         elif job.external_id:
-            submiter = JobSubmitter(str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location)
+            submiter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
+                                                   job.resume_job_store_location)
             lsf_status_info = submiter.status(job.external_id)
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info
@@ -282,7 +285,7 @@ def check_status_of_jobs(self):
             job.status = Status.FAILED
             job.finished = now()
             error_message = 'Job [{}], External id not provided'.format(job.id)
-            update_message_by_key(job,'info',error_message)
+            update_message_by_key(job, 'info', error_message)
         job.save()
 
 
@@ -301,11 +304,11 @@ def check_status_of_command_line_jobs(self):
         if current_job_str:
             track_cache = json.loads(current_job_str)
         else:
-            track_cache = { 'current_jobs': [], 'jobs_path': {}, 'jobs': {}, 'worker_jobs': {} }
+            track_cache = {'current_jobs': [], 'jobs_path': {}, 'jobs': {}, 'worker_jobs': {}}
             job_updated = True
         jobstore_path = current_job.job_store_location
         workdir_path = current_job.working_dir
-        toil_track_obj = ToilTrack(jobstore_path,workdir_path,False,0,False,None)
+        toil_track_obj = ToilTrack(jobstore_path, workdir_path, False, 0, False, None)
         cache_current_jobs = track_cache['current_jobs']
         cache_jobs_path = track_cache['jobs_path']
         cache_jobs = track_cache['jobs']
@@ -401,7 +404,7 @@ def check_status_of_command_line_jobs(self):
                 updated = True
             if updated:
                 single_tool_module.save()
-    commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING,Status.PENDING))
+    commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING, Status.PENDING))
     for single_command_line_tool in commandLineToolJobs:
         if single_command_line_tool.root.status != Status.RUNNING:
             single_command_line_tool.__dict__['status'] = Status.UNKNOWN
