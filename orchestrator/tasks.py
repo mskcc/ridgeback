@@ -95,6 +95,7 @@ def submit_pending_jobs():
     for job_id in job_ids:
         submit_job_to_lsf.delay(job_id)
 
+
 @shared_task(bind=True,
              on_failure=on_failure_to_submit)
 def submit_job_to_lsf(self, job_id):
