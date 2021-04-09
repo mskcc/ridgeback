@@ -1,17 +1,17 @@
 from unittest import skip
 from mock import patch
 from django.test import TestCase
-from toil_orchestrator.models import Job, Status
-from toil_orchestrator.tasks import submit_job_to_lsf, submit_pending_jobs, check_status_of_jobs, on_failure_to_submit, get_message, cleanup_completed_jobs, cleanup_failed_jobs
+from orchestrator.models import Job, Status, PipelineType
+from orchestrator.tasks import submit_job_to_lsf, submit_pending_jobs, check_status_of_jobs, on_failure_to_submit, get_message, cleanup_completed_jobs, cleanup_failed_jobs
 from datetime import datetime, timedelta
 from mock import patch, call
 
 
 MAX_RUNNING_JOBS = 3
-@patch('toil_orchestrator.tasks.MAX_RUNNING_JOBS', MAX_RUNNING_JOBS)
+@patch('orchestrator.tasks.MAX_RUNNING_JOBS', MAX_RUNNING_JOBS)
 class TestTasks(TestCase):
     fixtures = [
-        "toil_orchestrator.job.json"
+        "orchestrator.job.json"
     ]
 
     def setUp(self):
@@ -28,8 +28,8 @@ class TestTasks(TestCase):
         self.assertEqual(info_message, 'Failed to submit job')
         self.assertNotEqual(log_path, None)
 
-    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('toil_orchestrator.tasks.submit_job_to_lsf')
+    @patch('submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__')
+    @patch('orchestrator.tasks.submit_job_to_lsf')
     @patch('submitter.jobsubmitter.JobSubmitter.submit')
     @skip("Need to mock memcached lock")
     def test_submit_polling(self, job_submitter, submit_job_to_lsf, init):
@@ -44,9 +44,9 @@ class TestTasks(TestCase):
         submit_pending_jobs()
         self.assertEqual(submit_job_to_lsf.delay.call_count, 0)
 
-    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.submit')
-    @patch('toil_orchestrator.tasks.save_job_info')
+    @patch('submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__')
+    @patch('submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.submit')
+    @patch('orchestrator.tasks.save_job_info')
     def test_submit(self, save_job_info, submit, init):
         init.return_value = None
         save_job_info.return_value = None
@@ -56,10 +56,10 @@ class TestTasks(TestCase):
         self.assertEqual(self.pending_job.finished, None)
         self.assertEqual(self.pending_job.job_store_location, "/new/job_store_location")
 
-    @patch('toil_orchestrator.tasks.get_job_info_path')
-    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.status')
-    @patch('submitter.jobsubmitter.JobSubmitter.get_outputs')
+    @patch('orchestrator.tasks.get_job_info_path')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.status')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.get_outputs')
     def test_complete(self, get_outputs, status, init, get_job_info_path):
         self.current_job.status = Status.PENDING
         self.current_job.save()
@@ -72,9 +72,9 @@ class TestTasks(TestCase):
         self.assertEqual(self.current_job.status, Status.COMPLETED)
         self.assertNotEqual(self.current_job.finished, None)
 
-    @patch('toil_orchestrator.tasks.get_job_info_path')
-    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.status')
+    @patch('orchestrator.tasks.get_job_info_path')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.status')
     def test_fail(self, status, init, get_job_info_path):
         self.current_job.status = Status.PENDING
         self.current_job.save()
@@ -99,9 +99,9 @@ class TestTasks(TestCase):
         self.assertEqual(failed_jobs, expected_failed_jobs)
         self.assertEqual(unknown_jobs, expected_unknown_jobs)
 
-    @patch('toil_orchestrator.tasks.get_job_info_path')
-    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.status')
+    @patch('orchestrator.tasks.get_job_info_path')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.status')
     def test_running(self, status, init, get_job_info_path):
         self.current_job.status = Status.PENDING
         self.current_job.save()
@@ -114,8 +114,8 @@ class TestTasks(TestCase):
         self.assertNotEqual(self.current_job.started, None)
         self.assertEqual(self.current_job.finished, None)
 
-    @patch('submitter.jobsubmitter.JobSubmitter.__init__')
-    @patch('submitter.jobsubmitter.JobSubmitter.status')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
+    @patch('submitter.toil_submitter.ToilJobSubmitter.status')
     @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
     def test_fail_not_submitted(self, status, init):
         init.return_value = None
@@ -136,15 +136,16 @@ class TestTasks(TestCase):
         self.assertEqual(failed_jobs, expected_failed_jobs)
         self.assertEqual(unknown_jobs, expected_unknown_jobs)
 
-    @patch('toil_orchestrator.tasks.cleanup_folders')
+    @patch('orchestrator.tasks.cleanup_folders')
     def test_cleanup(self, cleanup_folders):
-        job_new = Job.objects.create(app={'app': 'link'},
+        job_new = Job.objects.create(type=PipelineType.CWL,
+                                     app={'app': 'link'},
                                      status=Status.COMPLETED, created_date=datetime.now() - timedelta(days=1))
         testtime = datetime.now() - timedelta(days=32)
         with patch('django.utils.timezone.now') as mock_now:
             mock_now.return_value = testtime
-            job_old_completed = Job.objects.create(app={'app': 'link'}, status=Status.COMPLETED)
-            job_old_failed = Job.objects.create(app={'app': 'link'}, status=Status.FAILED)
+            job_old_completed = Job.objects.create(type=PipelineType.CWL, app={'app': 'link'}, status=Status.COMPLETED)
+            job_old_failed = Job.objects.create(type=PipelineType.CWL, app={'app': 'link'}, status=Status.FAILED)
 
         cleanup_completed_jobs()
         cleanup_failed_jobs()

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Job, CommandLineToolJob, Status
 from django.contrib import messages
-from toil_orchestrator.tasks import cleanup_folders, resume_job, suspend_job
+from orchestrator.tasks import cleanup_folders, resume_job, suspend_job
 
 
 class StatusFilter(admin.SimpleListFilter):
@@ -9,7 +9,7 @@ class StatusFilter(admin.SimpleListFilter):
     parameter_name = 'status'
 
     def lookups(self, request, model_admin):
-        filters = {k:v for (k, v) in request.GET.items() if "range" not in k and "status" not in k
+        filters = {k: v for (k, v) in request.GET.items() if "range" not in k and "status" not in k
                    and "q" not in k and "p" not in k}
 
         qs = model_admin.get_queryset(request).filter(**filters)

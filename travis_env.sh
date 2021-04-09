@@ -24,6 +24,12 @@ export RIDGEBACK_TOIL_JOB_STORE_ROOT=/sample_path
 export RIDGEBACK_TOIL_WORK_DIR_ROOT=/sample_path
 export RIDGEBACK_TOIL_TMP_DIR_ROOT=/sample_path
 
+### Set the nextflow env variable
+
+export RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT=/sample_path
+export RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT=/sample_path
+export RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT=/sample_path
+
 ### Set the LSF env variable
 
 export RIDGEBACK_LSF_WALLTIME=10:00
