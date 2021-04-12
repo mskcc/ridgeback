@@ -26,19 +26,21 @@ class LSFClient():
         '''
         self.logger = logging.getLogger('LSF_client')
 
-    def submit(self, command, job_args, stdout):
+    def submit(self, command, job_args, tool_args, stdout):
         '''
         Submit command to LSF and store log in stdout
 
         Args:
             command (str): command to submit
             stdout (str): log file path
+            job_args (list): Additional options for leader bsub
+            tool_args (list): Additional options for tool bsub
 
         Returns:
             int: lsf job id
         '''
         bsub_command = ['bsub', '-sla', settings.LSF_SLA, '-oo', stdout] + job_args
-        toil_lsf_args = '-sla %s %s' % (settings.LSF_SLA, " ".join(job_args))
+        toil_lsf_args = '-sla %s %s' % (settings.LSF_SLA, " ".join(tool_args))
 
         bsub_command.extend(command)
         current_env = os.environ
