@@ -23,9 +23,9 @@ app.conf.task_routes = {'orchestrator.tasks.submit_job_to_lsf': {'queue':
                         'orchestrator.tasks.cleanup_folders': {'queue':
                                                                     settings.RIDGEBACK_ACTION_QUEUE},
                         'orchestrator.tasks.resume_job': {'queue':
-                                                              settings.RIDGEBACK_ACTION_QUEUE}
+                                                              settings.RIDGEBACK_ACTION_QUEUE},
                         'orchestrator.tasks.suspend_job': {'queue':
-                                                              settings.RIDGEBACK_ACTION_QUEUE}
+                                                              settings.RIDGEBACK_ACTION_QUEUE},
                         'orchestrator.tasks.abort_job': {'queue':
                                                               settings.RIDGEBACK_ACTION_QUEUE}}
 
