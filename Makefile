@@ -212,39 +212,39 @@ rabbitmq-check:
 	rabbitmqctl status
 
 celery-start:
-	celery -A toil_orchestrator beat \
+	celery -A orchestrator beat \
 	-l info \
 	--pidfile "$(CELERY_BEAT_PID_FILE)" \
 	--logfile "$(CELERY_BEAT_LOGFILE)" \
 	--schedule "$(CELERY_BEAT_SCHEDULE)" \
 	--detach
-	celery -A toil_orchestrator worker \
+	celery -A orchestrator worker \
 	-l info \
 	-Q "$(RIDGEBACK_SUBMIT_JOB_LSF_QUEUE)" \
 	--pidfile "$(RIDGEBACK_SUBMIT_JOB_LSF_QUEUE).pid" \
 	--logfile "$(RIDGEBACK_SUBMIT_JOB_LSF_QUEUE).log" \
 	--detach
-	celery -A toil_orchestrator worker \
+	celery -A orchestrator worker \
 	-l info \
 	-Q "$(RIDGEBACK_ACTION_QUEUE)" \
 	--pidfile "$(RIDGEBACK_ACTION_QUEUE).pid" \
 	--logfile "$(RIDGEBACK_ACTION_QUEUE).log" \
 	--detach
-	celery -A toil_orchestrator worker \
+	celery -A orchestrator worker \
 	-l info \
 	-Q "$(RIDGEBACK_CHECK_STATUS_QUEUE)" \
 	--pidfile "$(RIDGEBACK_CHECK_STATUS_QUEUE).pid" \
 	--logfile "$(RIDGEBACK_CHECK_STATUS_QUEUE).log" \
 	--concurrency=1 \
 	--detach
-	celery -A toil_orchestrator worker \
+	celery -A orchestrator worker \
 	-l info \
 	-Q "$(RIDGEBACK_SUBMIT_JOB_QUEUE)" \
 	--pidfile "$(RIDGEBACK_SUBMIT_JOB_QUEUE).pid" \
 	--logfile "$(RIDGEBACK_SUBMIT_JOB_QUEUE).log" \
 	--concurrency=1 \
 	--detach
-	celery -A toil_orchestrator worker \
+	celery -A orchestrator worker \
 	-l info \
 	-Q "$(RIDGEBACK_CLEANUP_QUEUE)" \
 	--pidfile "$(RIDGEBACK_CLEANUP_QUEUE).pid" \

@@ -89,7 +89,7 @@ Includecmd: no
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.pid \
     -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE} &
 
-    nohup celery -A toil_orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_ACTION_QUEUE} \
@@ -97,7 +97,7 @@ Includecmd: no
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid \
     -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE} &
 
-    nohup celery -A toil_orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
@@ -106,7 +106,7 @@ Includecmd: no
     --concurrency=1 \ 
     -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE} &
 
-    nohup celery -A toil_orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
@@ -115,7 +115,7 @@ Includecmd: no
     --concurrency=1 \
     -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE} &
 
-    nohup celery -A toil_orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CLEANUP_QUEUE} \
