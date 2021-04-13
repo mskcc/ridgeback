@@ -74,14 +74,14 @@ Includecmd: no
     . $RIDGEBACK_VENV_ACTIVATE
     export PATH=$LSF_BINDIR:$SINGULARITY_BIN_PATH:$PATH
 
-    nohup celery -A toil_orchestrator beat \
+    nohup celery -A orchestrator beat \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -f ${CELERY_LOG_PATH}/ridgeback_beat.log \
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid \
     -s ${CELERY_BEAT_SCHEDULE_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.celerybeat-schedule &
 
-    nohup celery -A toil_orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE} \
@@ -132,7 +132,8 @@ Includecmd: no
         libldap2-dev libsasl2-dev libssl-dev \
         postgresql postgresql-contrib libpq-dev \
         gawk build-essential nodejs \
-        git
+        git \
+        default-jdk
 
     if [ -z "$RIDGEBACK_BRANCH" ]; then
     export RIDGEBACK_BRANCH=master

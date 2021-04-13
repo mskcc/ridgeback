@@ -2,7 +2,7 @@ from mock import patch
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from toil_orchestrator.models import Job, Status
+from orchestrator.models import Job, Status
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 
@@ -12,6 +12,7 @@ class JobTestCase(APITestCase):
 	def setUp(self):
 		example_app = {'github': {'repository':'example_repository','entrypoint':'example_entrypoint'}}
 		self.example_job = Job.objects.create(
+			type=0,
 			app=example_app,
 			root_dir='example_rootdir',
 			id='7aacda86-b12f-4068-b2e3-a96552430a0f',
@@ -36,9 +37,12 @@ class JobTestCase(APITestCase):
 		response = self.client.get(url)
 		self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-	def test_create(self):
+	@patch('orchestrator.tasks.submit_job_to_lsf')
+	def test_create(self, submit_jobs_mock):
 		url = self.api_root + 'jobs/'
+		submit_jobs_mock.return_value = None
 		data = {
+			'type': 0,
 			'app': self.example_job.app,
 			'root_dir': self.example_job.root_dir,
 			'inputs': {'example_input': True}
@@ -64,9 +68,12 @@ class JobTestCase(APITestCase):
 		response = self.client.delete(url)
 		self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-	def test_resume(self):
+	@patch('orchestrator.tasks.submit_job_to_lsf')
+	def test_resume(self, submit_jobs_mock):
 		url = '{}jobs/{}/resume/'.format(self.api_root, self.example_job.id)
+		submit_jobs_mock.return_value = None
 		data = {
+			'type': 0,
 			'root_dir': self.example_job.root_dir
 		}
 		response = self.client.post(url, data=data, format='json')

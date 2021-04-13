@@ -41,8 +41,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'toil_orchestrator.apps.ToilOrchestratorConfig',
+    'orchestrator.apps.OrchestratorConfig',
     'rest_framework',
-    'drf_yasg'
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -172,7 +173,7 @@ LOGIN_URL='/admin/login/'
 LOGOUT_URL='/admin/logout/'
 
 SWAGGER_SETTINGS = {
-    'VALIDATOR_URL':None
+    'VALIDATOR_URL': None
 }
 
 
@@ -235,6 +236,13 @@ TOIL_TMP_DIR_ROOT = os.environ['RIDGEBACK_TOIL_TMP_DIR_ROOT']
 LSF_WALLTIME = os.environ['RIDGEBACK_LSF_WALLTIME']
 LSF_SLA = os.environ['RIDGEBACK_LSF_SLA']
 CWLTOIL = os.environ.get('RIDGEBACK_TOIL', 'cwltoil')
+
+
+NEXTFLOW_JOB_STORE_ROOT = os.environ['RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT']
+NEXTFLOW_WORK_DIR_ROOT = os.environ['RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT']
+NEXTFLOW_TMP_DIR_ROOT = os.environ['RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT']
+
+NEXTFLOW = os.environ.get('RIDGEBACK_NEXTFLOW', 'nextflow')
 
 
 # Cleanup periods
