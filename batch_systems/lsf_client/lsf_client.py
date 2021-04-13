@@ -45,7 +45,7 @@ class LSFClient():
         bsub_command.extend(command)
         current_env = os.environ
         current_env['TOIL_LSF_ARGS'] = toil_lsf_args
-        self.logger.debug("Running command: %s\nEnv: %s", bsub_command, current_env)
+        self.logger.info("Running command: %s\nEnv: %s", bsub_command, current_env)
         process = subprocess.run(
             bsub_command, check=True, stdout=subprocess.PIPE,
             universal_newlines=True, env=current_env)
@@ -96,7 +96,6 @@ class LSFClient():
             self.logger.error("Could not find bjobs output json in: %s", bjobs_output_str)
 
         return bjobs_records
-
 
     def _parse_procid(self, stdout):
         """
@@ -169,7 +168,6 @@ class LSFClient():
             "Job [%s] is in an unhandled state (%s)", external_job_id, process_status)
         status_info = "Job is in an unhandles state: {}".format(process_status)
         return (Status.UNKNOWN, status_info.strip())
-
 
     def _parse_status(self, stdout, external_job_id):
         """Parse LSF stdout helper
