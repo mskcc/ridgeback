@@ -90,7 +90,7 @@ def submit_pending_jobs():
     job_ids = Job.objects.filter(status=Status.CREATED).order_by("created_date").values_list('pk', flat=True)[
               :jobs_to_submit]
 
-    Job.objects.filter(pk__in=list(job_ids)).update(status=Status.PENDING)
+    Job.objects.filter(pk__in=list(job_ids)).update(status=Status.SUBMITTING)
 
     for job_id in job_ids:
         submit_job_to_lsf.delay(job_id)
@@ -101,8 +101,6 @@ def submit_pending_jobs():
 def submit_job_to_lsf(self, job_id):
     logger.info("Submitting job %s to lsf" % str(job_id))
     job = Job.objects.get(pk=job_id)
-    if job.status != Status.PENDING:
-        return
     submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
                                             job.resume_job_store_location, job.walltime, job.memlimit)
     external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
@@ -138,6 +136,7 @@ def abort_job(self, job_id):
                 logger.info("Failed to abort job %s" % job_id)
                 raise Exception("Failed to abort job %s" % job_id)
         elif job.status == Status.CREATED:
+            # Possible race condition
             job.status = Status.ABORTED
             job.save()
             return
@@ -208,27 +207,49 @@ def clean_directory(path):
     return True
 
 
+def dump_info_file(job):
+    job_info_path = get_job_info_path(job)
+    if os.path.exists(job_info_path):
+        try:
+            with open(job_info_path) as job_info_file:
+                job_info_data = json.load(job_info_file)
+            job.external_id = job_info_data['external_id']
+            job.job_store_location = job_info_data['job_store_location']
+            job.working_dir = job_info_data['working_dir']
+            job.output_directory = job_info_data['output_directory']
+            job.status = Status.PENDING
+            job.submitted = now()
+        except Exception as e:
+            error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path, str(e))
+            logger.info(error_message)
+
+
+def complete(submiter, job, lsf_status):
+    outputs, error_message = submiter.get_outputs()
+    if outputs:
+        job.track_cache = None
+        job.outputs = outputs
+        job.status = lsf_status
+        job.finished = now()
+    if error_message:
+        update_message_by_key(job, 'info', error_message)
+
+
 @shared_task(bind=True)
 def check_status_of_jobs(self):
     logger.info('Checking status of jobs on lsf')
     jobs = Job.objects.filter(
-        status__in=(Status.PENDING, Status.RUNNING, Status.CREATED, Status.UNKNOWN, Status.SUSPENDED)).all()
+        status__in=(Status.SUBMITTING, Status.PENDING, Status.RUNNING, Status.UNKNOWN,)).all()
     for job in jobs:
+        if job.status == Status.SUBMITTING:
+            submiter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
+                                                   job.resume_job_store_location)
+            lsf_status_info = submiter.status(job.external_id)
+
+
+
         if job.status == Status.CREATED:
-            job_info_path = get_job_info_path(job.id)
-            if os.path.exists(job_info_path):
-                try:
-                    with open(job_info_path) as job_info_file:
-                        job_info_data = json.load(job_info_file)
-                    job.external_id = job_info_data['external_id']
-                    job.job_store_location = job_info_data['job_store_location']
-                    job.working_dir = job_info_data['working_dir']
-                    job.output_directory = job_info_data['output_directory']
-                    job.status = Status.PENDING
-                    job.submitted = now()
-                except Exception as e:
-                    error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path,str(e))
-                    logger.info(error_message)
+            dump_info_file(job)
         elif not job.external_id and job.status == Status.PENDING:
             continue
         elif job.external_id:
@@ -238,23 +259,20 @@ def check_status_of_jobs(self):
             if lsf_status_info:
                 lsf_status, lsf_message = lsf_status_info
                 if lsf_status == Status.COMPLETED:
-                    outputs, error_message = submiter.get_outputs()
-                    if outputs:
-                        job.track_cache = None
-                        job.outputs = outputs
-                        job.status = lsf_status
-                        job.finished = now()
-                    if error_message:
-                        update_message_by_key(job,'info',error_message)
+                    complete(submiter, job, lsf_message)
                 else:
                     job.status = lsf_status
-                    update_message_by_key(job,'info',lsf_message)
+                    update_message_by_key(job, 'info', lsf_message)
                 if lsf_status != Status.PENDING:
                     if not job.started:
                         job.started = now()
+
+                # We shouldn't update CommandLineToolJob in status job
                 if lsf_status == Status.FAILED:
-                    failed_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.FAILED)
-                    unknown_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.UNKNOWN)
+                    failed_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id,
+                                                                                      status=Status.FAILED)
+                    unknown_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id,
+                                                                                       status=Status.UNKNOWN)
                     failed_jobs = {}
                     unknown_jobs = {}
                     for single_tool_job in failed_command_line_tool_jobs:

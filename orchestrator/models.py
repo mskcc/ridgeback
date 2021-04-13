@@ -1,6 +1,7 @@
 import uuid
 from enum import IntEnum
 from django.db import models
+from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
 
 
@@ -8,7 +9,7 @@ def message_default():
     message_default_dict = {
         'log': '',
         'failed_jobs': {},
-        'unknown_jobs':{},
+        'unknown_jobs': {},
         'info': ''
     }
     return message_default_dict
@@ -23,6 +24,28 @@ class Status(IntEnum):
     ABORTED = 5
     UNKNOWN = 6
     SUSPENDED = 7
+    SUBMITTING = 8
+
+    def transition(self, transition_to):
+        if self == self.CREATED:
+            if transition_to in (self.CREATED, self.PENDING, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
+                return True
+        elif self == self.PENDING:
+            if transition_to in (self.PENDING, self.RUNNING, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
+                return True
+        elif self == self.RUNNING:
+            if transition_to in (self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
+                return True
+        elif self == self.SUSPENDED:
+            if transition_to in (self.CREATED, self.PENDING, self.RUNNING, self.ABORTED,):
+                return True
+        elif self in (self.COMPLETED, self.FAILED, self.ABORTED,):
+            # Terminal state
+            return False
+        elif self == self.UNKNOWN:
+            # Can transition to all states
+            return True
+        return False
 
 
 class PipelineType(IntEnum):
@@ -57,6 +80,15 @@ class Job(BaseModel):
     track_cache = JSONField(blank=True, null=True)
     walltime = models.IntegerField(blank=True, null=True, default=None)
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
+
+    def created_to_pending(self):
+        self.status = Status.CREATED
+        self.save()
+
+    def pending_to_running(self):
+        self.status = Status.RUNNING
+        self.submitted = timezone.now()
+        self.save()
 
     def save(self, *args, **kwargs):
         if self.status != Status.CREATED:
