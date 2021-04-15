@@ -86,14 +86,16 @@ Includecmd: no
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE} \
     -f ${CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.pid &
+    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.pid \
+    -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE} &
 
     nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_ACTION_QUEUE} \
     -f ${CELERY_LOG_PATH}/${RIDGEBACK_ACTION_QUEUE}.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid &
+    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid \
+    -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE} &
 
     nohup celery -A orchestrator worker \
     -l info \
@@ -101,7 +103,8 @@ Includecmd: no
     -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
     -f ${CELERY_LOG_PATH}/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
-    --concurrency=1 &
+    --concurrency=1 \
+    -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE} &
 
     nohup celery -A orchestrator worker \
     -l info \
@@ -109,7 +112,8 @@ Includecmd: no
     -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
     -f ${CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
-    --concurrency=1 &
+    --concurrency=1 \
+    -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE} &
 
     nohup celery -A orchestrator worker \
     -l info \
@@ -117,7 +121,8 @@ Includecmd: no
     -Q ${RIDGEBACK_CLEANUP_QUEUE} \
     -f ${CELERY_LOG_PATH}/${RIDGEBACK_CLEANUP_QUEUE}.log \
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid \
-    --concurrency=2 &
+    --concurrency=2 \
+    -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE} &
 
 %post
     export DEBIAN_FRONTEND=noninteractive \
