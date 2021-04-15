@@ -1,6 +1,6 @@
-from toil_orchestrator.models import Job, Status
-from toil_orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
-from toil_orchestrator.tasks import abort_job
+from orchestrator.models import Job, Status
+from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
+from orchestrator.tasks import abort_job
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.viewsets import GenericViewSet
@@ -38,6 +38,7 @@ class JobViewSet(mixins.CreateModelMixin,
             if parent_job.job_store_clean_up != None:
                 return Response("The job store of the job indicated to be resumed has been cleaned up",
                                 status=status.HTTP_410_GONE)
+            resume_data['type'] = parent_job.type
             resume_data['app'] = parent_job.app
             resume_data['inputs'] = parent_job.inputs
             resume_data['resume_job_store_location'] = parent_job.job_store_location

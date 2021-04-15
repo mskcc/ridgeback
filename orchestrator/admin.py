@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Job, CommandLineToolJob, Status
-from toil_orchestrator.tasks import cleanup_folders
 from django.contrib import messages
+from orchestrator.tasks import cleanup_folders, resume_job, suspend_job
 
 
 class StatusFilter(admin.SimpleListFilter):
@@ -9,7 +9,7 @@ class StatusFilter(admin.SimpleListFilter):
     parameter_name = 'status'
 
     def lookups(self, request, model_admin):
-        filters = {k:v for (k, v) in request.GET.items() if "range" not in k and "status" not in k
+        filters = {k: v for (k, v) in request.GET.items() if "range" not in k and "status" not in k
                    and "q" not in k and "p" not in k}
 
         qs = model_admin.get_queryset(request).filter(**filters)
@@ -27,7 +27,7 @@ class JobAdmin(admin.ModelAdmin):
     ordering = ('-created_date',)
     list_filter = (StatusFilter,)
 
-    actions = ['cleanup_files']
+    actions = ['cleanup_files', 'suspend', 'resume']
 
     def cleanup_files(self, request, queryset):
         cleaned_up_projects = 0
@@ -55,7 +55,20 @@ Already cleaned up {cleaned_up}
 
             self.message_user(request, message, level=messages.WARNING)
 
+    def suspend(self, request, queryset):
+        for job in queryset:
+            if job.external_id:
+                suspend_job.delay(job.external_id)
+
+    def resume(self, request, queryset):
+        for job in queryset:
+            if job.external_id:
+                resume_job.delay(job.external_id)
+
+    suspend.short_description = "Suspend Jobs"
+    resume.short_description = "Resume Jobs"
     cleanup_files.short_description = "Cleanup up the TOIL jobstore and workdir"
+
 
 @admin.register(CommandLineToolJob)
 class CommandLineToolJobAdmin(admin.ModelAdmin):

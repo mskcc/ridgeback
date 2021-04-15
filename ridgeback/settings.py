@@ -41,8 +41,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'toil_orchestrator.apps.ToilOrchestratorConfig',
+    'orchestrator.apps.OrchestratorConfig',
     'rest_framework',
-    'drf_yasg'
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -172,7 +173,7 @@ LOGIN_URL='/admin/login/'
 LOGOUT_URL='/admin/logout/'
 
 SWAGGER_SETTINGS = {
-    'VALIDATOR_URL':None
+    'VALIDATOR_URL': None
 }
 
 
@@ -185,8 +186,15 @@ RABBITMQ_PASSWORD = os.environ.get('RIDGEBACK_RABBITMQ_PASSWORD', 'guest')
 RABBITMQ_URL = os.environ.get('RIDGEBACK_RABBITMQ_URL', 'localhost')
 
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://%s:%s@%s/' % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL) )
-RIDGEBACK_DEFAULT_QUEUE = os.environ.get(
-    'RIDGEBACK_DEFAULT_QUEUE', 'ridgeback_default_queue')
+RIDGEBACK_SUBMIT_JOB_QUEUE = os.environ.get('RIDGEBACK_SUBMIT_JOB_QUEUE',
+                                            'ridgeback_submit_job_queue')
+RIDGEBACK_CHECK_STATUS_QUEUE = os.environ.get('RIDGEBACK_CHECK_STATUS_QUEUE',
+                                              'ridgeback_check_status_queue')
+RIDGEBACK_ACTION_QUEUE = os.environ.get('RIDGEBACK_ACTION_QUEUE', 'ridgeback_action_queue')
+RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get('RIDGEBACK_SUBMIT_JOB_LSF_QUEUE',
+                                                'ridgeback_submit_job_lsf_queue')
+RIDGEBACK_CLEANUP_QUEUE = os.environ.get('RIDGEBACK_CLEANUP_QUEUE', 'ridgeback_cleanup_queue')
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -228,6 +236,13 @@ TOIL_TMP_DIR_ROOT = os.environ['RIDGEBACK_TOIL_TMP_DIR_ROOT']
 LSF_WALLTIME = os.environ['RIDGEBACK_LSF_WALLTIME']
 LSF_SLA = os.environ['RIDGEBACK_LSF_SLA']
 CWLTOIL = os.environ.get('RIDGEBACK_TOIL', 'cwltoil')
+
+
+NEXTFLOW_JOB_STORE_ROOT = os.environ['RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT']
+NEXTFLOW_WORK_DIR_ROOT = os.environ['RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT']
+NEXTFLOW_TMP_DIR_ROOT = os.environ['RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT']
+
+NEXTFLOW = os.environ.get('RIDGEBACK_NEXTFLOW', 'nextflow')
 
 
 # Cleanup periods
