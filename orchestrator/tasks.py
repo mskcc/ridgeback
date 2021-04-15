@@ -97,6 +97,7 @@ def submit_pending_jobs():
 
 
 @shared_task(bind=True,
+             soft_time_limit=60 * 3,
              on_failure=on_failure_to_submit)
 def submit_job_to_lsf(self, job_id):
     logger.info("Submitting job %s to lsf" % str(job_id))
