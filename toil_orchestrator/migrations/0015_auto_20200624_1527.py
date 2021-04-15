@@ -5,6 +5,7 @@ from toil_orchestrator.models import message_default
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 
+
 def update_message(apps, _):
     jobs = apps.get_model('toil_orchestrator', 'Job').objects.all()
     message_obj = message_default()
@@ -18,8 +19,10 @@ def update_message(apps, _):
                 single_job.tmp_message = json.dumps(message_obj, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
                 single_job.save()
 
+
 def revert_message(apps, _):
     pass
+
 
 class Migration(migrations.Migration):
 
@@ -28,5 +31,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-    	migrations.RunPython(update_message, revert_message)
+        migrations.RunPython(update_message, revert_message)
     ]
