@@ -79,9 +79,10 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     job.save()
 
 
-@shared_task
 @memcache_lock("rb_submit_pending_jobs")
-def submit_pending_jobs():
+@shared_task(bind=True, soft_time_limit=10)
+def submit_pending_jobs(self):
+    logger.info("Check pending jobs started")
     jobs_running = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
     jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
     if jobs_to_submit <= 0:
@@ -94,6 +95,8 @@ def submit_pending_jobs():
 
     for job_id in job_ids:
         submit_job_to_lsf.delay(job_id)
+
+    logger.info("Check pending jobs completed")
 
 
 @shared_task(bind=True,
