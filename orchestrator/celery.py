@@ -23,14 +23,15 @@ app.conf.task_routes = {'orchestrator.tasks.submit_job_to_lsf': {'queue': settin
                         'orchestrator.tasks.abort_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
                         'orchestrator.tasks.suspend_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
                         'orchestrator.tasks.resume_job': {'queue': settings.RIDGEBACK_DEFAULT_QUEUE},
+                        'orchestrator.tasks.command_processor': {'queue': 'ridgeback_command'}
                         }
 
 app.conf.beat_schedule = {
-    "check_status_of_jobs": {
-        "task": "orchestrator.tasks.check_status_of_jobs",
-        "schedule": 60.0,
-        "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
-    },
+    # "check_status_of_jobs": {
+    #     "task": "orchestrator.tasks.check_status_of_jobs",
+    #     "schedule": 60.0,
+    #     "options": {"queue": settings.RIDGEBACK_DEFAULT_QUEUE}
+    # },
     "submit_pending_jobs": {
         "task": "orchestrator.tasks.submit_pending_jobs",
         "schedule": 60.0 * 5,
