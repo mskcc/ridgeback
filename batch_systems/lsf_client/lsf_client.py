@@ -173,7 +173,7 @@ class LSFClient(object):
 
         Args:
             stdout (str): stdout of bjobs
-            external_job_id (int): LSF id
+            external_job_id (str): LSF id
 
         Returns:
             tuple: (Ridgeback Status int, extra info)

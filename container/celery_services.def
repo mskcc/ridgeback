@@ -89,6 +89,14 @@ Includecmd: no
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_worker.pid \
     -n ${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_worker &
 
+    nohup celery -A orchestrator worker \
+    -l info \
+    --workdir ${RIDGEBACK_PATH} \
+    -Q ${RIDGEBACK_COMMAND_QUEUE} \
+    -f ${CELERY_LOG_PATH}/ridgeback_command.log \
+    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_command.pid \
+    -n ${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_command &
+
 
 %post
     export DEBIAN_FRONTEND=noninteractive \

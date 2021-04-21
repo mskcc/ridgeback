@@ -188,6 +188,9 @@ RABBITMQ_URL = os.environ.get('RIDGEBACK_RABBITMQ_URL', 'localhost')
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://%s:%s@%s/' % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL) )
 RIDGEBACK_DEFAULT_QUEUE = os.environ.get(
     'RIDGEBACK_DEFAULT_QUEUE', 'ridgeback_default_queue')
+RIDGEBACK_COMMAND_QUEUE = os.environ.get(
+    'RIDGEBACK_COMMAND_QUEUE', 'ridgeback_command_queue')
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

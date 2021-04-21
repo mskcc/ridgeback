@@ -1,8 +1,10 @@
 import uuid
+import json
 from enum import IntEnum
 from django.db import models
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
+from django.core.serializers.json import DjangoJSONEncoder
 
 
 def message_default():
@@ -17,18 +19,25 @@ def message_default():
 
 class Status(IntEnum):
     CREATED = 0
-    PENDING = 1
-    RUNNING = 2
-    COMPLETED = 3
-    FAILED = 4
-    ABORTED = 5
-    UNKNOWN = 6
-    SUSPENDED = 7
-    SUBMITTING = 8
+    SUBMITTING = 1
+    SUBMITTED = 2
+    PENDING = 3
+    RUNNING = 4
+    COMPLETED = 5
+    FAILED = 6
+    ABORTED = 7
+    UNKNOWN = 8
+    SUSPENDED = 9
 
     def transition(self, transition_to):
         if self == self.CREATED:
-            if transition_to in (self.CREATED, self.PENDING, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
+            if transition_to in (self.SUBMITTING, self.ABORTED,):
+                return True
+        elif self == self.SUBMITTING:
+            if transition_to in (self.SUBMITTED, self.ABORTED):
+                return True
+        elif self == self.SUBMITTED:
+            if transition_to in (self.PENDING, self.RUNNING, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
         elif self == self.PENDING:
             if transition_to in (self.PENDING, self.RUNNING, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
@@ -36,15 +45,16 @@ class Status(IntEnum):
         elif self == self.RUNNING:
             if transition_to in (self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
-        elif self == self.SUSPENDED:
-            if transition_to in (self.CREATED, self.PENDING, self.RUNNING, self.ABORTED,):
-                return True
         elif self in (self.COMPLETED, self.FAILED, self.ABORTED,):
             # Terminal state
             return False
         elif self == self.UNKNOWN:
-            # Can transition to all states
-            return True
+            # Can transition to all lsf states
+            if transition_to in (self.PENDING, self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
+                return True
+        elif self == self.SUSPENDED:
+            if transition_to in (self.PENDING, self.RUNNING, self.ABORTED,):
+                return True
         return False
 
 
@@ -81,26 +91,44 @@ class Job(BaseModel):
     walltime = models.IntegerField(blank=True, null=True, default=None)
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
 
-    def created_to_pending(self):
-        self.status = Status.CREATED
-        self.save()
-
-    def pending_to_running(self):
-        self.status = Status.RUNNING
+    def submit_to_lsf(self, external_id, job_store_dir, job_work_dir, job_output_dir, log_path):
+        self.status = Status.SUBMITTED
+        self.external_id = external_id
+        self.job_store_location = job_store_dir
+        self.working_dir = job_work_dir
+        self.output_directory = job_output_dir
+        self.log_path = log_path
         self.submitted = timezone.now()
+        self.message['log'] = log_path
+        message_str = json.dumps(self.message, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
+        self.message = message_str
+        self.save(update_fields=['status',
+                                 'external_id',
+                                 'job_store_location',
+                                 'working_dir',
+                                 'output_directory',
+                                 'log_path',
+                                 'submitted',
+                                 'message'])
+
+    def update_status(self, lsf_status):
+        self.status = lsf_status
+        self.save(update_fields=['status',])
+
+    def complete(self, outputs):
+        self.track_cache = None
+        self.outputs = outputs
+        self.status = Status.COMPLETED
+        self.finished = timezone.now()
         self.save()
 
-    def save(self, *args, **kwargs):
-        if self.status != Status.CREATED:
-            if not self.submitted:
-                self.submitted = self.created_date
-            if self.status != Status.PENDING:
-                if not self.started:
-                    self.started = self.created_date
-        if self.status == Status.COMPLETED or self.status == Status.FAILED:
-            if not self.finished:
-                self.finished = self.modified_date
-        super().save(*args, **kwargs)
+    def fail(self, error_message, failed_jobs, unknown_jobs):
+        self.message['info'] = error_message
+        self.message['failed_jobs'] = failed_jobs
+        self.message['unknown_jobs'] = unknown_jobs
+        self.status = Status.FAILED
+        self.finished = timezone.now()
+        self.save()
 
 
 class CommandLineToolJob(BaseModel):
@@ -112,3 +140,7 @@ class CommandLineToolJob(BaseModel):
     job_name = models.CharField(max_length=100)
     job_id = models.CharField(max_length=20)
     details = JSONField(blank=True, null=True)
+
+
+class JobCommands(BaseModel):
+    pass
