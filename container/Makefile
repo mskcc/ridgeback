@@ -30,7 +30,7 @@ singularity-build-docker:
 	--rm \
 	-ti \
 	-v "$(SINGULARITYDIR):/image" "$(DOCKERTAG)" \
-	build /image/ridgeback_service.sif /image/ridgeback_service.def
+	build /image/celery_services.sif /image/celery_services.def
 
 # on Juno HPC
 singularity-build:

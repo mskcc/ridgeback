@@ -40,7 +40,7 @@ class Status(IntEnum):
             if transition_to in (self.PENDING, self.RUNNING, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
         elif self == self.PENDING:
-            if transition_to in (self.PENDING, self.RUNNING, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
+            if transition_to in (self.PENDING, self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
         elif self == self.RUNNING:
             if transition_to in (self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
@@ -107,13 +107,14 @@ class Job(BaseModel):
                                  'job_store_location',
                                  'working_dir',
                                  'output_directory',
-                                 'log_path',
                                  'submitted',
                                  'message'])
 
     def update_status(self, lsf_status):
+        if self.status == Status.PENDING and lsf_status == Status.RUNNING:
+            self.started = timezone.now()
         self.status = lsf_status
-        self.save(update_fields=['status',])
+        self.save(update_fields=['status', 'started'])
 
     def complete(self, outputs):
         self.track_cache = None

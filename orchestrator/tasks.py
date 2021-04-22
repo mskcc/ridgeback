@@ -224,7 +224,7 @@ def command_processor(self, command_dict):
 
 @shared_task
 @memcache_lock("rb_submit_pending_jobs")
-def submit_pending_jobs():
+def process_jobs():
     jobs_running = Job.objects.filter(status__in=(Status.SUBMITTING, Status.SUBMITTED, Status.PENDING, Status.RUNNING,)).count()
     jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
     if jobs_to_submit <= 0:
@@ -305,7 +305,7 @@ def check_job_status(job):
                 _fail(job, error_message)
 
         elif lsf_status in (Status.FAILED,):
-            _fail(job)
+            _fail(job, lsf_message)
 
     else:
         logger.warning('Invalid transition %s to %s' % (job.status.name, lsf_status.name))
