@@ -43,7 +43,7 @@ class LSFClient(object):
         for k, v in env.items():
             if v:
                 current_env[k] = v
-            else:
+            elif k in current_env:
                 current_env.pop(k)
         self.logger.debug("Running command: %s\nEnv: %s", bsub_command, current_env)
         process = subprocess.run(
