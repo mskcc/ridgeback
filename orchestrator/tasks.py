@@ -4,7 +4,7 @@ import shutil
 import logging
 from time import sleep
 from datetime import timedelta
-from celery import shared_task
+from celery import shared_task, task
 from batch_systems.lsf_client import LSFClient
 from submitter.factory import JobSubmitterFactory
 from django.conf import settings
@@ -199,19 +199,20 @@ def dump_info_file(job):
             logger.info(error_message)
 
 
-@shared_task(bind=True, autoretry_for=(Exception,))
+@task(bind=True, autoretry_for=(Exception,))
 def command_processor(self, command_dict):
     command = Command.from_dict(command_dict)
     lock_id = "job_lock_%s" % command.job_id
     with memcache_task_lock(lock_id, self.app.oid) as acquired:
         if acquired:
-            job = Job.objects.get(command.job_id)
+            job = Job.objects.get(id=command.job_id)
             if command.command_type == CommandType.SUBMIT:
                 submit_job_to_lsf(job)
-            elif command.type == CommandType.CHECK_STATUS_ON_LSF:
+            elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
+                print("check status")
                 check_job_status(job)
             elif command.command_type == CommandType.ABORT:
-                abort_job(abort_job)
+                abort_job(job)
             elif command.command_type == CommandType.SUSPEND:
                 suspend_job(job.id)
             elif command.command_type == CommandType.RESUME:
@@ -238,7 +239,7 @@ def process_jobs():
     for job_id in job_ids:
         command_processor.delay(Command(CommandType.SUBMIT, job_id).to_dict())
 
-    status_jobs = Job.objects.filter(status__in=(Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,))
+    status_jobs = Job.objects.filter(status__in=(Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,)).values_list('pk', flat=True)
     for job_id in status_jobs:
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, job_id).to_dict())
 
