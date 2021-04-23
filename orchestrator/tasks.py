@@ -294,7 +294,7 @@ def check_job_status(job):
     submiter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
                                            job.resume_job_store_location)
     lsf_status, lsf_message = submiter.status(job.external_id)
-    if job.status.transition(lsf_status):
+    if Status(job.status).transition(lsf_status):
         if lsf_status in (Status.PENDING, Status.RUNNING, Status.UNKNOWN,):
             job.update_status(lsf_status)
 
