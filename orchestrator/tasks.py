@@ -205,11 +205,13 @@ def command_processor(self, command_dict):
     lock_id = "job_lock_%s" % command.job_id
     with memcache_task_lock(lock_id, self.app.oid) as acquired:
         if acquired:
-            job = Job.objects.get(id=command.job_id)
+            try:
+                job = Job.objects.get(id=command.job_id)
+            except Job.DoesNotExist:
+                return
             if command.command_type == CommandType.SUBMIT:
                 submit_job_to_lsf(job)
             elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
-                print("check status")
                 check_job_status(job)
             elif command.command_type == CommandType.ABORT:
                 abort_job(job)
