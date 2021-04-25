@@ -295,7 +295,7 @@ def check_job_status(job):
                                            job.resume_job_store_location)
     lsf_status, lsf_message = submiter.status(job.external_id)
     if Status(job.status).transition(lsf_status):
-        if lsf_status in (Status.PENDING, Status.RUNNING, Status.UNKNOWN,):
+        if lsf_status in (Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,):
             job.update_status(lsf_status)
 
         elif lsf_status in (Status.COMPLETED,):
