@@ -309,7 +309,7 @@ def check_job_status(job):
             _fail(job, lsf_message)
 
     else:
-        logger.warning('Invalid transition %s to %s' % (job.status.name, lsf_status.name))
+        logger.warning('Invalid transition %s to %s' % (Status(job.status).name, Status(lsf_status).name))
 
 
 @shared_task(bind=True)

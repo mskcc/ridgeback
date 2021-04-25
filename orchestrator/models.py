@@ -37,7 +37,8 @@ class Status(IntEnum):
             if transition_to in (self.SUBMITTED, self.ABORTED):
                 return True
         elif self == self.SUBMITTED:
-            if transition_to in (self.PENDING, self.RUNNING, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
+            if transition_to in (
+            self.PENDING, self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
         elif self == self.PENDING:
             if transition_to in (self.PENDING, self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
