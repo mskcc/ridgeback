@@ -86,6 +86,7 @@ install: conda toil
 	pip3 install -e .[cwl]
 
 # Ridgeback environment variables for configuration
+export ENVIRONMENT:=dev
 export RIDGEBACK_PATH:=$(CURDIR)
 export RIDGEBACK_DB_NAME:=db
 export RIDGEBACK_DB_USERNAME:=$(shell whoami)
@@ -176,7 +177,11 @@ export RIDGEBACK_RABBITMQ_URL:=localhost
 export RABBITMQ_URL:=$(RIDGEBACK_RABBITMQ_URL)
 export RABBITMQ_CONFIG_FILE:=$(CURDIR)/rabbitmq
 export RABBITMQ_NODENAME:=rabbit_$(CURDIR_BASE)
-export RIDGEBACK_DEFAULT_QUEUE:=$(RABBITMQ_NODENAME)
+export RIDGEBACK_CLEANUP_QUEUE:=ridgeback_cleanup_queue
+export RIDGEBACK_SUBMIT_JOB_LSF_QUEUE:=ridgeback_submit_job_lsf_queue
+export RIDGEBACK_ACTION_QUEUE:=ridgeback_action_queue
+export RIDGEBACK_CHECK_STATUS_QUEUE:=ridgeback_check_status_queue
+export RIDGEBACK_SUBMIT_JOB_QUEUE:=ridgeback_submit_job_queue
 export RABBITMQ_NODE_IP_ADDRESS:=$(RIDGEBACK_RABBITMQ_URL)
 export RABBITMQ_NODE_PORT:=5670
 export RABBITMQ_LOG_BASE:=$(LOG_DIR_ABS)
@@ -207,17 +212,44 @@ rabbitmq-check:
 	rabbitmqctl status
 
 celery-start:
-	celery -A toil_orchestrator beat \
+	celery -A orchestrator beat \
 	-l info \
 	--pidfile "$(CELERY_BEAT_PID_FILE)" \
 	--logfile "$(CELERY_BEAT_LOGFILE)" \
 	--schedule "$(CELERY_BEAT_SCHEDULE)" \
 	--detach
-	celery -A toil_orchestrator worker \
+	celery -A orchestrator worker \
 	-l info \
-	-Q "$(RIDGEBACK_DEFAULT_QUEUE)" \
-	--pidfile "$(CELERY_WORKER_PID_FILE)" \
-	--logfile "$(CELERY_WORKER_LOGFILE)" \
+	-Q "$(RIDGEBACK_SUBMIT_JOB_LSF_QUEUE)" \
+	--pidfile "$(RIDGEBACK_SUBMIT_JOB_LSF_QUEUE).pid" \
+	--logfile "$(RIDGEBACK_SUBMIT_JOB_LSF_QUEUE).log" \
+	--detach
+	celery -A orchestrator worker \
+	-l info \
+	-Q "$(RIDGEBACK_ACTION_QUEUE)" \
+	--pidfile "$(RIDGEBACK_ACTION_QUEUE).pid" \
+	--logfile "$(RIDGEBACK_ACTION_QUEUE).log" \
+	--detach
+	celery -A orchestrator worker \
+	-l info \
+	-Q "$(RIDGEBACK_CHECK_STATUS_QUEUE)" \
+	--pidfile "$(RIDGEBACK_CHECK_STATUS_QUEUE).pid" \
+	--logfile "$(RIDGEBACK_CHECK_STATUS_QUEUE).log" \
+	--concurrency=1 \
+	--detach
+	celery -A orchestrator worker \
+	-l info \
+	-Q "$(RIDGEBACK_SUBMIT_JOB_QUEUE)" \
+	--pidfile "$(RIDGEBACK_SUBMIT_JOB_QUEUE).pid" \
+	--logfile "$(RIDGEBACK_SUBMIT_JOB_QUEUE).log" \
+	--concurrency=1 \
+	--detach
+	celery -A orchestrator worker \
+	-l info \
+	-Q "$(RIDGEBACK_CLEANUP_QUEUE)" \
+	--pidfile "$(RIDGEBACK_CLEANUP_QUEUE).pid" \
+	--logfile "$(RIDGEBACK_CLEANUP_QUEUE).log" \
+	--concurrency=2 \
 	--detach
 
 celery-check:
@@ -300,6 +332,9 @@ bash:
 # curl http://localhost:8000/v0/status/
 jobs:
 	curl "http://$(DJANGO_RIDGEBACK_IP):$(DJANGO_RIDGEBACK_PORT)/v0/jobs/"
+
+shell:
+	python3 manage.py shell
 
 test:
 	python3 manage.py test --verbosity=2
