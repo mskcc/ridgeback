@@ -131,24 +131,20 @@ class CheckStatusOfJobsTest(TestCase):
         self.assertFalse(failed.transition(Status.CREATED))
 
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    @patch('orchestrator.tasks.dump_info_file')
-    def test_submitted_to_pending(self, dump_info_file, status):
+    def test_submitted_to_pending(self, status):
         job = Job.objects.create(type=PipelineType.CWL,
                            app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                            external_id='ext_id', status=Status.SUBMITTED)
-        dump_info_file.return_value = None
         status.return_value = Status.PENDING, ""
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.PENDING)
 
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    @patch('orchestrator.tasks.dump_info_file')
-    def test_pending_to_running(self, dump_info_file, status):
+    def test_pending_to_running(self, status):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.PENDING)
-        dump_info_file.return_value = None
         status.return_value = Status.RUNNING, ""
         check_job_status(job)
         job.refresh_from_db()
@@ -156,12 +152,10 @@ class CheckStatusOfJobsTest(TestCase):
 
     @patch('submitter.toil_submitter.ToilJobSubmitter.get_outputs')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    @patch('orchestrator.tasks.dump_info_file')
-    def test_running_to_completed(self, dump_info_file, status, get_outputs):
+    def test_running_to_completed(self, status, get_outputs):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.RUNNING)
-        dump_info_file.return_value = None
         status.return_value = Status.COMPLETED, ""
         outputs = {"output": "test_value"}
         get_outputs.return_value = outputs, None
@@ -171,12 +165,10 @@ class CheckStatusOfJobsTest(TestCase):
         self.assertEqual(job.outputs, outputs)
 
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    @patch('orchestrator.tasks.dump_info_file')
-    def test_failed(self, dump_info_file, status):
+    def test_failed(self, status):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.RUNNING)
-        dump_info_file.return_value = None
         status.return_value = Status.FAILED, ""
         check_job_status(job)
         job.refresh_from_db()
@@ -184,8 +176,7 @@ class CheckStatusOfJobsTest(TestCase):
 
     @skip("Don't test yet")
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    @patch('orchestrator.tasks.dump_info_file')
-    def test_load_test(self, dump_info_file, status):
+    def test_load_test(self, status):
         def make_sleeper(rv):
             def _(*args, **kwargs):
                 # time.sleep(0.1)
