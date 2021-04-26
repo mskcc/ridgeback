@@ -6,11 +6,6 @@ import os
 import sys
 import logging
 import pickle
-
-# logging.getLogger("rdflib").setLevel(logging.WARNING)
-# logging.getLogger("toil.jobStores.fileJobStore").setLevel(logging.ERROR)
-# logging.getLogger("toil.jobStores.abstractJobStore").disabled = True
-# logging.getLogger("toil.toilState").setLevel(logging.WARNING)
 import re
 import time
 import copy
@@ -579,7 +574,7 @@ class ToilTrack:
             job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_retry_count)
             if job_id in job_dict and job_dict[job_id]["status"] != ToolStatus.FAILED:
                 job_name = single_job.jobName
-                self.mark_job_as_failed(job_id, job_name)
+                self.mark_job_as_failed(job_id, job_name, single_job)
 
     def handle_current_jobs(self, toil_state_obj):
         """
