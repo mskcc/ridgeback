@@ -1,12 +1,13 @@
 from orchestrator.models import Job, Status
+from orchestrator.tasks import command_processor
+from orchestrator.commands import Command, CommandType
 from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
-from orchestrator.tasks import abort_job
 from rest_framework import mixins
 from rest_framework import status
-from rest_framework.viewsets import GenericViewSet
-from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
+from drf_yasg.utils import swagger_auto_schema
 
 
 class JobViewSet(mixins.CreateModelMixin,
@@ -74,7 +75,8 @@ class JobViewSet(mixins.CreateModelMixin,
             job = Job.objects.get(id=pk)
         except Job.DoesNotExist:
             return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
-        abort_job.delay(str(pk))
+        command_processor.delay(Command(CommandType.ABORT, str(pk)).to_dict())
+
         return Response("Job aborted", status=status.HTTP_200_OK)
 
     @swagger_auto_schema(request_body=JobSubmitSerializer, responses={status.HTTP_201_CREATED: JobSerializer})

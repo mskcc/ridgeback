@@ -124,11 +124,16 @@ class Job(BaseModel):
         self.finished = timezone.now()
         self.save()
 
-    def fail(self, error_message, failed_jobs, unknown_jobs):
+    def fail(self, error_message, failed_jobs='', unknown_jobs=''):
         self.message['info'] = error_message
         self.message['failed_jobs'] = failed_jobs
         self.message['unknown_jobs'] = unknown_jobs
         self.status = Status.FAILED
+        self.finished = timezone.now()
+        self.save()
+
+    def abort(self):
+        self.status = Status.ABORTED
         self.finished = timezone.now()
         self.save()
 
