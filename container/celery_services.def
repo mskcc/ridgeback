@@ -74,21 +74,50 @@ Includecmd: no
     . $RIDGEBACK_VENV_ACTIVATE
     export PATH=$LSF_BINDIR:$SINGULARITY_BIN_PATH:$PATH
 
-    nohup celery -A toil_orchestrator beat \
+    nohup celery -A orchestrator beat \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -f ${CELERY_LOG_PATH}/ridgeback_beat.log \
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid \
     -s ${CELERY_BEAT_SCHEDULE_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.celerybeat-schedule &
 
-    nohup celery -A toil_orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
-    -Q ${RIDGEBACK_DEFAULT_QUEUE} \
-    -f ${CELERY_LOG_PATH}/ridgeback_worker.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_worker.pid \
-    -n ${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_worker &
+    -Q ${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE} \
+    -f ${CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.log \
+    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.pid &
 
+    nohup celery -A orchestrator worker \
+    -l info \
+    --workdir ${RIDGEBACK_PATH} \
+    -Q ${RIDGEBACK_ACTION_QUEUE} \
+    -f ${CELERY_LOG_PATH}/${RIDGEBACK_ACTION_QUEUE}.log \
+    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid &
+
+    nohup celery -A orchestrator worker \
+    -l info \
+    --workdir ${RIDGEBACK_PATH} \
+    -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
+    -f ${CELERY_LOG_PATH}/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
+    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
+    --concurrency=1 &
+
+    nohup celery -A orchestrator worker \
+    -l info \
+    --workdir ${RIDGEBACK_PATH} \
+    -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
+    -f ${CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
+    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
+    --concurrency=1 &
+
+    nohup celery -A orchestrator worker \
+    -l info \
+    --workdir ${RIDGEBACK_PATH} \
+    -Q ${RIDGEBACK_CLEANUP_QUEUE} \
+    -f ${CELERY_LOG_PATH}/${RIDGEBACK_CLEANUP_QUEUE}.log \
+    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid \
+    --concurrency=2 &
 
 %post
     export DEBIAN_FRONTEND=noninteractive \
@@ -98,7 +127,8 @@ Includecmd: no
         libldap2-dev libsasl2-dev libssl-dev \
         postgresql postgresql-contrib libpq-dev \
         gawk build-essential nodejs \
-        git
+        git \
+        default-jdk
 
     if [ -z "$RIDGEBACK_BRANCH" ]; then
     export RIDGEBACK_BRANCH=master
