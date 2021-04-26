@@ -2,7 +2,6 @@ import os
 import json
 import shutil
 import logging
-from time import sleep
 from datetime import timedelta
 from celery import shared_task, task
 from batch_systems.lsf_client import LSFClient
@@ -34,28 +33,6 @@ def get_job_info_path(job_id):
     return job_info_path
 
 
-def get_message(job_obj):
-    job_message = {}
-    if job_obj.message:
-        if type(job_obj.message) == str:
-            job_message = json.loads(job_obj.message)
-        else:
-            job_message = job_obj.message
-    return job_message
-
-
-def set_message(job_obj, message_obj):
-    message_str = json.dumps(message_obj, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
-    job_obj.message = message_str
-    job_obj.save(update_fields=['message'])
-
-
-def update_message_by_key(job_obj, key, value):
-    message = get_message(job_obj)
-    message[key] = value
-    set_message(job_obj, message)
-
-
 def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
     if os.path.exists(working_dir):
         job_info = {'external_id': external_id,
@@ -75,42 +52,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     job_id = args[0]
     logger.error('Failed to submit job: %s' % job_id)
     job = Job.objects.get(id=job_id)
-    job.status = Status.FAILED
-    update_message_by_key(job, 'info', 'Failed to submit job')
-    job.finished = now()
-    job.save()
-
-
-@shared_task(bind=True, max_retries=10, retry_jitter=True, retry_backoff=60)
-def abort_job(self, job_id):
-    logger.info("Abort job %s" % job_id)
-    job = Job.objects.get(id=job_id)
-    try:
-        if job.status in (Status.PENDING, Status.RUNNING,):
-            submitter = JobSubmitterFactory.factory(job.type, job_id, job.app, job.inputs, job.root_dir,
-                                                    job.resume_job_store_location)
-            job_killed = submitter.abort(job.external_id)
-            if job_killed:
-                job.status = Status.ABORTED
-                job.save()
-                return
-            else:
-                logger.info("Failed to abort job %s" % job_id)
-                raise Exception("Failed to abort job %s" % job_id)
-        elif job.status == Status.CREATED:
-            # Possible race condition
-            job.status = Status.ABORTED
-            job.save()
-            return
-        elif job.status == Status.UNKNOWN:
-            logger.info("Job aborting %s is unknown" % job_id)
-            raise Exception("Job aborting %s but still not submitted" % job_id)
-        else:
-            logger.info("Job %s already in final state %s", job_id, job.status)
-            return
-    except Exception as e:
-        logger.info("Error happened %s. Retrying..." % str(e))
-        self.retry(exc=e, countdown=10)
+    job.fail('Failed to submit job')
 
 
 @shared_task(bind=True)
@@ -127,15 +69,13 @@ def resume_job(self, job_id):
 
 def abort_job(job):
     logger.info("Abort job %s" % str(job.id))
-    if job.status in (Status.PENDING, Status.RUNNING,):
+    if job.status in (Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.SUSPENDED, Status.UNKNOWN):
         submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
                                                 job.resume_job_store_location)
         job_killed = submitter.abort(job.external_id)
-        if job_killed:
-            job.status = Status.ABORTED
-            job.save()
-            return
-
+        if not job_killed:
+            raise Exception("Failed to abort job %s" % str(job.id))
+    job.abort()
 
 
 def cleanup_jobs(status, time_delta):
@@ -182,47 +122,42 @@ def clean_directory(path):
     return True
 
 
-def dump_info_file(job):
-    job_info_path = get_job_info_path(job)
-    if os.path.exists(job_info_path):
-        try:
-            with open(job_info_path) as job_info_file:
-                job_info_data = json.load(job_info_file)
-            job.external_id = job_info_data['external_id']
-            job.job_store_location = job_info_data['job_store_location']
-            job.working_dir = job_info_data['working_dir']
-            job.output_directory = job_info_data['output_directory']
-            job.status = Status.PENDING
-            job.submitted = now()
-        except Exception as e:
-            error_message = "Failed to update job %s from file: %s\n%s" % (job.id, job_info_path, str(e))
-            logger.info(error_message)
-
-
-@task(bind=True, autoretry_for=(Exception,))
+@shared_task(bind=True, autoretry_for=(Exception,), exponential_backoff=2, retry_kwargs={'max_retries': 5})
 def command_processor(self, command_dict):
-    command = Command.from_dict(command_dict)
-    lock_id = "job_lock_%s" % command.job_id
-    with memcache_task_lock(lock_id, self.app.oid) as acquired:
-        if acquired:
-            try:
-                job = Job.objects.get(id=command.job_id)
-            except Job.DoesNotExist:
+    try:
+        command = Command.from_dict(command_dict)
+        lock_id = "job_lock_%s" % command.job_id
+        with memcache_task_lock(lock_id, self.app.oid) as acquired:
+            if acquired:
+                try:
+                    job = Job.objects.get(id=command.job_id)
+                except Job.DoesNotExist:
+                    return
+                if command.command_type == CommandType.SUBMIT:
+                    submit_job_to_lsf(job)
+                elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
+                    check_job_status(job)
+                elif command.command_type == CommandType.ABORT:
+                    abort_job(job)
+                elif command.command_type == CommandType.SUSPEND:
+                    suspend_job(job.id)
+                elif command.command_type == CommandType.RESUME:
+                    resume_job(job.id)
                 return
-            if command.command_type == CommandType.SUBMIT:
-                submit_job_to_lsf(job)
-            elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
-                check_job_status(job)
-            elif command.command_type == CommandType.ABORT:
-                abort_job(job)
-            elif command.command_type == CommandType.SUSPEND:
-                suspend_job(job.id)
-            elif command.command_type == CommandType.RESUME:
-                resume_job(job.id)
-            return
+    except Exception as e:
+        print("Send for retry")
+        raise self.retry(exc=e)
 
-    print("Send for retry")
-    raise self.retry(countdown=60)
+
+def submit_job_to_lsf(job):
+    logger.info("Submitting job %s to lsf" % str(job.id))
+    submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
+                                            job.resume_job_store_location, job.walltime, job.memlimit)
+    external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
+    logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
+    job.submit_to_lsf(external_job_id, job_store_dir, job_work_dir, job_output_dir, os.path.join(job_work_dir, 'lsf.log'))
+    # Keeping this for debuging purposes
+    save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
 
 
 @shared_task
@@ -246,22 +181,8 @@ def process_jobs():
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, job_id).to_dict())
 
 
-def submit_job_to_lsf(job):
-    logger.info("Submitting job %s to lsf" % str(job.id))
-    submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
-                                            job.resume_job_store_location, job.walltime, job.memlimit)
-    external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
-    logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
-    job.submit_to_lsf(external_job_id, job_store_dir, job_work_dir, job_output_dir, os.path.join(job_work_dir, 'lsf.log'))
-    # Keeping this for debuging purposes
-    save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
-
-
-def _complete(job, outputs, error_message):
-    if outputs:
-        job.complete(outputs)
-    if error_message:
-        update_message_by_key(job, 'info', error_message)
+def _complete(job, outputs):
+    job.complete(outputs)
 
 
 def _fail(job, error_message=""):
@@ -303,7 +224,7 @@ def check_job_status(job):
         elif lsf_status in (Status.COMPLETED,):
             outputs, error_message = submiter.get_outputs()
             if outputs:
-                _complete(job, outputs, error_message)
+                _complete(job, outputs)
             else:
                 _fail(job, error_message)
 
