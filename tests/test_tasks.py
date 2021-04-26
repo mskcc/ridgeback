@@ -1,8 +1,7 @@
 from unittest import skip
-from mock import patch
 from django.test import TestCase
 from orchestrator.models import Job, Status, PipelineType
-from orchestrator.tasks import submit_job_to_lsf, process_jobs, on_failure_to_submit, get_message, cleanup_completed_jobs, cleanup_failed_jobs, check_job_status
+from orchestrator.tasks import submit_job_to_lsf, process_jobs, on_failure_to_submit, cleanup_completed_jobs, cleanup_failed_jobs, check_job_status
 from datetime import datetime, timedelta
 from mock import patch, call
 
@@ -24,8 +23,8 @@ class TestTasks(TestCase):
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.FAILED)
         self.assertNotEqual(self.current_job.finished, None)
-        info_message = get_message(self.current_job)['info']
-        log_path = get_message(self.current_job)['log']
+        info_message = self.current_job.message['info']
+        log_path = self.current_job.message['log']
         self.assertEqual(info_message, 'Failed to submit job')
         self.assertNotEqual(log_path, None)
 
@@ -86,9 +85,9 @@ class TestTasks(TestCase):
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.FAILED)
         self.assertNotEqual(self.current_job.finished, None)
-        info_message = get_message(self.current_job)['info']
-        failed_jobs = get_message(self.current_job)['failed_jobs']
-        unknown_jobs = get_message(self.current_job)['unknown_jobs']
+        info_message = self.current_job.message['info']
+        failed_jobs = self.current_job.message['failed_jobs']
+        unknown_jobs = self.current_job.message['unknown_jobs']
         expected_failed_jobs = {
             'failed_job_1': ['failed_job_1_id'],
             'failed_job_2': ['failed_job_2_id']
