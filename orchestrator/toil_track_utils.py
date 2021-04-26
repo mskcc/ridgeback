@@ -1,177 +1,363 @@
+"""
+Track commandline status of toil jobs
+"""
 #!/usr/bin/env python3
 import os
+import sys
 import logging
-from builtins import super
-logging.getLogger("rdflib").setLevel(logging.WARNING)
-logging.getLogger("toil.jobStores.fileJobStore").setLevel(logging.ERROR)
-logging.getLogger("toil.jobStores.abstractJobStore").disabled = True
-logging.getLogger("toil.toilState").setLevel(logging.WARNING)
-from toil.common import Toil, safeUnpickleFromStream
-from toil.jobStores.fileJobStore import FileJobStore
-from toil.toilState import ToilState as toil_state
-from toil.job import Job
-from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
-from toil.job import JobException
-from toil.jobStores.abstractJobStore import NoSuchJobStoreException, NoSuchFileException
-from threading import Thread, Event
 import pickle
-from string import punctuation
+
+# logging.getLogger("rdflib").setLevel(logging.WARNING)
+# logging.getLogger("toil.jobStores.fileJobStore").setLevel(logging.ERROR)
+# logging.getLogger("toil.jobStores.abstractJobStore").disabled = True
+# logging.getLogger("toil.toilState").setLevel(logging.WARNING)
 import re
-import datetime
 import time
 import copy
-from subprocess import PIPE, Popen
 import json
-import sys
-import copy
-import traceback
 import glob
-from django.utils import timezone
-time_format="%Y-%m-%d %H:%M:%S"
-log_format="(%(current_time)s) [%(name)s:%(levelname)s] %(message)s"
-### logging wrappers ###
+from enum import IntEnum
+from datetime import datetime
+from json.decoder import JSONDecodeError
+from tenacity import retry, wait_fixed, wait_random, stop_after_attempt, after_log
+from toil.jobStores.fileJobStore import FileJobStore
+from toil.toilState import ToilState as toil_state
+from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
+from toil.jobStores.abstractJobStore import NoSuchJobException, NoSuchJobStoreException
 
-def print_error(*args, **kwargs):
-    print(*args,file=sys.stderr, **kwargs)
 
-def add_stream_handler(logger,stream_format,logging_level):
-    if not stream_format:
-        formatter = logging.Formatter(log_format)
+logger = logging.getLogger(__name__)
+WAITTIME = 10
+JITTER = 5
+ATTEMPTS = 5
+
+
+def _get_method(file_job_store, method):
+    """
+    Helper function to return method if it exists and is callable
+    """
+    if hasattr(file_job_store, method):
+        method_function = getattr(file_job_store, method)
+        if callable(method_function):
+            return method_function
+    return None
+
+
+def _check_job_method(file_job_store):
+    """
+    TOIL Adapter function to check for job existence using method under diffrent
+    names from TOIL 5.4 and 3.21
+    """
+    check_function = _get_method(file_job_store, "_checkJobStoreIdExists")
+
+    if check_function:
+        return check_function
+
+    fallback_function = _get_method(file_job_store, "_checkJobStoreId")
+
+    if fallback_function:
+        return fallback_function
+
+    raise Exception("Unable to check jobs, possible incompatibility with the current TOIL version")
+
+
+def _check_retry_count(job):
+    """
+    TOIL Adapter function to check for the job retry count using attributes under
+    diffrent names from TOIL 5.4 and 3.21
+    """
+    if hasattr(job, "_remainingTryCount"):
+        return getattr(job, "_remainingTryCount")
+
+    if hasattr(job, "remainingRetryCount"):
+        return getattr(job, "remainingRetryCount")
+
+    raise Exception(
+        """Unable to check retry for jobs, possible incompatibility
+        with the current TOIL version"""
+    )
+
+
+def _check_job_stats(job):
+    """
+    TOIL Adapter function to check for job status using
+    the proper attributes from TOIL 5.4 and 3.21
+    """
+    disk = None
+    memory = None
+    cores = None
+    if hasattr(job, "_requirementOverrides"):
+        requirement_overrides = getattr(job, "_requirementOverrides")
+        disk = requirement_overrides.get("disk")
+        memory = requirement_overrides.get("memory")
+        cores = requirement_overrides.get("cores")
     else:
-        formatter = logging.Formatter(stream_format)
-    logger.propagate = False
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging_level)
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
+        if hasattr(job, "_disk"):
+            disk = getattr(job, "_disk")
+        if hasattr(job, "_memory"):
+            memory = getattr(job, "_memory")
+        if hasattr(job, "_cores"):
+            cores = getattr(job, "_cores")
+    return cores, disk, memory
 
-def add_file_handler(logger,file_path,file_format,logging_level):
-    if not file_format:
-        formatter = logging.Formatter(log_format)
+
+def _get_job_stream_path(text):
+    """
+    TOIL helper function to parse the
+    job stream path from text
+    """
+    job_stream = re.search("files.*stream", text)
+    if job_stream:
+        return job_stream[0]
+    return None
+
+
+def _read_stats_file(stats_path):
+    """
+    TOIL Adapter function to read the stats file
+    """
+    stats_info = []
+    if os.path.exists(stats_path):
+        with open(stats_path, "rb") as stats_file:
+            try:
+                stats_json = json.load(stats_file)
+            except JSONDecodeError:
+                logger.error("Could not load stats file: %s", stats_path)
+                stats_json = {}
+            worker_logs = stats_json.get("workers", {}).get("logsToMaster", [])
+            jobs = stats_json.get("jobs", [])
+            for single_worker, single_job in zip(worker_logs, jobs):
+                worker_text = single_worker.get("text", "")
+                job_stream = _get_job_stream_path(worker_text)
+                job_mem = single_job.get("memory")
+                job_cpu = single_job.get("clock")
+                if job_stream and job_mem and job_cpu:
+                    stats_info.append((job_stream, job_mem, job_cpu))
+    return stats_info
+
+
+def _clean_job_store(read_only_job_store_obj, job_store_cache):
+    """
+    TOIL track helper to clean the jobstore
+    """
+    root_job = read_only_job_store_obj.clean(jobCache=job_store_cache)
+    return root_job
+
+
+# @retry(
+#    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
+#    stop=stop_after_attempt(ATTEMPTS),
+#    after=after_log(logger, logging.DEBUG),
+# )
+def _resume_job_store(job_store_path, total_attempts):
+    """
+    TOIL track helper to load a created file jobstore
+    into a TOIL jobstore object and avoid random filesystem
+    issues
+    """
+    if not os.path.exists(job_store_path):
+        raise Exception("Job store path %s not found" % job_store_path)
+    read_only_job_store_obj = ReadOnlyFileJobStore(job_store_path, total_attempts)
+    read_only_job_store_obj.resume()
+    read_only_job_store_obj.set_job_cache()
+    job_store_cache = read_only_job_store_obj.job_cache
+    root_job = _clean_job_store(read_only_job_store_obj, job_store_cache)
+    return (read_only_job_store_obj, root_job)
+
+
+@retry(
+    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
+    stop=stop_after_attempt(ATTEMPTS),
+    after=after_log(logger, logging.DEBUG),
+)
+def _load_job_store(job_store, root_job):
+    """
+    TOIL track helper to load a file jobstore
+    into a TOIL state object and avoid random filesystem
+    issues
+    """
+    current_attempt = _load_job_store.retry.statistics["attempt_number"]
+    if current_attempt > 1:
+        job_store.setJobCache()
+        toil_state_obj = toil_state(job_store, root_job)
     else:
-        formatter = logging.Formatter(file_format)
-    logger.propagate = False
-    file_handler = logging.FileHandler(file_path)
-    file_handler.setLevel(logging_level)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+        job_store_cache = job_store.job_cache
+        toil_state_obj = toil_state(job_store, root_job, jobCache=job_store_cache)
 
-def log(logger,log_level,message):
-    current_time = get_current_time()
-    if not logger:
-        if 'error' in log_level:
-            print_error(message)
+    return toil_state_obj
+
+
+def _check_job_state(work_log_path, jobs_path):
+    """
+    Check for job state files given a specific work
+    directory path and report its job id
+    """
+    work_dir_path = os.path.dirname(work_log_path)
+    job_state_glob = os.path.join(work_dir_path, "**", ".jobState")
+    job_state_files = glob.glob(job_state_glob, recursive=True)
+    job_stream = None
+    for single_job_state_path in job_state_files:
+        if os.path.exists(single_job_state_path):
+            with open(single_job_state_path, "rb") as job_state_file:
+                job_state_contents = pickle.load(job_state_file)
+            job_stream = _get_job_stream_path(job_state_contents["jobName"])
+    if job_stream and job_stream in jobs_path:
+        return jobs_path[job_stream]
+
+    return None
+
+
+@retry(
+    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
+    stop=stop_after_attempt(ATTEMPTS),
+    after=after_log(logger, logging.DEBUG),
+)
+def _check_worker_logs(work_dir, work_log_to_job_id, jobs_path):
+    """
+    Check the work directory for worker logs and report
+    the last time it was modified
+    """
+    worker_log_glob = os.path.join(work_dir, "**", "worker_log.txt")
+    worker_log_files = glob.glob(worker_log_glob, recursive=True)
+    worker_dict = {}
+    for single_worker_log in worker_log_files:
+        last_modified = _get_file_modification_time(single_worker_log)
+        job_id = None
+        if single_worker_log in work_log_to_job_id:
+            job_id = work_log_to_job_id[single_worker_log]
         else:
-            print(message)
-    try:
-        logging_function = getattr(logger,log_level)
-        logging_function(str(message), extra={'current_time':str(current_time)})
-    except:
-        logger.error("Log Level: "+ str(log_level) + " not found.\nOriginal message: "+ str(message), extra={'current_time':str(current_time)})
-
-### time wrappers ###
-
-def get_current_time():
-    current_time = timezone.now()
-    return current_time
-
-def get_time_difference(first_time_obj,second_time_obj):
-    #first_time_obj = datetime.datetime.strptime(first_time,time_format)
-    #second_time_obj = datetime.datetime.strptime(second_time,time_format)
-    time_delta =  first_time_obj - second_time_obj
-    total_seconds = time_delta.total_seconds()
-    minute_seconds = 60
-    hour_seconds = 3600
-    day_seconds = 86400
-    days = divmod(total_seconds,day_seconds)
-    hours = divmod(days[1],hour_seconds)
-    minutes = divmod(hours[1],minute_seconds)
-    seconds = minutes[1]
-    days_abs = abs(int(days[0]))
-    hours_abs = abs(int(hours[0]))
-    minutes_abs = abs(int(minutes[0]))
-    seconds_abs = abs(int(seconds))
-    total_seconds_abs = abs(int(total_seconds))
-    time_difference = {'days':days_abs,'hours':hours_abs,'minutes':minutes_abs,'seconds':seconds_abs,'total_seconds':total_seconds_abs}
-    return time_difference
+            job_id = _check_job_state(single_worker_log, jobs_path)
+        if job_id:
+            worker_dict[job_id] = (single_worker_log, last_modified)
+    return worker_dict
 
 
-def get_time_difference_from_now(time_obj_str):
-    current_time_str = get_current_time()
-    time_difference = get_time_difference(current_time_str,time_obj_str)
-    return time_difference
+def _get_file_modification_time(file_path):
+    """
+    Get file modification time, return None if file does not exist
+    """
+    if os.path.exists(file_path):
+        last_modified_epoch = os.path.getmtime(file_path)
+        last_modified = str(datetime.fromtimestamp(last_modified_epoch))
+        return last_modified
 
-def time_difference_to_string(time_difference,max_number_of_time_units):
-    number_of_time_units = 0
-    time_difference_string = ""
-    time_unit_list = ['day(s)','hour(s)','minute(s)','second(s)']
-    for single_time_unit in time_unit_list:
-        if time_difference[single_time_unit] != 0 and max_number_of_time_units > number_of_time_units:
-            time_difference_string = time_difference_string + str(time_difference[single_time_unit]) + " " + str(single_time_unit) + " "
-            number_of_time_units = number_of_time_units + 1
-    if not time_difference_string:
-        return "0 seconds "
-    return time_difference_string
+    return None
 
-def get_status_names():
-    status_name_dict = {'running':2,'pending':1,'done':3,'exit':4,'unknown':0}
-    return status_name_dict
+
+def _get_current_jobs(toil_state_obj):
+    """
+    TOIL Adapter function to get updated jobs
+    from the toil_state_obj
+    """
+    updated_jobs = toil_state_obj.updatedJobs
+    if not updated_jobs:
+        return []
+
+    job_list = []
+    if isinstance(updated_jobs, set):
+        for single_job in updated_jobs:
+            job_list.append(single_job[0])
+    elif isinstance(updated_jobs, dict):
+        for single_job in updated_jobs.values():
+            job_list.append(single_job[0])
+    else:
+        raise Exception(
+            "Unable to check TOIL state, possible incompatibility with the current TOIL version"
+        )
+    return job_list
+
+
+def _get_job_display_name(job):
+    """
+    TOIL adapter to get the display name of the job from TOIL job.
+    Use the field job_name or display_name depending on the TOIL version
+    Example:
+        job_name: file:///Users/kumarn1/work/ridgeback/tests/test_jobstores/
+                  test_cwl/sleep.cwl#simpleWorkflow/sleep/sleep
+        returns "sleep"
+    When id is not specified in the cwl it will return the name of the cwl
+    Example:
+        job_name: file:///Users/kumarn1/work/ridgeback/tests/test_jobstores/
+                  test_cwl/sleep.cwl
+        returns "sleep"
+    """
+    job_name = job.jobName
+    display_name = job.displayName
+    cwl_path = None
+    if "cwl" in job_name:
+        cwl_path = job_name
+    elif "cwl" in display_name:
+        cwl_path = display_name
+    else:
+        raise Exception("Could not find name in possible values %s %s" % (job_name, display_name))
+    job_basename = os.path.basename(cwl_path)
+    display_name = os.path.splitext(job_basename)[0]
+    return display_name
+
 
 class ReadOnlyFileJobStore(FileJobStore):
+    """
+    TOIL FileJobStore which can only perform Read operations
+    for status retrieval
+    """
 
-    def __init__(self, path):
-        super(ReadOnlyFileJobStore,self).__init__(path)
+    def __init__(self, path, total_attempts):
+        super().__init__(path)
         self.failed_jobs = []
-        #this assumes we start toil with retryCount=1
-        self.default_retry_count = 1
+        self.total_attempts = total_attempts
         self.retry_jobs = []
         self.job_cache = {}
         self.stats_cache = {}
         self.job_store_path = path
-        self.logger = logging.getLogger('file_job_store')
 
-    def check_if_job_exists(self,job_store_id):
+    def check_if_job_exists(self, job_store_id):
+        """
+        Check if the job exists in the job store
+        """
+        check_function = _check_job_method(self)
         try:
-            self._checkJobStoreId(job_store_id)
+            check_function(job_store_id)
             return True
-        except:
+        except NoSuchJobException:
             return False
 
-    def load(self,job_store_id):
-        self._checkJobStoreId(job_store_id)
-        if job_store_id in self.job_cache:
-            return self.job_cache[job_store_id]
-        job_file = self._getJobFileName(job_store_id)
-        with open(job_file, 'rb') as file_handle:
+    def load(self, jobStoreID):
+        if jobStoreID in self.job_cache:
+            return self.job_cache[jobStoreID]
+        self.check_if_job_exists(jobStoreID)
+        job_file = self._getJobFileName(jobStoreID)
+        with open(job_file, "rb") as file_handle:
             job = pickle.load(file_handle)
         return job
 
-    def setJobCache(self):
+    def set_job_cache(self):
+        """
+        Set the job cache of the job store
+        """
         job_cache = {}
         for single_job in self.jobs():
             job_id = single_job.jobStoreID
             job_cache[job_id] = single_job
-            if single_job.logJobStoreFileID != None:
+            if single_job.logJobStoreFileID is not None:
                 failed_job = copy.deepcopy(single_job)
                 self.failed_jobs.append(failed_job)
-            if single_job.remainingRetryCount == self.default_retry_count:
+            retry_count = _check_retry_count(single_job)
+            if retry_count is not None and retry_count < self.total_attempts:
                 retry_job = copy.deepcopy(single_job)
                 self.retry_jobs.append(retry_job)
         self.job_cache = job_cache
 
-    def getFailedJobs(self):
+    def get_failed_jobs(self):
+        """
+        List all the failed jobs
+        """
         return self.failed_jobs
 
-    def getRestartedJobs(self):
+    def get_restarted_jobs(self):
+        """
+        List all the restarted jobs
+        """
         return self.retry_jobs
-
-    def getFullLogPath(self,logPath):
-        job_store_path = self.job_store_path
-        full_path = os.path.join(job_store_path,'tmp',logPath)
-        return full_path
-
-    def writeFile(self, localFilePath, jobStoreID=None):
-        pass
 
     def update(self, job):
         job_id = job.jobStoreID
@@ -180,45 +366,51 @@ class ReadOnlyFileJobStore(FileJobStore):
     def updateFile(self, jobStoreFileID, localFilePath):
         pass
 
-    def getStatsFiles(self):
+    def get_stats_files(self):
+        """
+        Read the stats files
+        """
         stats_file_list = []
-        statsDirectories = []
+        stats_directories = []
         if hasattr(self, "_statsDirectories"):
-            statsDirectories = self._statsDirectories()
-        for tempDir in statsDirectories:
-            for tempFile in os.listdir(tempDir):
-                if tempFile.startswith('stats'):
-                    stats_file_path = os.path.join(tempDir, tempFile)
-                    if stats_file_path not in self.stats_cache:
-                        stats_file_list.append(stats_file_path)
-                        self.stats_cache[stats_file_path] = None
+            stats_directories = self._statsDirectories()
+
+        for temp_dir in stats_directories:
+            stats_glob = os.path.join(temp_dir, "stats*")
+            for single_stats_file_path in glob.glob(stats_glob):
+                if single_stats_file_path not in self.stats_cache:
+                    stats_file_list.append(single_stats_file_path)
+                    self.stats_cache[single_stats_file_path] = None
         return stats_file_list
 
-    def delete(self,job_store_id):
-        del self.job_cache[job_store_id]
+    def delete(self, jobStoreID):
+        del self.job_cache[jobStoreID]
 
     def deleteFile(self, jobStoreFileID):
-        pass
-
-    def robust_rmtree(self, path, max_retries=3):
         pass
 
     def destroy(self):
         pass
 
-    def create(self, jobNode):
+    def create(self, jobDescription):
         pass
 
-    def _writeToUrl(cls, readable, url):
+    @classmethod
+    def _writeToUrl(cls, readable, url, executable=False):
         pass
 
-    def writeFile(self, localFilePath, jobStoreID=None):
+    def writeFile(self, localFilePath, jobStoreID=None, cleanup=False):
         pass
 
-    def writeFileStream(self, jobStoreID=None):
+    # pylint: disable=too-many-arguments
+    def writeFileStream(
+        self, jobStoreID=None, cleanup=False, basename=None, encoding=None, errors=None
+    ):
         pass
 
-    def writeSharedFileStream(self, sharedFileName, isProtected=None):
+    # pylint: enable=too-many-arguments
+
+    def writeSharedFileStream(self, sharedFileName, isProtected=None, encoding=None, errors=None):
         pass
 
     def writeStatsAndLogging(self, statsAndLoggingString):
@@ -227,565 +419,326 @@ class ReadOnlyFileJobStore(FileJobStore):
     def readStatsAndLogging(self, callback, readAll=False):
         pass
 
-    def _getTempSharedDir(self):
-        pass
 
-    def _getTempFile(self, jobStoreID=None):
-        pass
+class ToolStatus(IntEnum):
+    """
+    Status enum for command line tools
+    """
+
+    PENDING = 0
+    RUNNING = 2
+    COMPLETED = 3
+    FAILED = 4
+    UNKNOWN = 5
 
 
-class ToilTrack():
+class ToilTrack:
+    """
+    Toil Track class to parse commandline status of a TOIL run
+    """
 
-    def __init__(self,job_store_path,work_dir,restart,run_attempt,show_cwl_internal,logger):
-        self.job_store_path = job_store_path
-        self.work_dir = work_dir
+    # pylint: disable=too-many-instance-attributes
+    def __init__(
+        self, job_store_and_work_path, restart=False, show_cwl_internal=False, retry_count=1
+    ):
+        self.job_store_path = job_store_and_work_path[0]
+        self.work_dir = job_store_and_work_path[1]
         self.jobs_path = {}
-        self.job_info_to_update = {}
-        self.run_attempt = run_attempt
-        self.workflow_id = ''
+        self.workflow_id = ""
         self.jobs = {}
+        self.work_log_to_job_id = {}
         self.retry_job_ids = {}
-        self.current_jobs = []
-        self.failed_jobs = []
-        self.worker_jobs = {}
         self.job_store_obj = None
-        self.job_store_resume_attempts = 5
         self.restart = restart
-        self.restart_num = 2
-        if not logger:
-            logger = logging.getLogger('toil_track')
-        self.logger = logger
+        self.total_attempts = retry_count + 1
         self.show_cwl_internal = show_cwl_internal
 
+    # pylint: enable=too-many-instance-attributes
 
-    def create_job_id(self,jobStoreID,remainingRetryCount):
-        logger = self.logger
+    def create_job_id(self, job_store_id, id_prefix_param=None, id_suffix_param=None):
+        """
+        Create a job id using the Id in the TOIL jobstore with
+        resume and restart information
+        """
         restart = self.restart
-        restart_num =  self.restart_num
         retry_job_ids = self.retry_job_ids
-        run_attempt = int(self.run_attempt)
-        first_run_attempt = run_attempt
-        second_run_attempt = run_attempt + 1
-        id_suffix = None
-        id_prefix = None
-        if restart:
-            id_prefix = str(second_run_attempt) + '-'
-        else:
-            id_prefix = str(first_run_attempt) + '-'
-        if remainingRetryCount == restart_num:
-            id_suffix = '-0'
-        else:
-            if jobStoreID not in retry_job_ids:
-                id_suffix = '-0'
+        id_suffix = id_suffix_param
+        id_prefix = id_prefix_param
+        if not id_prefix:
+            if restart:
+                id_prefix = "0"
             else:
-                id_suffix = '-1'
-        if 'instance' in jobStoreID:
-            jobStoreID_split = jobStoreID.split("instance")
-            if len(jobStoreID_split) > 1:
-                jobStoreID = jobStoreID_split[1]
-        id_string = id_prefix + str(jobStoreID) + id_suffix
+                id_prefix = "1"
+        if not id_suffix:
+            if job_store_id not in retry_job_ids:
+                id_suffix = "0"
+            else:
+                id_suffix = "1"
+        if "instance" in job_store_id:
+            job_store_id_split = job_store_id.split("instance")
+            if len(job_store_id_split) > 1:
+                job_id = job_store_id_split[1].replace("-", "")
+            else:
+                raise Exception("Malformed job id %s" % job_store_id)
+        else:
+            job_id = job_store_id
+        id_string = "%s-%s-%s" % (id_prefix, job_id, id_suffix)
         return id_string
 
-    def resume_job_store(self):
-        logger = self.logger
-        job_store_path = self.job_store_path
-        if not job_store_path:
-            return
-        read_only_job_store_obj = ReadOnlyFileJobStore(job_store_path)
-        read_only_job_store_obj.resume()
-        read_only_job_store_obj.setJobCache()
-        job_store_cache = read_only_job_store_obj.job_cache
-        try:
-            root_job = read_only_job_store_obj.clean(jobCache=job_store_cache)
-        except:
-            retry_message = "Could not clean job store from jobCache, retrying"
-            root_job = read_only_job_store_obj.clean()
-            logger.debug(retry_message)
-        self.job_store_obj = read_only_job_store_obj
-        return {"job_store":read_only_job_store_obj,"root_job":root_job}
-
-    def get_file_modification_time(self,file_path):
-        if os.path.exists(file_path):
-            last_modified_epoch = os.path.getmtime(file_path)
-            last_modified = str(timezone.make_aware(datetime.datetime.fromtimestamp(last_modified_epoch)))
-        else:
-            last_modified = str(get_current_time())
-        return last_modified
-
-    def mark_job_as_failed(self,job_id,job_name):
-        failed_job_list = self.failed_jobs
+    def mark_job_as_failed(self, job_id, job_name, job):
+        """
+        Mark a job as failed
+        """
         job_dict = self.jobs
-        current_time = get_current_time()
-        if job_id not in failed_job_list:
-            failed_job_list.append(job_id)
-            if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
-                job_key = self.make_key_from_file(job_name,True)
-                if job_key in job_dict:
-                    tool_dict = job_dict[job_key]
-                    if job_id in tool_dict['submitted']:
-                        tool_dict['exit'][job_id] = current_time
-                        if job_id in tool_dict['done']:
-                            del tool_dict['done'][job_id]
-    def check_stats(self):
-        jobs_path = self.jobs_path
-        job_dict = self.jobs
-        logger = self.logger
-        if self.job_store_obj:
-            stats_file_list = self.job_store_obj.getStatsFiles()
-            for single_stats_path in stats_file_list:
-                try:
-                    with open(single_stats_path, 'rb') as single_file:
-                        single_stats_data = json.load(single_file)
-                        if 'jobs' in single_stats_data:
-                            for single_job_index, single_job in enumerate(single_stats_data['jobs']):
-                                single_job_worker_log = single_stats_data['workers']['logsToMaster'][single_job_index]['text']
-                                single_job_stream_path = single_job_worker_log.split(" ")[1]
-                                if single_job_stream_path in jobs_path:
-                                    tool_key = jobs_path[single_job_stream_path]
-                                    if tool_key in job_dict:
-                                        tool_dict = job_dict[tool_key]
-                                        for single_job_key in tool_dict['workers']:
-                                            single_worker_obj = tool_dict['workers'][single_job_key]
-                                            if single_worker_obj["job_stream"]:
-                                                if single_worker_obj["job_stream"].split("/")[2] == single_job_stream_path.split("/")[2]:
-                                                    single_worker_obj["job_memory"] = single_job['memory']
-                                                    single_worker_obj["job_cpu"] = single_job['clock']
-                except:
-                    continue
-
-    def check_jobs(self):
-        logger = self.logger
-        job_dict = self.jobs
-        jobs_path = self.jobs_path
-        job_info_to_update = self.job_info_to_update
-        job_store_resume_attempts = self.job_store_resume_attempts
-        retry_job_ids = self.retry_job_ids
-        current_attempt = 0
-        job_store_obj = None
-        if not job_store_obj:
-            try:
-                job_store_obj = self.resume_job_store()
-            except:
-                retry_message = "Jobstore not created yet, toil job may be finished or just starting"
-                debug_message = traceback.format_exc()
-                logger.warn(retry_message)
-                logger.debug(debug_message)
-        if not job_store_obj:
-            return
-        current_jobs = []
-        job_store = job_store_obj["job_store"]
-        root_job = job_store_obj["root_job"]
-        job_store_cache = job_store.job_cache
-        self.workflow_id = job_store.config.workflowID
-        toil_state_obj = None
-        current_attempt = 0
-        if not toil_state_obj:
-            try:
-                root_job_id = root_job.jobStoreID
-                if not job_store.check_if_job_exists(root_job_id):
-                    return
-                if current_attempt != 0:
-                    job_store.setJobCache()
-                    toil_state(job_store,root_job)
-                else:
-                    job_store_cache = job_store.job_cache
-                    toil_state_obj = toil_state(job_store,root_job,jobCache=job_store_cache)
-            except:
-                warning_message = "Jobstore not loaded properly, toil job may be finished or just starting"
-                debug_message = traceback.format_exc()
-                logger.warn(retry_message)
-                logger.debug(debug_message)
-        if not toil_state_obj:
-            return
-        current_time = get_current_time()
-        for single_job in job_store.getFailedJobs():
-            retry_count = single_job.remainingRetryCount
-            jobstore_id = single_job.jobStoreID
-            if retry_count == 0 and jobstore_id not in retry_job_ids:
-                continue
-            retry_count = retry_count + 1
-            job_name = single_job.jobName
-            job_id = self.create_job_id(single_job.jobStoreID,retry_count)
-            self.mark_job_as_failed(job_id,job_name)
-        for single_job in job_store.getRestartedJobs():
-            jobstore_id = single_job.jobStoreID
-            retry_count = single_job.remainingRetryCount
-            previous_retry_count = retry_count + 1
-            retry_job_ids[jobstore_id] = retry_count
-            job_name = single_job.jobName
-            job_id = self.create_job_id(jobstore_id,previous_retry_count)
-            self.mark_job_as_failed(job_id,job_name)
-        for single_job, result in toil_state_obj.updatedJobs:
-            job_name = single_job.jobName
-            if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
-                job_disk = single_job._disk/float(1e9)
-                job_memory = single_job._memory/float(1e9)
-                job_cores = single_job._cores
-                jobstore_id = single_job.jobStoreID
-                retry_count = single_job.remainingRetryCount
-                if jobstore_id in retry_job_ids:
-                    retry_count = retry_job_ids[jobstore_id]
-                job_id = self.create_job_id(jobstore_id,retry_count)
-                job_stream = None
-                job_info = None
-                if single_job.command:
-                    job_stream = single_job.command.split(" ")[1]
-                job_key = self.make_key_from_file(job_name,True)
-                if job_stream:
-                    jobs_path[job_stream] = job_key
-                    job_stream_obj = self.read_job_stream(job_store,job_stream)
-                    job_info = job_stream_obj['job_info']
-                    if not job_info:
-                        single_job_info_to_update = {'job_key':job_key,'job_id':job_id}
-                        job_info_to_update[job_stream] = single_job_info_to_update
-                current_jobs.append(job_id)
-                worker_obj = {"disk":job_disk,"memory":job_memory,"cores":job_cores,"job_stream":job_stream,"job_info":job_info,'job_memory':None,'job_cpu':None}
-                if job_key not in job_dict:
-                    job_dict[job_key] = {'started':{},'submitted':{},'workers':{},'done':{},'exit':{}}
-                tool_dict = job_dict[job_key]
-                if job_id not in tool_dict['submitted']:
-                    tool_dict['submitted'][job_id] = current_time
-                if job_id not in tool_dict['workers']:
-                    tool_dict['workers'][job_id] = worker_obj
-        updated_list = []
-        for single_job_to_update in job_info_to_update.keys():
-            job_stream = single_job_to_update
-            job_key = job_info_to_update[single_job_to_update]['job_key']
-            job_id = job_info_to_update[single_job_to_update]['job_id']
-            job_stream_obj = self.read_job_stream(job_store,job_stream)
-            job_info = job_stream_obj['job_info']
-            if job_info:
-                tool_dict = job_dict[job_key]
-                worker_obj = tool_dict['workers'][job_id]
-                worker_obj['job_info'] = job_info
-                tool_dict['workers'][job_id] = worker_obj
-                updated_list.append(single_job_to_update)
-        for single_job_updated in updated_list:
-            if single_job_updated in job_info_to_update:
-                del job_info_to_update[single_job_updated]
-        self.job_info_to_update = job_info_to_update
-        self.jobs_path = jobs_path
-        self.current_jobs = current_jobs
-
-    def make_key_from_file(self,job_name,use_basename):
-        work_dir = self.work_dir
-        workflow_id = 'toil-' + self.workflow_id
-        if use_basename:
-            job_id_with_extension = os.path.basename(job_name)
-            job_id = os.path.splitext(job_id_with_extension)[0]
-        else:
-            job_id = os.path.relpath(job_name,work_dir)
-            job_id.replace(workflow_id,"")
-        safe_key = re.sub("["+punctuation+"]","_",job_id)
-        return safe_key
-
-    def read_job_stream(self,job_store_obj,job_stream_path):
-        logger = self.logger
-        job_id = ""
-        job_info = None
-        try:
-            job_stream_file = job_store_obj.readFileStream(job_stream_path)
-            job_stream_abs_path = job_store_obj._getFilePathFromId(job_stream_path)
-            if os.path.exists(job_stream_abs_path):
-                with job_stream_file as job_stream:
-                    job_stream_contents = safeUnpickleFromStream(job_stream)
-                    job_stream_contents_dict = job_stream_contents.__dict__
-                    job_name = job_stream_contents_dict['jobName']
-                    if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
-                        job_id = self.make_key_from_file(job_name,True)
-        except:
-            debug_message = "Could not read job path: " +str(job_stream_path) + ".\n"+traceback.format_exc()
-            logger.debug(debug_message)
-
-        return {"job_id":job_id,"job_info":job_info}
-
-    def read_worker_log(self,worker_log_path):
-        worker_jobs = self.worker_jobs
-        logger = self.logger
-        job_dict = self.jobs
-        jobs_path = self.jobs_path
-        read_only_job_store_obj = self.job_store_obj
-        current_time = get_current_time()
-        worker_log_key = self.make_key_from_file(worker_log_path,False)
-        if os.path.isfile(worker_log_path):
-            update_worker_jobs = False
-            last_modified = self.get_file_modification_time(worker_log_path)
-            if worker_log_key not in worker_jobs:
-                worker_info = None
-                worker_directory = os.path.dirname(worker_log_path)
-                list_of_tools = []
-                if worker_directory:
-                    for root, dirs, files in os.walk(worker_directory):
-                        for single_file in files:
-                            if single_file == '.jobState':
-                                job_state = {}
-                                job_info = {}
-                                job_name = ''
-                                job_state_path = os.path.join(root,single_file)
-                                tool_key = None
-                                job_stream_path = ""
-                                if os.path.exists(job_state_path):
-                                    with open(job_state_path,'rb') as job_state_file:
-                                        job_state_contents = pickle.load(job_state_file)
-                                        job_state = job_state_contents
-                                        job_stream_path = job_state_contents['jobName']
-                                        if job_stream_path in jobs_path:
-                                            tool_key = jobs_path[job_stream_path]
-                                if tool_key:
-                                    if tool_key in job_dict:
-                                        tool_dict = job_dict[tool_key]
-                                        for single_job_key in tool_dict['workers']:
-                                            single_worker_obj = tool_dict['workers'][single_job_key]
-                                            if single_worker_obj["job_stream"] == job_stream_path:
-                                                update_worker_jobs = True
-                                                worker_info = {'job_state':job_state,'log_path':worker_log_path,'started':current_time,'last_modified': last_modified}
-                                                tool_dict['started'][single_job_key] = current_time
-                                                single_worker_obj.update(worker_info)
-                                                tool_info = (tool_key,single_job_key)
-                                                list_of_tools.append(tool_info)
-                                else:
-                                    update_worker_jobs = False
-                if update_worker_jobs:
-                    worker_jobs[worker_log_key] = {'list_of_tools':list_of_tools}
+        if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
+            if job_id in job_dict:
+                job_dict[job_id]["status"] = ToolStatus.FAILED
+                job_dict[job_id]["finished"] = datetime.now()
             else:
-                worker_jobs_tool_list = worker_jobs[worker_log_key]['list_of_tools']
-                for single_tool,single_job_key in worker_jobs_tool_list:
-                    worker_info = job_dict[single_tool]['workers'][single_job_key]
-                    worker_info['last_modified'] = last_modified
+                cores, disk, memory = _check_job_stats(job)
+                display_name = _get_job_display_name(job)
+                new_job = {
+                    "name": display_name,
+                    "disk": disk,
+                    "status": ToolStatus.FAILED,
+                    "job_stream": None,
+                    "memory_req": memory,
+                    "cores_req": cores,
+                    "cpu_usage": [],
+                    "mem_usage": [],
+                    "started": datetime.now(),
+                    "submitted": datetime.now(),
+                    "last_modified": datetime.now(),
+                    "finished": datetime.now(),
+                }
+                job_dict[job_id] = new_job
 
-
-    def check_for_running(self):
-        work_dir = self.work_dir
+    def _update_job_stats(self, job_key, job_mem, job_cpu):
+        """
+        Parse and update job stats
+        """
         job_dict = self.jobs
-        workflow_id = self.workflow_id
-        if work_dir:
-            for root, dirs, files in os.walk(work_dir):
-                for single_file in files:
-                    if single_file == "worker_log.txt":
-                        worker_log_path = os.path.join(root,single_file)
-                        try:
-                            worker_info = self.read_worker_log(worker_log_path)
-                        except:
-                            pass
+        if job_key not in job_dict:
+            return
+        job_obj = job_dict[job_key]
+        mem_list = job_obj.get("mem_usage", [])
+        cpu_list = job_obj.get("cpu_usage", [])
+        if len(mem_list) == 0:
+            mem_list.append(job_mem)
+        elif mem_list[-1] != job_mem:
+            mem_list.append(job_mem)
+        if len(cpu_list) == 0:
+            cpu_list.append(job_cpu)
+        elif cpu_list[-1] != job_cpu:
+            cpu_list.append(job_cpu)
+        job_obj["mem_usage"] = mem_list
+        job_obj["cpu_usage"] = cpu_list
+        job_dict[job_key] = job_obj
 
-    def check_for_finished_jobs(self):
+    def check_stats(self, job_store_obj):
+        """
+        Check TOIL mem and cpu stats for jobs
+        """
+        jobs_path = self.jobs_path
+        if not job_store_obj:
+            return
+        stats_file_list = job_store_obj.get_stats_files()
+        for single_stats_path in stats_file_list:
+            stats_info = _read_stats_file(single_stats_path)
+            for job_stream, job_mem, job_cpu in stats_info:
+                job_key = jobs_path.get(job_stream)
+                if job_key:
+                    self._update_job_stats(job_key, job_mem, job_cpu)
+
+    def handle_failed_jobs(self, job_store):
+        """
+        Check TOIL jobstore for failed jobs and mark
+        them as failed
+        """
+        for single_job in job_store.get_failed_jobs():
+            retry_count = _check_retry_count(single_job)
+            if retry_count is not None:
+                previous_suffix = self.total_attempts - (retry_count + 1)
+                jobstore_id = single_job.jobStoreID
+                job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_suffix)
+                job_name = single_job.jobName
+                self.mark_job_as_failed(job_id, job_name, single_job)
+
+    def handle_restarted_jobs(self, job_store):
+        """
+        Check TOIL jobstore for restarted jobs and check
+        that the predecessor is marked as failed
+        """
+        retry_job_ids = self.retry_job_ids
         job_dict = self.jobs
-        current_jobs = self.current_jobs
-        current_time = get_current_time()
-        finished_jobs = False
-        for single_tool_name in job_dict:
-            single_tool = job_dict[single_tool_name]
-            submitted_dict = single_tool['submitted']
-            for single_job in submitted_dict:
-                if single_job not in single_tool['done']:
-                    if single_job not in current_jobs:
-                        finished_jobs = True
-                        self.check_stats()
-                        if single_job not in single_tool['exit']:
-                            single_tool['done'][single_job] = current_time
+        for single_job in job_store.get_restarted_jobs():
+            retry_count = _check_retry_count(single_job)
+            jobstore_id = single_job.jobStoreID
+            previous_retry_count = self.total_attempts - (retry_count + 1)
+            retry_job_ids[jobstore_id] = previous_retry_count
+            job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_retry_count)
+            if job_id in job_dict and job_dict[job_id]["status"] != ToolStatus.FAILED:
+                job_name = single_job.jobName
+                self.mark_job_as_failed(job_id, job_name)
 
-    def get_pending_and_running_jobs(self,submitted_dict,done_dict,exit_dict,workers_dict):
-        logger = self.logger
-        pending_dict = {}
-        running_dict = {}
-        current_time = get_current_time()
-        for single_job in submitted_dict:
-            if single_job not in done_dict and single_job not in exit_dict:
-                if single_job in workers_dict:
-                    single_worker_obj = workers_dict[single_job]
-                    if 'started' not in single_worker_obj:
-                        pending_dict[single_job] = current_time
-                    else:
-                        started_time = single_worker_obj['started']
-                        last_modified = single_worker_obj['last_modified']
-                        running_obj = {'started':started_time,'last_modified':last_modified}
-                        running_dict[single_job] = running_obj
-                else:
-                    error_message = str(single_job) + " not found in worker dictionary"
-                    logger.error(error_message)
+    def handle_current_jobs(self, toil_state_obj):
+        """
+        Check TOIL jobstore for current/new jobs, add new
+        jobs, and collect stats on new jobs
+        """
+        jobs_dict = self.jobs
+        current_jobs = []
+        for single_job in _get_current_jobs(toil_state_obj):
+            job_name = single_job.jobName
+            if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
+                cores, disk, memory = _check_job_stats(single_job)
+                jobstore_id = single_job.jobStoreID
+                job_id = self.create_job_id(jobstore_id)
+                current_jobs.append(job_id)
+                job_stream = None
+                if single_job.command:
+                    job_stream = _get_job_stream_path(single_job.command)
+                if not job_stream:
+                    logger.debug("Could not find job_stream for job %s [%s]", job_name, job_id)
+                if job_stream and job_id not in jobs_dict:
+                    self.jobs_path[job_stream] = job_id
+                    display_name = _get_job_display_name(single_job)
+                    new_job = {
+                        "name": display_name,
+                        "disk": disk,
+                        "status": ToolStatus.PENDING,
+                        "job_stream": job_stream,
+                        "memory_req": memory,
+                        "cores_req": cores,
+                        "cpu_usage": [],
+                        "mem_usage": [],
+                        "started": None,
+                        "submitted": datetime.now(),
+                        "last_modified": None,
+                        "finished": None,
+                    }
+                    jobs_dict[job_id] = new_job
+        return current_jobs
 
-        return {'pending':pending_dict,'running':running_dict}
-
-
-    def prepare_job_status(self):
+    def handle_finished_jobs(self, current_jobs):
+        """
+        Check for finished jobs
+        """
         job_dict = self.jobs
-        current_jobs = self.current_jobs
-        job_status ={}
-        for single_tool_name in job_dict:
-            single_tool = job_dict[single_tool_name]
-            submitted_dict = single_tool['submitted']
-            workers_dict = single_tool['workers']
-            exit_dict = single_tool['exit']
-            done_dict = single_tool['done']
-            pending_and_running_dict = self.get_pending_and_running_jobs(submitted_dict, done_dict, exit_dict, workers_dict)
-            pending_dict = pending_and_running_dict['pending']
-            running_dict = pending_and_running_dict['running']
-            job_status[single_tool_name] = {'submitted':submitted_dict,'running':running_dict,'exit':exit_dict,'done':done_dict,'pending':pending_dict}
-        return job_status
+        for job_id, job_obj in job_dict.items():
+            if job_id not in current_jobs:
+                status = job_obj["status"]
+                if status not in (ToolStatus.COMPLETED, ToolStatus.FAILED):
+                    job_obj["status"] = ToolStatus.COMPLETED
+                    job_obj["finished"] = datetime.now()
+
+    def handle_running_jobs(self):
+        """
+        Check for running jobs
+        """
+        job_dict = self.jobs
+        worker_log_to_job_dict = self.work_log_to_job_id
+        worker_info = _check_worker_logs(self.work_dir, worker_log_to_job_dict, self.jobs_path)
+        for single_job_id in worker_info:
+            worker_log, last_modified = worker_info[single_job_id]
+            job_obj = job_dict[single_job_id]
+            if job_obj["status"] == ToolStatus.PENDING or job_obj["status"] == ToolStatus.UNKNOWN:
+                job_obj["status"] = ToolStatus.RUNNING
+            if not job_obj["started"]:
+                job_obj["started"] = datetime.now()
+            if last_modified:
+                job_obj["last_modified"] = last_modified
+            if worker_log not in worker_log_to_job_dict:
+                worker_log_to_job_dict[worker_log] = single_job_id
 
     def check_status(self):
-        logger = self.logger
-        job_status = {}
-        self.check_jobs()
-        self.check_for_running()
-        self.check_stats()
-        self.check_for_finished_jobs()
-        new_job_status = self.prepare_job_status()
-        jobs_dict = self.jobs
-        status_name_dict = get_status_names()
-        status_list = []
-        for single_tool in new_job_status:
-            for single_status in status_name_dict.keys():
-                if single_status in new_job_status[single_tool]:
-                    job_list = new_job_status[single_tool][single_status]
-                    if job_list:
-                        for single_job in job_list.keys():
-                            single_job_obj = job_list[single_job]
-                            single_worker_obj = None
-                            if single_tool in jobs_dict:
-                                if 'workers' in jobs_dict[single_tool]:
-                                    if single_job in jobs_dict[single_tool]['workers']:
-                                        single_worker_obj = jobs_dict[single_tool]['workers'][single_job]
-                            job_status = status_name_dict[single_status]
-                            job_status_name = single_status
-                            job_id = single_job
-                            job_details = {}
-                            job_submitted = None
-                            job_started = None
-                            job_finished = None
-                            if job_status == status_name_dict['done'] or job_status == status_name_dict['exit']:
-                                job_finished = single_job_obj
-                            if 'started' in jobs_dict[single_tool]:
-                                if single_job in jobs_dict[single_tool]['started']:
-                                    job_started = jobs_dict[single_tool]['started'][single_job]
-                            if 'submitted' in new_job_status[single_tool]:
-                                if single_job in new_job_status[single_tool]['submitted']:
-                                    job_submitted = new_job_status[single_tool]['submitted'][single_job]
-                            if single_worker_obj:
-                                job_details = copy.deepcopy(single_worker_obj)
-                                if "job_stream" in job_details:
-                                    job_details.pop("job_stream")
-                                if "job_state" in job_details:
-                                    job_details.pop("job_state")
-                                if "started" in job_details:
-                                    job_details.pop("started")
-                            if job_started == None and job_finished != None and job_submitted != None:
-                                job_started = job_submitted
-                            job_obj = {'name':single_tool,'status':job_status,'id':job_id,'details':job_details,'submitted':job_submitted,'started':job_started,'finished':job_finished}
-                            status_list.append(job_obj)
-        return status_list
-
-    def get_change_status(self,old_job_status, new_job_status):
-        status_format = {'running':{'message':'{} is now running'},
-                       'exit':{'message':'{} has exited'},
-                       'done':{'message':'{} has finished'},
-                       'pending':{'message':'{} is now pending'}}
-        status_type = status_format.keys()
-        status_name_dict = get_status_names()
-        status_change = {}
-        for single_tool in new_job_status:
-            single_tool_obj = new_job_status[single_tool]
-            for single_status in status_type:
-                single_tool_status = single_tool_obj[single_status]
-                if single_tool_status:
-                    for single_job_id in single_tool_status.keys():
-                        update_running_last_modified = False
-                        update_status = False
-                        if single_status == 'running':
-                            update_running_last_modied = True
-                        if not old_job_status or single_tool not in old_job_status or single_status not in old_job_status[single_tool] or single_job_id not in old_job_status[single_tool][single_status]:
-                            update_status = True
-                        if update_status or update_running_last_modified:
-                            status_template = status_format[single_status]['message']
-                            message = None
-                            if update_status:
-                                job_name = single_tool + '( ID: ' + single_job_id + ' )'
-                                message = status_template.format(job_name)
-                            status = status_name_dict[single_status]
-                            job_obj = {'single_tool_status':single_tool_status,'job_name':single_tool,'job_id':single_job_id,'status':status}
-                            status_change[single_job_id] = {'message':message,'job_obj':job_obj}
-        return status_change
-
-    def print_change_status(self,status_change):
-        logger = self.logger
-        for single_job in status_change:
-            single_job_obj = status_change[single_job]
-            single_job_message = single_job_obj['message']
-            if single_job_message:
-                logger.info(single_job_message)
-
-    def print_job_status(self,job_status):
-        logger = self.logger
-        if not job_status:
+        """
+        Check the status of all jobs
+        """
+        try:
+            job_store, root_job = _resume_job_store(self.job_store_path, self.total_attempts)
+        except NoSuchJobStoreException:
+            logger.warning("Jobstore not valid, toil job may be finished or just starting")
             return
-        overview_status_list = []
-        status_list = []
-        status_dict = {'running':{'header':'Running:','status':'','total':0},
-                       'exit':{'header':'Exit:','status':'','total':0},
-                       'done':{'header':'Done:','status':'','total':0},
-                       'pending':{'header':'Pending:','status':'','total':0}}
-        status_items = status_dict.keys()
-        logger.info(job_status)
-        for single_tool in job_status:
-            single_tool_obj = job_status[single_tool]
-            for single_status_key in status_dict:
-                single_tool_status = single_tool_obj[single_status_key]
-                single_status_dict = status_dict[single_status_key]
-                tool_status_num = 0
-                tool_status_str = single_status_dict['status']
-                if single_status_key == 'running':
-                    if len(single_tool_status) != 0:
-                        tool_status_str = tool_status_str + "\t- " + str(single_tool) + "\n"
-                    for single_running_job_key in single_tool_status:
-                        single_running_job = single_tool_status[single_running_job_key]
-                        last_modified = single_running_job['last_modified']
-                        time_difference = get_time_difference(last_modified)
-                        time_difference_string = time_difference_to_string(time_difference,2)
-                        tool_status_str = tool_status_str + "\t\t- [ last modified: " + time_difference_string + " ago ]\n"
-                        tool_status_num = tool_status_num + 1
-                    if tool_status_num != 0:
-                        tool_status_str = tool_status_str + "\t\t- Total: " + str(tool_status_num) + "\n"
-                else:
-                    tool_status_num = len(single_tool_status)
-                    if tool_status_num != 0:
-                        job_or_jobs_str = "jobs"
-                        if tool_status_num == 1:
-                            job_or_jobs_str = "job"
-                        tool_status_str = tool_status_str + "\t- " + str(single_tool) + " [ "+str(tool_status_num) + " " + job_or_jobs_str + " ]\n"
-                single_status_dict['total'] = single_status_dict['total'] + tool_status_num
-                single_status_dict['status'] = tool_status_str
-        total_jobs = 0
-        for single_status_key in status_dict:
-            single_status_dict = status_dict[single_status_key]
-            status_jobs = single_status_dict["total"]
-            total_jobs = total_jobs + single_status_dict["total"]
-            if status_jobs != 0:
-                status_header = single_status_dict['header']
-                status_str = status_header + "\n" + single_status_dict['status']
-                status_jobs = status_header + " " + str(status_jobs)
-                overview_status_list.append(status_jobs)
-                status_list.append(status_str)
-        overview_status = "Total Job(s): " + str(total_jobs) + " ( " + " ".join(overview_status_list) + " )"
-        status = overview_status + "\n" +"\n".join(status_list)
-        logger.info(status)
+        root_job_id = root_job.jobStoreID
+        if not job_store.check_if_job_exists(root_job_id):
+            logger.warning("Jobstore root not found, toil job may be finished or just starting")
+        toil_state_obj = _load_job_store(job_store, root_job)
+        if not toil_state_obj:
+            logger.warning("TOIL state is unexpectedly empty")
 
-def main():
-    current_jobs = []
+        self.handle_failed_jobs(job_store)
+        self.handle_restarted_jobs(job_store)
+        current_jobs = self.handle_current_jobs(toil_state_obj)
+        self.handle_finished_jobs(current_jobs)
+        self.handle_running_jobs()
+        self.check_stats(job_store)
+
+
+def script_track_status(toil_track_obj):
+    """
+    Loop to track status of a job
+    """
     jobs_path = {}
     jobs = {}
-    worker_jobs = {}
+    work_log_to_job_id = {}
     while True:
-        roslin_track = ToilTrack('/Users/kumarn1/work/roslin-variants/roslin-core/bin/jobstore','/Users/kumarn1/work/roslin-variants/roslin-core/bin/work_dir',False,0,False,None)
-        roslin_track.current_jobs = current_jobs
-        roslin_track.jobs_path = jobs_path
-        roslin_track.jobs = jobs
-        roslin_track.worker_jobs = worker_jobs
-        roslin_track.check_status()
-        current_jobs = roslin_track.current_jobs
-        jobs_path = roslin_track.jobs_path
-        jobs = roslin_track.jobs
-        worker_jobs = roslin_track.worker_jobs
-        time.sleep(1)
+        toil_track_obj.jobs_path = jobs_path
+        toil_track_obj.jobs = jobs
+        toil_track_obj.work_log_to_job_id = work_log_to_job_id
+        toil_track_obj.check_status()
+        jobs_path = toil_track_obj.jobs_path
+        jobs = toil_track_obj.jobs
+        work_log_to_job_id = toil_track_obj.work_log_to_job_id
+        print(json.dumps(jobs, indent=4, sort_keys=True, default=str))
+        time.sleep(4)
+
+
+def script_snapshot_status(toil_track_obj_1, toil_track_obj_2):
+    """
+    Generate status using TOIL snapshots
+    """
+    toil_track_obj_1.check_status()
+    toil_track_obj_2.jobs_path = toil_track_obj_1.jobs_path
+    toil_track_obj_2.jobs = toil_track_obj_1.jobs
+    toil_track_obj_2.work_log_to_job_id = toil_track_obj_1.work_log_to_job_id
+    toil_track_obj_2.check_status()
+    jobs = toil_track_obj_2.jobs
+    print(json.dumps(jobs, indent=4, sort_keys=True, default=str))
+
+
+def main():
+    """
+    Runs toil_track_utils through the command line
+    """
+
+    usage_str = """
+              USAGE:
+              toil_track_utils.py track [job_store_path] [work_dir_path]
+              toil_track_utils.py snapshot [job_store_path_1] [work_dir_path_1] [job_store_path_2] [work_dir_path_2]
+            """
+
+    if len(sys.argv) not in [4, 6]:
+        print(usage_str)
+        sys.exit(0)
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
+    if sys.argv[1] == "track":
+        job_store_path = sys.argv[2]
+        work_dir_path = sys.argv[3]
+        toil_track_obj = ToilTrack([job_store_path, work_dir_path])
+        script_track_status(toil_track_obj)
+    elif sys.argv[1] == "snapshot":
+        job_store_path_1 = sys.argv[2]
+        work_dir_path_1 = sys.argv[3]
+        job_store_path_2 = sys.argv[4]
+        work_dir_path_2 = sys.argv[5]
+        toil_track_obj_1 = ToilTrack([job_store_path_1, work_dir_path_1])
+        toil_track_obj_2 = ToilTrack([job_store_path_2, work_dir_path_2])
+        script_snapshot_status(toil_track_obj_1, toil_track_obj_2)
+    else:
+        print(usage_str)
+        sys.exit(0)
 
 
 if __name__ == "__main__":
