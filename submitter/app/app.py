@@ -2,6 +2,7 @@ import os
 import git
 import uuid
 import shutil
+import logging
 from django.conf import settings
 from django.core.cache import cache
 from lib.memcache_lock import memcache_lock
@@ -31,9 +32,11 @@ class App(object):
 
 
 class GithubCache(object):
+    logger = logging.getLogger(__name__)
 
     @staticmethod
     def get(github, version):
+        GithubCache.logger.info('Looking for App in Cache with %s %s' % (github, version))
         cache_key = GithubCache._cache_key(github, version)
         _app_location = cache.get(cache_key)
         return _app_location if _app_location else None
@@ -41,6 +44,7 @@ class GithubCache(object):
     @staticmethod
     @memcache_lock('add_app_to_cache')
     def add(github, version):
+        GithubCache.logger.info('Add App to Cache with %s %s' % (github, version))
         location = os.path.join(settings.APP_CACHE, str(uuid.uuid4()))
         os.makedirs(location)
         dirname = GithubCache._extract_dirname_from_github_link(github)
