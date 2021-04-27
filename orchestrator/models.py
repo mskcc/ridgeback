@@ -1,10 +1,8 @@
 import uuid
-import json
 from enum import IntEnum
 from django.db import models
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
-from django.core.serializers.json import DjangoJSONEncoder
 
 
 def message_default():
@@ -101,8 +99,6 @@ class Job(BaseModel):
         self.log_path = log_path
         self.submitted = timezone.now()
         self.message['log'] = log_path
-        message_str = json.dumps(self.message, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
-        self.message = message_str
         self.save(update_fields=['status',
                                  'external_id',
                                  'job_store_location',
@@ -147,7 +143,3 @@ class CommandLineToolJob(BaseModel):
     job_name = models.CharField(max_length=100)
     job_id = models.CharField(max_length=20)
     details = JSONField(blank=True, null=True)
-
-
-class JobCommands(BaseModel):
-    pass

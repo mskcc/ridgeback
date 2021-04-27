@@ -150,7 +150,7 @@
         "job_store_location": "/sample/job_store/dir",
         "resume_job_store_location": null,
         "working_dir": "/sample/work/dir",
-        "status": 3,
+        "status": 1,
         "message": {
             "log": "",
             "info": "",
@@ -183,7 +183,7 @@
         "job_store_location": "/sample/job_store/dir",
         "resume_job_store_location": null,
         "working_dir": "/sample/work/dir",
-        "status": 3,
+        "status": 1,
         "message": {
             "log": "",
             "info": "",
@@ -219,7 +219,7 @@
     "pk": "2d7aaabd-9fa1-4a60-9eda-67681fe7da49",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 3,
+        "status": 1,
         "started": null,
         "submitted": null,
         "finished": null,

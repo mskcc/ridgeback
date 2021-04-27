@@ -3,18 +3,20 @@ import json
 import shutil
 import logging
 from datetime import timedelta
-from celery import shared_task, task
+from celery import shared_task
 from batch_systems.lsf_client import LSFClient
-from submitter.factory import JobSubmitterFactory
 from django.conf import settings
+from django.db import transaction
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
 from .toil_track_utils import ToilTrack
 from .models import Job, Status, CommandLineToolJob
 from lib.memcache_lock import memcache_task_lock, memcache_lock
+from submitter.factory import JobSubmitterFactory
 from ridgeback.settings import MAX_RUNNING_JOBS
 from orchestrator.commands import Command, CommandType
+from orchestrator.exceptions import RetryException, StopException
 
 
 logger = logging.getLogger(__name__)
@@ -55,74 +57,45 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
     job.fail('Failed to submit job')
 
 
-@shared_task(bind=True)
-def suspend_job(self, job_id):
+def suspend_job(job):
     client = LSFClient()
-    client.suspend(job_id)
+    if not client.suspend(job.external_id):
+        raise RetryException()
 
 
-@shared_task(bind=True)
-def resume_job(self, job_id):
+def resume_job(job):
     client = LSFClient()
-    client.resume(job_id)
+    if not client.resume(job.external_id):
+        raise RetryException("")
 
 
-def abort_job(job):
-    logger.info("Abort job %s" % str(job.id))
-    if job.status in (Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.SUSPENDED, Status.UNKNOWN):
-        submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
-                                                job.resume_job_store_location)
-        job_killed = submitter.abort(job.external_id)
-        if not job_killed:
-            raise Exception("Failed to abort job %s" % str(job.id))
-    job.abort()
-
-
-def cleanup_jobs(status, time_delta):
-    time_threshold = now() - timedelta(days=time_delta)
-    jobs = Job.objects.filter(status__in=(status,), modified_date__lte=time_threshold, job_store_clean_up=None,
-                              working_dir_clean_up=None)
-    for job in jobs:
-        cleanup_folders.delay(str(job.id))
-
-
-@shared_task(bind=True)
-def cleanup_completed_jobs(self):
-    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS)
-
-
-@shared_task(bind=True)
-def cleanup_failed_jobs(self):
-    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS)
-
-
-@shared_task(bind=True)
-def cleanup_folders(self, job_id, job_store=True, work_dir=True):
-    logger.info("Cleaning up %s" % job_id)
-    try:
-        job = Job.objects.get(id=job_id)
-    except Job.DoesNotExist:
-        logger.error("Job with id:%s not found" % job_id)
+@shared_task
+@memcache_lock("rb_submit_pending_jobs")
+def process_jobs():
+    jobs_running = Job.objects.filter(
+        status__in=(Status.SUBMITTING, Status.SUBMITTED, Status.PENDING, Status.RUNNING,)).count()
+    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
+    if jobs_to_submit <= 0:
         return
-    if job_store:
-        if clean_directory(job.job_store_location):
-            job.job_store_clean_up = now()
-    if work_dir:
-        if clean_directory(job.working_dir):
-            job.working_dir_clean_up = now()
-    job.save()
+
+    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[
+           :jobs_to_submit]
+
+    for job in jobs:
+        # Send SUBMIT commands for Jobs
+        with transaction.atomic():
+            if job.status.transition(Status.SUBMITTING):
+                job.update_status(Status.SUBMITTING)
+                command_processor.delay(Command(CommandType.SUBMIT, str(job.id)).to_dict())
+
+    status_jobs = Job.objects.filter(
+        status__in=(Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,)).values_list('pk', flat=True)
+    for job_id in status_jobs:
+        # Send CHECK_STATUS commands for Jobs
+        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, job_id).to_dict())
 
 
-def clean_directory(path):
-    try:
-        shutil.rmtree(path)
-    except Exception as e:
-        logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
-        return False
-    return True
-
-
-@shared_task(bind=True, autoretry_for=(Exception,), exponential_backoff=2, retry_kwargs={'max_retries': 5})
+@shared_task(bind=True)
 def command_processor(self, command_dict):
     try:
         command = Command.from_dict(command_dict)
@@ -140,45 +113,27 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.ABORT:
                     abort_job(job)
                 elif command.command_type == CommandType.SUSPEND:
-                    suspend_job(job.id)
+                    suspend_job(job)
                 elif command.command_type == CommandType.RESUME:
-                    resume_job(job.id)
-                return
-    except Exception as e:
-        print("Send for retry")
-        raise self.retry(exc=e)
+                    resume_job(job)
+    except RetryException as e:
+        logger.warning(
+            "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e)))
+        raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
+    except StopException as e:
+        logger.error("Command %s failed. Not retrying. Excaption %s" % (command_dict, str(e)))
 
 
 def submit_job_to_lsf(job):
-    logger.info("Submitting job %s to lsf" % str(job.id))
-    submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
-                                            job.resume_job_store_location, job.walltime, job.memlimit)
-    external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
-    logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
-    job.submit_to_lsf(external_job_id, job_store_dir, job_work_dir, job_output_dir, os.path.join(job_work_dir, 'lsf.log'))
-    # Keeping this for debuging purposes
-    save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
-
-
-@shared_task
-@memcache_lock("rb_submit_pending_jobs")
-def process_jobs():
-    jobs_running = Job.objects.filter(status__in=(Status.SUBMITTING, Status.SUBMITTED, Status.PENDING, Status.RUNNING,)).count()
-    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
-    if jobs_to_submit <= 0:
-        return
-
-    job_ids = Job.objects.filter(status=Status.CREATED).order_by("created_date").values_list('pk', flat=True)[
-              :jobs_to_submit]
-
-    Job.objects.filter(pk__in=list(job_ids)).update(status=Status.SUBMITTING)
-
-    for job_id in job_ids:
-        command_processor.delay(Command(CommandType.SUBMIT, job_id).to_dict())
-
-    status_jobs = Job.objects.filter(status__in=(Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,)).values_list('pk', flat=True)
-    for job_id in status_jobs:
-        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, job_id).to_dict())
+    if Status(job.status).transition(Status.SUBMITTED):
+        logger.info("Submitting job %s to lsf" % str(job.id))
+        submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
+                                                job.resume_job_store_location, job.walltime, job.memlimit)
+        external_job_id, job_store_dir, job_work_dir, job_output_dir = submitter.submit()
+        logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
+        job.submit_to_lsf(external_job_id, job_store_dir, job_work_dir, job_output_dir, os.path.join(job_work_dir, 'lsf.log'))
+        # Keeping this for debuging purposes
+        save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
 
 
 def _complete(job, outputs):
@@ -216,7 +171,11 @@ def check_job_status(job):
         return
     submiter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
                                            job.resume_job_store_location)
-    lsf_status, lsf_message = submiter.status(job.external_id)
+    try:
+        lsf_status, lsf_message = submiter.status(job.external_id)
+    except Exception:
+        # If failed to check status on LSF retry
+        raise RetryException('Failed to fetch status for job %s' % (str(job.id)))
     if Status(job.status).transition(lsf_status):
         if lsf_status in (Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,):
             job.update_status(lsf_status)
@@ -233,6 +192,67 @@ def check_job_status(job):
 
     else:
         logger.warning('Invalid transition %s to %s' % (Status(job.status).name, Status(lsf_status).name))
+        raise StopException('Invalid transition %s to %s' % (Status(job.status).name, Status(lsf_status).name))
+
+
+def abort_job(job):
+    if job.status.transition(Status.ABORTED):
+        logger.info("Abort job %s" % str(job.id))
+        if job.status in (Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.SUSPENDED, Status.UNKNOWN):
+            submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
+                                                    job.resume_job_store_location)
+            job_killed = submitter.abort(job.external_id)
+            if not job_killed:
+                raise RetryException("Failed to abort job %s" % str(job.id))
+        job.abort()
+
+
+# Cleaning jobs
+
+
+@shared_task(bind=True)
+def cleanup_completed_jobs(self):
+    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS)
+
+
+@shared_task(bind=True)
+def cleanup_failed_jobs(self):
+    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS)
+
+
+def cleanup_jobs(status, time_delta):
+    time_threshold = now() - timedelta(days=time_delta)
+    jobs = Job.objects.filter(status__in=(status,), modified_date__lte=time_threshold, job_store_clean_up=None,
+                              working_dir_clean_up=None)
+    for job in jobs:
+        cleanup_folders.delay(str(job.id))
+
+
+@shared_task(bind=True)
+def cleanup_folders(self, job_id, job_store=True, work_dir=True):
+    logger.info("Cleaning up %s" % job_id)
+    try:
+        job = Job.objects.get(id=job_id)
+    except Job.DoesNotExist:
+        logger.error("Job with id:%s not found" % job_id)
+        return
+    if job_store:
+        if clean_directory(job.job_store_location):
+            job.job_store_clean_up = now()
+    if work_dir:
+        if clean_directory(job.working_dir):
+            job.working_dir_clean_up = now()
+    job.save()
+
+
+def clean_directory(path):
+    try:
+        shutil.rmtree(path)
+    except Exception as e:
+        logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
+        return False
+    return True
+
 
 
 @shared_task(bind=True)
