@@ -28,7 +28,8 @@ class AbortTest(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Status.ABORTED)
 
-    def test_abort_from_submitting(self):
+    @patch('lib.memcache_lock.memcache_task_lock')
+    def test_abort_from_submitting(self, memcache_task_lock):
         """
         Testing when ABORT command is received when Job is in SUBMITTING state.
         Test if SUBMIT command received after is handled correctly and also the check status
@@ -36,6 +37,7 @@ class AbortTest(TestCase):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.SUBMITTING)
+        memcache_task_lock.return_value = True
         abort_job(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.ABORTED)
