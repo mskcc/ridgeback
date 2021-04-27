@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_aware_datetime(date_str):
+    if not date_str:
+        return None
     datetime_obj = parse_datetime(str(date_str))
     if not is_aware(datetime_obj):
         datetime_obj = make_aware(datetime_obj)
@@ -339,11 +341,11 @@ def check_status_of_jobs(self):
 def update_command_line_jobs(command_line_jobs, root):
     for job_id, job_obj in command_line_jobs.items():
         command_line_tool_jobs = CommandLineToolJob.objects.filter(job_id__exact=job_id)
-        if len(command_line_tool_jobs) != 0 and command_line_jobs[0] != None:
-            command_line_job = command_line_jobs[0]
-            command_line_job.started = job_obj["started"]
-            command_line_job.submitted = job_obj["submitted"]
-            command_line_job.finished = job_obj["finished"]
+        if len(command_line_tool_jobs) != 0 and command_line_tool_jobs[0] is not None:
+            command_line_job = command_line_tool_jobs[0]
+            command_line_job.started = get_aware_datetime(job_obj["started"])
+            command_line_job.submitted = get_aware_datetime(job_obj["submitted"])
+            command_line_job.finished = get_aware_datetime(job_obj["finished"])
             command_line_job.status = job_obj["status"]
             command_line_job.details = job_obj["details"]
             command_line_job.save()
@@ -351,9 +353,9 @@ def update_command_line_jobs(command_line_jobs, root):
             single_tool_module = CommandLineToolJob(
                 root=root,
                 status=job_obj["status"],
-                started=job_obj["started"],
-                submitted=job_obj["submitted"],
-                finished=job_obj["finished"],
+                started=get_aware_datetime(job_obj["started"]),
+                submitted=get_aware_datetime(job_obj["submitted"]),
+                finished=get_aware_datetime(job_obj["finished"]),
                 job_name=job_obj["name"],
                 job_id=job_id,
                 details=job_obj["details"],
@@ -371,9 +373,11 @@ def check_status_of_command_line_jobs(self):
             work_dir_path = current_leader_job.working_dir
             resume_jobstore = current_leader_job.resume_job_store_location
             track_cache_str = current_leader_job.track_cache
-            command_line_jobs, new_track_cache = track_commandline_jobs(
+            command_line_jobs_str, new_track_cache_str = track_commandline_jobs(
                 job_store_path, work_dir_path, resume_jobstore, track_cache_str
             )
+            command_line_jobs = json.loads(command_line_jobs_str)
+            new_track_cache = json.loads(new_track_cache_str)
             current_leader_job.track_cache = new_track_cache
             current_leader_job.save()
             update_command_line_jobs(command_line_jobs, current_leader_job)

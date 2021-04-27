@@ -662,7 +662,6 @@ class ToilTrack:
         toil_state_obj = _load_job_store(job_store, root_job)
         if not toil_state_obj:
             logger.warning("TOIL state is unexpectedly empty")
-
         self.handle_failed_jobs(job_store)
         self.handle_restarted_jobs(job_store)
         current_jobs = self.handle_current_jobs(toil_state_obj)
