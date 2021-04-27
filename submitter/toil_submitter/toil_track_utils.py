@@ -139,11 +139,11 @@ def _clean_job_store(read_only_job_store_obj, job_store_cache):
     return root_job
 
 
-# @retry(
-#    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
-#    stop=stop_after_attempt(ATTEMPTS),
-#    after=after_log(logger, logging.DEBUG),
-# )
+@retry(
+    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
+    stop=stop_after_attempt(ATTEMPTS),
+    after=after_log(logger, logging.DEBUG),
+)
 def _resume_job_store(job_store_path, total_attempts):
     """
     TOIL track helper to load a created file jobstore
@@ -488,7 +488,8 @@ class ToilTrack:
         if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
             if job_id in job_dict:
                 job_dict[job_id]["status"] = ToolStatus.FAILED
-                job_dict[job_id]["finished"] = datetime.now()
+                if not job_dict[job_id]["finished"]:
+                    job_dict[job_id]["finished"] = datetime.now()
             else:
                 cores, disk, memory = _check_job_stats(job)
                 display_name = _get_job_display_name(job)
