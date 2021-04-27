@@ -118,9 +118,10 @@ class JobStatusSerializer(serializers.Serializer):
 
 
 class JobSubmitSerializer(JobSerializer):
+
     class Meta:
         model = Job
-        fields = ('app', 'inputs', 'root_dir')
+        fields = ('type', 'app', 'inputs', 'root_dir')
 
 
 class JobResumeSerializer(JobSerializer):
