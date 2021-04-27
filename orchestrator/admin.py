@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Job, CommandLineToolJob, Status
 from django.contrib import messages
-from orchestrator.tasks import cleanup_folders, suspend_job
+from orchestrator.tasks import cleanup_folders, suspend_job, abort_job, unsuspend_job
 
 
 class StatusFilter(admin.SimpleListFilter):
