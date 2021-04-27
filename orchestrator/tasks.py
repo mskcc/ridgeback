@@ -9,8 +9,8 @@ from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
-from .toil_track_utils import ToilTrack
-from .models import Job, Status, CommandLineToolJob
+from .models import Job, Status, CommandLineToolJob, PipelineType
+from submitter.toil_submitter import track_commandline_jobs
 import shutil
 from lib.memcache_lock import memcache_lock
 from ridgeback.settings import MAX_RUNNING_JOBS
@@ -336,151 +336,44 @@ def check_status_of_jobs(self):
         job.save()
 
 
+def update_command_line_jobs(command_line_jobs, root):
+    for job_id, job_obj in command_line_jobs.items():
+        command_line_tool_jobs = CommandLineToolJob.objects.filter(job_id__exact=job_id)
+        if len(command_line_tool_jobs) != 0 and command_line_jobs[0] != None:
+            command_line_job = command_line_jobs[0]
+            command_line_job.started = job_obj["started"]
+            command_line_job.submitted = job_obj["submitted"]
+            command_line_job.finished = job_obj["finished"]
+            command_line_job.status = job_obj["status"]
+            command_line_job.details = job_obj["details"]
+            command_line_job.save()
+        else:
+            single_tool_module = CommandLineToolJob(
+                root=root,
+                status=job_obj["status"],
+                started=job_obj["started"],
+                submitted=job_obj["submitted"],
+                finished=job_obj["finished"],
+                job_name=job_obj["name"],
+                job_id=job_id,
+                details=job_obj["details"],
+            )
+            single_tool_module.save()
+
+
 @shared_task(bind=True)
 def check_status_of_command_line_jobs(self):
-    jobs = Job.objects.filter(status__in=(Status.CREATED, Status.RUNNING))
-    for current_job in jobs:
-        if current_job.app != None:
-            if "github" in current_job.app:
-                github_repo = current_job.app["github"]["repository"]
-                if github_repo:
-                    if "access" in github_repo.lower():
-                        continue
-        current_job_str = current_job.track_cache
-        job_updated = False
-        if current_job_str:
-            track_cache = json.loads(current_job_str)
-        else:
-            track_cache = {"current_jobs": [], "jobs_path": {}, "jobs": {}, "worker_jobs": {}}
-            job_updated = True
-        jobstore_path = current_job.job_store_location
-        workdir_path = current_job.working_dir
-        toil_track_obj = ToilTrack(jobstore_path, workdir_path, False, 0, False, None)
-        cache_current_jobs = track_cache["current_jobs"]
-        cache_jobs_path = track_cache["jobs_path"]
-        cache_jobs = track_cache["jobs"]
-        cache_worker_jobs = track_cache["worker_jobs"]
-        toil_track_obj.current_jobs = cache_current_jobs
-        toil_track_obj.jobs_path = cache_jobs_path
-        toil_track_obj.jobs = cache_jobs
-        toil_track_obj.worker_jobs = cache_worker_jobs
-        job_status = toil_track_obj.check_status()
-        if toil_track_obj.current_jobs != track_cache["current_jobs"]:
-            track_cache["current_jobs"] = toil_track_obj.current_jobs
-            job_updated = True
-        if toil_track_obj.jobs_path != track_cache["jobs_path"]:
-            track_cache["jobs_path"] = toil_track_obj.jobs_path
-            job_updated = True
-        if toil_track_obj.jobs != track_cache["jobs"]:
-            track_cache["jobs"] = toil_track_obj.jobs
-            job_updated = True
-        if toil_track_obj.worker_jobs != track_cache["worker_jobs"]:
-            track_cache["worker_jobs"] = toil_track_obj.worker_jobs
-            job_updated = True
-        if job_updated:
-            current_job.track_cache = json.dumps(
-                track_cache, sort_keys=True, indent=1, cls=DjangoJSONEncoder
+    leader_jobs = Job.objects.filter(status__in=(Status.CREATED, Status.RUNNING))
+    command_line_jobs = {}
+    for current_leader_job in leader_jobs:
+        if current_leader_job.type == PipelineType.CWL:
+            job_store_path = current_leader_job.job_store_location
+            work_dir_path = current_leader_job.working_dir
+            resume_jobstore = current_leader_job.resume_job_store_location
+            track_cache_str = current_leader_job.track_cache
+            command_line_jobs, new_track_cache = track_commandline_jobs(
+                job_store_path, work_dir_path, resume_jobstore, track_cache_str
             )
-            current_job.save()
-        for single_command_line_tool in job_status:
-            commandLineToolJobs = CommandLineToolJob.objects.filter(
-                job_id__exact=single_command_line_tool["id"]
-            )
-            finished = single_command_line_tool["finished"]
-            started = single_command_line_tool["started"]
-            submitted = single_command_line_tool["submitted"]
-            status = single_command_line_tool["status"]
-            details = single_command_line_tool["details"]
-            already_exists = False
-            updated = False
-            single_tool_module = None
-            if len(commandLineToolJobs) != 0:
-                if commandLineToolJobs[0] != None:
-                    already_exists = True
-                    single_tool_module = commandLineToolJobs[0]
-                    if (
-                        single_tool_module.status != Status.COMPLETED
-                        and single_tool_module != Status.FAILED
-                    ):
-                        keys_to_modify = ["started", "submitted", "finished", "status", "details"]
-                        for single_key in keys_to_modify:
-                            key_value = single_command_line_tool[single_key]
-                            if key_value:
-                                if key_value != single_tool_module.__dict__[single_key]:
-                                    if single_key == "details":
-                                        for single_detail_key in key_value:
-                                            single_detail_value = key_value[single_detail_key]
-                                            if single_detail_value != None:
-                                                old_value = None
-                                                if (
-                                                    single_detail_key
-                                                    in single_tool_module.__dict__[single_key]
-                                                ):
-                                                    old_value = single_tool_module.__dict__[
-                                                        single_key
-                                                    ][single_detail_key]
-                                                if single_detail_key in ["job_cpu", "job_memory"]:
-                                                    if old_value:
-                                                        last_record = old_value[-1]
-                                                        if last_record[1] != single_detail_value:
-                                                            new_record = (
-                                                                str(now()),
-                                                                single_detail_value,
-                                                            )
-                                                            single_tool_module.__dict__[single_key][
-                                                                single_detail_key
-                                                            ].append(new_record)
-                                                            updated = True
-                                                    else:
-                                                        new_record = (
-                                                            str(now()),
-                                                            single_detail_value,
-                                                        )
-                                                        single_tool_module.__dict__[single_key][
-                                                            single_detail_key
-                                                        ] = [new_record]
-                                                        updated = True
-                                                else:
-                                                    if old_value != single_detail_value:
-                                                        single_tool_module.__dict__[single_key][
-                                                            single_detail_key
-                                                        ] = single_detail_value
-                                                        updated = True
-                                    else:
-                                        if single_key in ["started", "submitted", "finished"]:
-                                            if single_tool_module.__dict__[single_key] != None:
-                                                continue
-                                                if get_aware_datetime(
-                                                    single_tool_module.__dict__[single_key]
-                                                ) == get_aware_datetime(key_value):
-                                                    continue
-                                        single_tool_module.__dict__[single_key] = key_value
-                                        updated = True
-            if not already_exists:
-                if details:
-                    for single_detail_key in ["job_cpu", "job_memory"]:
-                        if single_detail_key in details:
-                            single_detail_value = details[single_detail_key]
-                            if single_detail_value:
-                                new_record = (str(now()), single_detail_value)
-                                details[single_detail_key] = [new_record]
-                single_tool_module = CommandLineToolJob(
-                    root=current_job,
-                    status=status,
-                    started=started,
-                    submitted=submitted,
-                    finished=finished,
-                    job_name=single_command_line_tool["name"],
-                    job_id=single_command_line_tool["id"],
-                    details=details,
-                )
-                updated = True
-            if updated:
-                single_tool_module.save()
-    commandLineToolJobs = CommandLineToolJob.objects.filter(
-        status__in=(Status.RUNNING, Status.PENDING)
-    )
-    for single_command_line_tool in commandLineToolJobs:
-        if single_command_line_tool.root.status != Status.RUNNING:
-            single_command_line_tool.__dict__["status"] = Status.UNKNOWN
-            single_command_line_tool.save()
+            current_leader_job.track_cache = new_track_cache
+            current_leader_job.save()
+            update_command_line_jobs(command_line_jobs, current_leader_job)
