@@ -1,0 +1,6 @@
+INFO:toil.worker:---TOIL WORKER OUTPUT LOG---
+INFO:toil:Running Toil version 3.21.0-f20c78af53c615fc96b6e160e07f44cb6b337643.
+WARNING:toil.resource:Can't globalize module ModuleDescriptor(dirPath='/Users/kumarn1/work/toil/toil_3.21.1/toil/src', name='toil.cwl.cwltoil', fromVirtualEnv=False).
+WARNING:toil.resource:Can't globalize module ModuleDescriptor(dirPath='/Users/kumarn1/work/toil/toil_3.21.1/toil/src', name='toil.cwl.cwltoil', fromVirtualEnv=False).
+INFO:toil.worker:Worker log can be found at /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_3.21/failed/tmp/work/toil-ec911c2c-f668-4c05-86fc-2b54869b8026-26824500935055/tmpyqy3rblb. Set --cleanWorkDir to retain this log
+INFO:toil.worker:Finished running the chain of jobs on this node, we ran for a total of 0.033870 seconds

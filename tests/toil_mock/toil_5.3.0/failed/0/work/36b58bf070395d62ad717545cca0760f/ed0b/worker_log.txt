@@ -1,0 +1,16 @@
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.worker] ---TOIL WORKER OUTPUT LOG---
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil] Running Toil version 5.4.0a1-7a99f94c46f23ff9d5f512cd7229f86cc5ff6d47 on host lski2325.
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.worker] Working on job 'CWLWorkflow' kind-CWLWorkflow/instance-av9a4ssy
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.worker] Loaded body Job('CWLWorkflow' kind-CWLWorkflow/instance-av9a4ssy) from description 'CWLWorkflow' kind-CWLWorkflow/instance-av9a4ssy
+NON CACHE
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.fileStores.nonCachingFileStore] NON CACHE
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.fileStores.nonCachingFileStore] /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_5.4/failed/tmp/work/36b58bf070395d62ad717545cca0760f/ed0b/9d8f/.jobState
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.job] Saving graph of 3 jobs, 2 new
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.job] Processing job 'CWLGather' kind-CWLGather/instance-a4cw80r7
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.job] Processing job 'CWLScatter' kind-CWLScatter/instance-l_0jfc22
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.job] Processing job 'CWLWorkflow' kind-CWLWorkflow/instance-av9a4ssy
+[2021-04-26T18:07:24-0400] [MainThread] [W] [toil.fileStores.abstractFileStore] LOG-TO-MASTER: Job used more disk than requested. For CWL, consider increasing the outdirMin requirement, otherwise, consider increasing the disk requirement. Job files/for-job/kind-CWLWorkflow/instance-av9a4ssy/cleanup/file-bf11a8cd6ee243fa902a619d5cd4b683/stream used 0.00% disk (4.0 KB [4096B] used, 0.0 B [0B] requested).
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.worker] Completed body for 'CWLWorkflow' kind-CWLWorkflow/instance-av9a4ssy
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.worker] Not chaining from job 'CWLWorkflow' kind-CWLWorkflow/instance-av9a4ssy
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.worker] Worker log can be found at /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_5.4/failed/tmp/work/36b58bf070395d62ad717545cca0760f/ed0b. Set --cleanWorkDir to retain this log
+[2021-04-26T18:07:24-0400] [MainThread] [I] [toil.worker] Finished running the chain of jobs on this node, we ran for a total of 0.045609 seconds

@@ -1,0 +1,22 @@
+[2021-04-26T18:07:27-0400] [MainThread] [I] [toil.worker] ---TOIL WORKER OUTPUT LOG---
+[2021-04-26T18:07:27-0400] [MainThread] [I] [toil] Running Toil version 5.4.0a1-7a99f94c46f23ff9d5f512cd7229f86cc5ff6d47 on host lski2325.
+[2021-04-26T18:07:27-0400] [MainThread] [I] [toil.worker] Working on job 'CWLJob' sleep kind-CWLJob/instance-w4zmfpj_
+[2021-04-26T18:07:27-0400] [MainThread] [I] [toil.worker] Loaded body Job('CWLJob' sleep kind-CWLJob/instance-w4zmfpj_) from description 'CWLJob' sleep kind-CWLJob/instance-w4zmfpj_
+NON CACHE
+[2021-04-26T18:07:27-0400] [MainThread] [I] [toil.fileStores.nonCachingFileStore] NON CACHE
+[2021-04-26T18:07:27-0400] [MainThread] [I] [toil.fileStores.nonCachingFileStore] /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_5.4/failed/tmp/work/36b58bf070395d62ad717545cca0760f/3306/fe33/.jobState
+[2021-04-26T18:07:27-0400] [MainThread] [I] [cwltool] [job sleep] /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_5.4/failed/tmp/work/36b58bf070395d62ad717545cca0760f/3306/fe33/tmpl1uscbof/tmp-out1p6w_ptj$ sleep \
+    -h
+usage: sleep seconds
+[2021-04-26T18:07:27-0400] [MainThread] [W] [cwltool] [job sleep] completed permanentFail
+Traceback (most recent call last):
+  File "/Users/kumarn1/work/ridgeback/toil/src/toil/worker.py", line 393, in workerScript
+    job._runner(jobGraph=None, jobStore=jobStore, fileStore=fileStore, defer=defer)
+  File "/Users/kumarn1/work/ridgeback/toil/src/toil/job.py", line 2360, in _runner
+    returnValues = self._run(jobGraph=None, fileStore=fileStore)
+  File "/Users/kumarn1/work/ridgeback/toil/src/toil/job.py", line 2281, in _run
+    return self.run(fileStore)
+  File "/Users/kumarn1/work/ridgeback/toil/src/toil/cwl/cwltoil.py", line 1227, in run
+    raise cwltool.errors.WorkflowException(status)
+cwltool.errors.WorkflowException: permanentFail
+[2021-04-26T18:07:27-0400] [MainThread] [E] [toil.worker] Exiting the worker because of a failed job on host lski2325
