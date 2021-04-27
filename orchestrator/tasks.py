@@ -58,15 +58,22 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
 
 
 def suspend_job(job):
-    client = LSFClient()
-    if not client.suspend(job.external_id):
-        raise RetryException()
+    if Status(job.status).transition(Status.SUSPENDED):
+        client = LSFClient()
+        if not client.suspend(job.external_id):
+            raise RetryException("Failed to suspend job: %s" % str(job.id))
+        job.update_status(Status.SUSPENDED)
+    logger.info("Can't suspend job. Invalid transition from %s to %s for job: %s" % (
+    Status(job.status).name, Status.SUSPENDED.name, str(job.id)))
 
 
 def resume_job(job):
-    client = LSFClient()
-    if not client.resume(job.external_id):
-        raise RetryException("")
+    if Status(job.status) != Status.SUSPENDED:
+        client = LSFClient()
+        if not client.resume(job.external_id):
+            raise RetryException("Failed to resume job: %s" % str(job.id))
+        job.update_status(Status.RUNNING)
+    logger.info("Can't resume job: %s because it is not SUSPENDED" % str(job.id))
 
 
 @shared_task
