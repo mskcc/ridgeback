@@ -6,6 +6,7 @@ from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
 from django.core.serializers.json import DjangoJSONEncoder
 from orchestrator.models import Status
+import copy
 
 
 def translate_toil_to_model_status(status):
@@ -21,9 +22,11 @@ def translate_toil_to_model_status(status):
 
 def track_commandline_jobs(job_store_path, work_dir_path, resume_jobstore, track_cache_str):
     restart = False
+    track_cache = {}
     if resume_jobstore:
         restart = True
-    track_cache = json.loads(track_cache_str)
+    if track_cache_str:
+        track_cache = json.loads(track_cache_str)
     cache_keys = set(["jobs_path", "jobs", "work_log_to_job_id"])
     jobs_path = {}
     jobs = {}
@@ -42,7 +45,8 @@ def track_commandline_jobs(job_store_path, work_dir_path, resume_jobstore, track
     work_log_to_job_id = toil_track_obj.work_log_to_job_id
     new_cache = {"jobs_path": jobs_path, "jobs": jobs, "work_log_to_job_id": work_log_to_job_id}
     new_track_cache = json.dumps(new_cache, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
-    for single_job in jobs:
+    formatted_jobs = copy.deepcopy(jobs)
+    for job_id, single_job in formatted_jobs.items():
         single_job["status"] = translate_toil_to_model_status(single_job["status"])
         single_job["details"] = {
             "cores_req": single_job["cores_req"],
@@ -52,8 +56,10 @@ def track_commandline_jobs(job_store_path, work_dir_path, resume_jobstore, track
             "mem_usage": single_job["mem_usage"],
             "memory_req": single_job["memory_req"],
         }
+    job_safe = json.dumps(formatted_jobs, default=str)
+    track_cache_safe = json.dumps(new_track_cache, default=str)
 
-    return jobs, new_track_cache
+    return job_safe, track_cache_safe
 
 
 class ToilJobSubmitter(JobSubmitter):
