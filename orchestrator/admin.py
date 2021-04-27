@@ -59,12 +59,12 @@ Already cleaned up {cleaned_up}
     def suspend(self, request, queryset):
         for job in queryset:
             if job.external_id:
-                command_processor.delay(Command(CommandType.SUSPEND, str(job.id)))
+                command_processor.delay(Command(CommandType.SUSPEND, str(job.id)).to_dict())
 
     def resume(self, request, queryset):
         for job in queryset:
             if job.external_id:
-                command_processor.delay(Command(CommandType.RESUME, str(job.id)))
+                command_processor.delay(Command(CommandType.RESUME, str(job.id)).to_dict())
 
     suspend.short_description = "Suspend Jobs"
     resume.short_description = "Resume Jobs"
