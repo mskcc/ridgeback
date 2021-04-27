@@ -196,7 +196,7 @@ def check_job_status(job):
 
 
 def abort_job(job):
-    if job.status.transition(Status.ABORTED):
+    if Status(job.status).transition(Status.ABORTED):
         logger.info("Abort job %s" % str(job.id))
         if job.status in (Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.SUSPENDED, Status.UNKNOWN):
             submitter = JobSubmitterFactory.factory(job.type, str(job.id), job.app, job.inputs, job.root_dir,
