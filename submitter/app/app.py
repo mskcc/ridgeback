@@ -46,12 +46,14 @@ class GithubCache(object):
     def add(github, version):
         GithubCache.logger.info('Add App to Cache with %s %s' % (github, version))
         location = os.path.join(settings.APP_CACHE, str(uuid.uuid4()))
+        GithubCache.logger.info("App Cache location %s" % location)
         os.makedirs(location)
         dirname = GithubCache._extract_dirname_from_github_link(github)
         if not os.path.exists(os.path.join(location, dirname)):
             git.Git(location).clone(github, '--branch', version, '--recurse-submodules')
         full_path = os.path.join(location, dirname)
         cache.add(GithubCache._cache_key(github, version), full_path)
+        GithubCache.logger.info("App Cache location %s" % full_path)
         return full_path
 
     @staticmethod
@@ -68,6 +70,7 @@ class GithubCache(object):
 
 class GithubApp(App):
     type = "github"
+    logger = logging.getLogger(__name__)
 
     def __init__(self, github, entrypoint, version='master'):
         super().__init__()
@@ -80,6 +83,7 @@ class GithubApp(App):
         cached = GithubCache.get(self.github, self.version)
         if not cached:
             cached = GithubCache.add(self.github, self.version)
+            self.logger.info("Adding App to cache %s" % cached)
         os.symlink(cached, dirname)
         return os.path.join(cached, self.entrypoint)
 
