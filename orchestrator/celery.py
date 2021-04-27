@@ -18,18 +18,12 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
-app.conf.task_routes = {'orchestrator.tasks.submit_job_to_lsf': {'queue':
-                                                                     settings.RIDGEBACK_SUBMIT_JOB_LSF_QUEUE},
-                        'orchestrator.tasks.cleanup_folders': {'queue':
-                                                                   settings.RIDGEBACK_ACTION_QUEUE},
-                        'orchestrator.tasks.resume_job': {'queue':
-                                                              settings.RIDGEBACK_ACTION_QUEUE},
-                        'orchestrator.tasks.suspend_job': {'queue':
-                                                               settings.RIDGEBACK_ACTION_QUEUE},
-                        'orchestrator.tasks.abort_job': {'queue':
-                                                             settings.RIDGEBACK_ACTION_QUEUE},
-                        'orchestrator.tasks.command_processor': {'queue':
-                                                                     settings.RIDGEBACK_COMMAND_QUEUE}
+app.conf.task_routes = {'orchestrator.tasks.submit_job_to_lsf': {'queue': settings.RIDGEBACK_SUBMIT_JOB_LSF_QUEUE},
+                        'orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
+                        'orchestrator.tasks.resume_job': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
+                        'orchestrator.tasks.suspend_job': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
+                        'orchestrator.tasks.abort_job': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
+                        'orchestrator.tasks.command_processor': {'queue': settings.RIDGEBACK_COMMAND_QUEUE}
                         }
 
 app.conf.beat_schedule = {
@@ -51,8 +45,7 @@ app.conf.beat_schedule = {
     },
     "cleanup_failed_jobs": {
         "task": "orchestrator.tasks.cleanup_failed_jobs",
-        "schedule": crontab(hour='6',
-                            ),
+        "schedule": crontab(hour='6',),
         "options": {"queue": settings.RIDGEBACK_CLEANUP_QUEUE}
     }
 }
