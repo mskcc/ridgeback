@@ -63,6 +63,7 @@ def suspend_job(job):
         if not client.suspend(job.external_id):
             raise RetryException("Failed to suspend job: %s" % str(job.id))
         job.update_status(Status.SUSPENDED)
+        return
     logger.info("Can't suspend job. Invalid transition from %s to %s for job: %s" % (
     Status(job.status).name, Status.SUSPENDED.name, str(job.id)))
 
