@@ -23,7 +23,6 @@ class Command(object):
 
     @classmethod
     def from_dict(cls, dct):
-        print(dct)
         return cls(
             dct['type'],
             dct['job_id']
