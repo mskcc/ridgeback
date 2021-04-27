@@ -1,6 +1,10 @@
 import os
 import git
+import uuid
 import shutil
+from django.conf import settings
+from django.core.cache import cache
+from lib.memcache_lock import memcache_lock
 
 
 class App(object):
@@ -26,6 +30,38 @@ class App(object):
         shutil.rmtree(location)
 
 
+class GithubCache(object):
+
+    @staticmethod
+    def get(github, version):
+        cache_key = GithubCache._cache_key(github, version)
+        _app_location = cache.get(cache_key)
+        return _app_location if _app_location else None
+
+    @staticmethod
+    @memcache_lock('add_app_to_cache')
+    def add(github, version):
+        location = os.path.join(settings.APP_CACHE, str(uuid.uuid4()))
+        os.makedirs(location)
+        dirname = GithubCache._extract_dirname_from_github_link(github)
+        if not os.path.exists(os.path.join(location, dirname)):
+            git.Git(location).clone(github, '--branch', version, '--recurse-submodules')
+        full_path = os.path.join(location, dirname)
+        cache.add(GithubCache._cache_key(github, version), full_path)
+        return full_path
+
+    @staticmethod
+    def _cache_key(github, version):
+        return 'github_{link}_{version}'.format(link=github, version=version)
+
+    @staticmethod
+    def _extract_dirname_from_github_link(github):
+        dirname = github.rsplit('/', 2)[1] if github.endswith('/') else github.rsplit('/', 1)[1]
+        if dirname.endswith('.git'):
+            dirname = dirname[:-4]
+        return dirname
+
+
 class GithubApp(App):
     type = "github"
 
@@ -36,10 +72,12 @@ class GithubApp(App):
         self.version = version
 
     def resolve(self, location):
-        dirname = self._extract_dirname_from_github_link()
-        if not os.path.exists(os.path.join(location, dirname)):
-            git.Git(location).clone(self.github, '--branch', self.version, '--recurse-submodules')
-        return os.path.join(location, dirname, self.entrypoint)
+        dirname = os.path.join(location, self._extract_dirname_from_github_link())
+        cached = GithubCache.get(self.github, self.version)
+        if not cached:
+            cached = GithubCache.add(self.github, self.version)
+        os.symlink(cached, dirname)
+        return os.path.join(cached, self.entrypoint)
 
     def _extract_dirname_from_github_link(self):
         dirname = self.github.rsplit('/', 2)[1] if self.github.endswith('/') else self.github.rsplit('/', 1)[1]
