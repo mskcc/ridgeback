@@ -1,0 +1,6 @@
+INFO:toil.worker:---TOIL WORKER OUTPUT LOG---
+INFO:toil:Running Toil version 3.21.0-f20c78af53c615fc96b6e160e07f44cb6b337643.
+[job sleep] /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_3.21/running/tmp/work/toil-8bef4c3b-6757-48d3-981b-6f2fe8a29db6-26824500935055/tmp9o3rhkgi/c592b529-03c1-4c67-a35c-dc4c7830c9d6/tm7okojx2/tmp-outqh4oid6q$ sleep \
+    120
+INFO:cwltool:[job sleep] /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_3.21/running/tmp/work/toil-8bef4c3b-6757-48d3-981b-6f2fe8a29db6-26824500935055/tmp9o3rhkgi/c592b529-03c1-4c67-a35c-dc4c7830c9d6/tm7okojx2/tmp-outqh4oid6q$ sleep \
+    120

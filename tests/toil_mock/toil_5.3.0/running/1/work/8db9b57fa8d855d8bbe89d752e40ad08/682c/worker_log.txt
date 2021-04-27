@@ -1,0 +1,17 @@
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.worker] ---TOIL WORKER OUTPUT LOG---
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil] Running Toil version 5.4.0a1-7a99f94c46f23ff9d5f512cd7229f86cc5ff6d47 on host lski2325.
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.worker] Working on job 'CWLScatter' kind-CWLScatter/instance-ot1k4dyw
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.worker] Loaded body Job('CWLScatter' kind-CWLScatter/instance-ot1k4dyw) from description 'CWLScatter' kind-CWLScatter/instance-ot1k4dyw
+NON CACHE
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.fileStores.nonCachingFileStore] NON CACHE
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.fileStores.nonCachingFileStore] /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_5.4/running/tmp/work/8db9b57fa8d855d8bbe89d752e40ad08/682c/4772/.jobState
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.job] Saving graph of 4 jobs, 3 new
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.job] Processing job 'CWLJob' sleep kind-CWLJob/instance-bns5lt44
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.job] Processing job 'CWLJob' sleep kind-CWLJob/instance-uoe7ng6x
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.job] Processing job 'CWLJob' sleep kind-CWLJob/instance-q9bki_zv
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.job] Processing job 'CWLScatter' kind-CWLScatter/instance-ot1k4dyw
+[2021-04-26T14:01:27-0400] [MainThread] [W] [toil.fileStores.abstractFileStore] LOG-TO-MASTER: Job used more disk than requested. For CWL, consider increasing the outdirMin requirement, otherwise, consider increasing the disk requirement. Job files/for-job/kind-CWLScatter/instance-ot1k4dyw/cleanup/file-1ca7c62104ec46bcb05efa4c7de49d89/stream used 0.00% disk (4.0 KB [4096B] used, 0.0 B [0B] requested).
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.worker] Completed body for 'CWLScatter' kind-CWLScatter/instance-ot1k4dyw
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.worker] Not chaining from job 'CWLScatter' kind-CWLScatter/instance-ot1k4dyw
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.worker] Worker log can be found at /Users/kumarn1/work/ridgeback/tests/toil_mock/toil_5.4/running/tmp/work/8db9b57fa8d855d8bbe89d752e40ad08/682c. Set --cleanWorkDir to retain this log
+[2021-04-26T14:01:27-0400] [MainThread] [I] [toil.worker] Finished running the chain of jobs on this node, we ran for a total of 0.052092 seconds
