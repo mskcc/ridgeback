@@ -68,12 +68,14 @@ def suspend_job(job):
 
 
 def resume_job(job):
-    if Status(job.status) != Status.SUSPENDED:
+    if Status(job.status) == Status.SUSPENDED:
         client = LSFClient()
         if not client.resume(job.external_id):
             raise RetryException("Failed to resume job: %s" % str(job.id))
         job.update_status(Status.RUNNING)
-    logger.info("Can't resume job: %s because it is not SUSPENDED" % str(job.id))
+        return
+    logger.info(
+        "Can't resume job: %s because it is in status %s, not in SUSPENDED" % (Status(job.status).name, str(job.id)))
 
 
 @shared_task
