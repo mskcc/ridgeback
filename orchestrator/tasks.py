@@ -126,6 +126,8 @@ def command_processor(self, command_dict):
                     suspend_job(job)
                 elif command.command_type == CommandType.RESUME:
                     resume_job(job)
+            else:
+                self.retry()
     except RetryException as e:
         logger.warning(
             "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e)))
