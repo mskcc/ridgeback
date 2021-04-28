@@ -71,9 +71,11 @@ class JobTestCase(APITestCase):
 		self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
 	@patch('orchestrator.tasks.submit_job_to_lsf')
-	def test_resume(self, submit_jobs_mock):
+	@patch('orchestrator.tasks.add_app_to_cache.delay')
+	def test_resume(self, add_app_to_cache, submit_jobs_mock):
 		url = '{}jobs/{}/resume/'.format(self.api_root, self.example_job.id)
 		submit_jobs_mock.return_value = None
+		add_app_to_cache.return_value = None
 		data = {
 			'type': 0,
 			'root_dir': self.example_job.root_dir
