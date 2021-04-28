@@ -42,7 +42,6 @@ class GithubCache(object):
         return _app_location if _app_location else None
 
     @staticmethod
-    @memcache_lock('add_app_to_cache')
     def add(github, version):
         GithubCache.logger.info('Add App to Cache with %s %s' % (github, version))
         location = os.path.join(settings.APP_CACHE, str(uuid.uuid4()))
@@ -52,7 +51,7 @@ class GithubCache(object):
         if not os.path.exists(os.path.join(location, dirname)):
             git.Git(location).clone(github, '--branch', version, '--recurse-submodules')
         full_path = os.path.join(location, dirname)
-        cache.add(GithubCache._cache_key(github, version), full_path)
+        cache.add(GithubCache._cache_key(github, version), full_path, None)
         GithubCache.logger.info("App Cache full path %s" % full_path)
         return full_path
 
@@ -81,12 +80,12 @@ class GithubApp(App):
     def resolve(self, location):
         dirname = os.path.join(location, self._extract_dirname_from_github_link())
         cached = GithubCache.get(self.github, self.version)
-        if not cached:
-            GithubCache.add(self.github, self.version)
-            cached = GithubCache.get(self.github, self.version)
-            self.logger.info("Adding App to cache %s" % cached)
-        os.symlink(cached, dirname)
-        return os.path.join(cached, self.entrypoint)
+        if cached:
+            self.logger.info("App found in cache %s" % cached)
+            os.symlink(cached, dirname)
+        elif not os.path.exists(dirname):
+            git.Git(location).clone(self.github, '--branch', self.version, '--recurse-submodules')
+        return os.path.join(dirname, self.entrypoint)
 
     def _extract_dirname_from_github_link(self):
         dirname = self.github.rsplit('/', 2)[1] if self.github.endswith('/') else self.github.rsplit('/', 1)[1]
