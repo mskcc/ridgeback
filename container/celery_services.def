@@ -125,7 +125,8 @@ Includecmd: no
     -Q ${RIDGEBACK_COMMAND_QUEUE} \
     -f ${CELERY_LOG_PATH}/ridgeback_command.log \
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_command.pid \
-    -n ${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_command &
+    -n ${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_command \
+    --concurrency=30 &
 
 %post
     export DEBIAN_FRONTEND=noninteractive \
