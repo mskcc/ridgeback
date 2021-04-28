@@ -53,7 +53,7 @@ class GithubCache(object):
             git.Git(location).clone(github, '--branch', version, '--recurse-submodules')
         full_path = os.path.join(location, dirname)
         cache.add(GithubCache._cache_key(github, version), full_path)
-        GithubCache.logger.info("App Cache location %s" % full_path)
+        GithubCache.logger.info("App Cache full path %s" % full_path)
         return full_path
 
     @staticmethod
