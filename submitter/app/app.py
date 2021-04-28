@@ -82,7 +82,8 @@ class GithubApp(App):
         dirname = os.path.join(location, self._extract_dirname_from_github_link())
         cached = GithubCache.get(self.github, self.version)
         if not cached:
-            cached = GithubCache.add(self.github, self.version)
+            GithubCache.add(self.github, self.version)
+            cached = GithubCache.get(self.github, self.version)
             self.logger.info("Adding App to cache %s" % cached)
         os.symlink(cached, dirname)
         return os.path.join(cached, self.entrypoint)
