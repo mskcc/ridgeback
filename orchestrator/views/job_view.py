@@ -26,8 +26,8 @@ class JobViewSet(mixins.CreateModelMixin,
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
             response = serializer.save()
-            add_app_to_cache.delay(response.data['app'])
             response = JobSerializer(response)
+            add_app_to_cache.delay(response.data['app'])
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
