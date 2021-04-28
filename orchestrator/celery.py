@@ -20,9 +20,7 @@ app.autodiscover_tasks()
 
 app.conf.task_routes = {'orchestrator.tasks.submit_job_to_lsf': {'queue': settings.RIDGEBACK_SUBMIT_JOB_LSF_QUEUE},
                         'orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
-                        'orchestrator.tasks.resume_job': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
-                        'orchestrator.tasks.suspend_job': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
-                        'orchestrator.tasks.abort_job': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
+                        'orchestrator.tasks.add_app_to_cache': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
                         'orchestrator.tasks.command_processor': {'queue': settings.RIDGEBACK_COMMAND_QUEUE}
                         }
 
