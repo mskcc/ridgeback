@@ -14,6 +14,7 @@ from .toil_track_utils import ToilTrack
 from .models import Job, Status, CommandLineToolJob
 from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
+from submitter.app.app import GithubCache
 from ridgeback.settings import MAX_RUNNING_JOBS
 from orchestrator.commands import Command, CommandType
 from orchestrator.exceptions import RetryException, StopException
@@ -264,6 +265,21 @@ def clean_directory(path):
         logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
         return False
     return True
+
+
+@shared_task
+@memcache_lock('add_app_to_cache')
+def add_app_to_cache(app):
+    if app.get('github'):
+        github = app['github']['repository']
+        version = app['github'].get('version', 'master')
+        if not GithubCache.get(github, version):
+            logger.info("Adding app to cache")
+            GithubCache.add(github, version)
+        else:
+            logger.info("App already in cache")
+    logger.info("App can't be added to cache")
+
 
 
 

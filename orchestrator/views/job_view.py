@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from drf_yasg.utils import swagger_auto_schema
+from orchestrator.tasks import add_app_to_cache
 
 
 class JobViewSet(mixins.CreateModelMixin,
@@ -25,6 +26,7 @@ class JobViewSet(mixins.CreateModelMixin,
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
             response = serializer.save()
+            add_app_to_cache.delay(response.data['app'])
             response = JobSerializer(response)
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:
