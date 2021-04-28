@@ -38,9 +38,11 @@ class JobTestCase(APITestCase):
 		self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 	@patch('orchestrator.tasks.submit_job_to_lsf')
-	def test_create(self, submit_jobs_mock):
+	@patch('orchestrator.tasks.add_app_to_cache.delay')
+	def test_create(self, add_app_to_cache, submit_jobs_mock):
 		url = self.api_root + 'jobs/'
 		submit_jobs_mock.return_value = None
+		add_app_to_cache.return_value = None
 		data = {
 			'type': 0,
 			'app': self.example_job.app,
