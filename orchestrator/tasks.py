@@ -14,6 +14,7 @@ from .toil_track_utils import ToilTrack
 from .models import Job, Status, CommandLineToolJob
 from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
+from submitter.app.app import GithubCache
 from ridgeback.settings import MAX_RUNNING_JOBS
 from orchestrator.commands import Command, CommandType
 from orchestrator.exceptions import RetryException, StopException
@@ -82,6 +83,12 @@ def resume_job(job):
 @shared_task
 @memcache_lock("rb_submit_pending_jobs")
 def process_jobs():
+    status_jobs = Job.objects.filter(
+        status__in=(Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,)).values_list('pk', flat=True)
+    for job_id in status_jobs:
+        # Send CHECK_STATUS commands for Jobs
+        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, job_id).to_dict())
+
     jobs_running = Job.objects.filter(
         status__in=(Status.SUBMITTING, Status.SUBMITTED, Status.PENDING, Status.RUNNING,)).count()
     jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
@@ -97,12 +104,6 @@ def process_jobs():
             if Status(job.status).transition(Status.SUBMITTING):
                 job.update_status(Status.SUBMITTING)
                 command_processor.delay(Command(CommandType.SUBMIT, str(job.id)).to_dict())
-
-    status_jobs = Job.objects.filter(
-        status__in=(Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,)).values_list('pk', flat=True)
-    for job_id in status_jobs:
-        # Send CHECK_STATUS commands for Jobs
-        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, job_id).to_dict())
 
 
 @shared_task(bind=True)
@@ -264,7 +265,6 @@ def clean_directory(path):
         logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
         return False
     return True
-
 
 
 @shared_task(bind=True)
