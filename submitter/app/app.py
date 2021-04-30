@@ -1,11 +1,9 @@
 import os
 import git
-import uuid
 import shutil
 import logging
-from django.conf import settings
-from django.core.cache import cache
-from lib.memcache_lock import memcache_lock
+from submitter.app.cache.github_cache import GithubCache
+
 
 
 class App(object):
@@ -29,42 +27,6 @@ class App(object):
 
     def _cleanup(self, location):
         shutil.rmtree(location)
-
-
-class GithubCache(object):
-    logger = logging.getLogger(__name__)
-
-    @staticmethod
-    def get(github, version):
-        GithubCache.logger.info('Looking for App in Cache with %s %s' % (github, version))
-        cache_key = GithubCache._cache_key(github, version)
-        _app_location = cache.get(cache_key)
-        return _app_location if _app_location else None
-
-    @staticmethod
-    def add(github, version):
-        GithubCache.logger.info('Add App to Cache with %s %s' % (github, version))
-        location = os.path.join(settings.APP_CACHE, str(uuid.uuid4()))
-        GithubCache.logger.info("App Cache location %s" % location)
-        os.makedirs(location)
-        dirname = GithubCache._extract_dirname_from_github_link(github)
-        if not os.path.exists(os.path.join(location, dirname)):
-            git.Git(location).clone(github, '--branch', version, '--recurse-submodules')
-        full_path = os.path.join(location, dirname)
-        cache.add(GithubCache._cache_key(github, version), full_path, None)
-        GithubCache.logger.info("App Cache full path %s" % full_path)
-        return full_path
-
-    @staticmethod
-    def _cache_key(github, version):
-        return 'github_{link}_{version}'.format(link=github, version=version)
-
-    @staticmethod
-    def _extract_dirname_from_github_link(github):
-        dirname = github.rsplit('/', 2)[1] if github.endswith('/') else github.rsplit('/', 1)[1]
-        if dirname.endswith('.git'):
-            dirname = dirname[:-4]
-        return dirname
 
 
 class GithubApp(App):
