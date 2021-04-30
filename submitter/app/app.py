@@ -1,6 +1,9 @@
 import os
 import git
 import shutil
+import logging
+from submitter.app.cache.github_cache import GithubCache
+
 
 
 class App(object):
@@ -28,6 +31,7 @@ class App(object):
 
 class GithubApp(App):
     type = "github"
+    logger = logging.getLogger(__name__)
 
     def __init__(self, github, entrypoint, version='master'):
         super().__init__()
@@ -36,10 +40,14 @@ class GithubApp(App):
         self.version = version
 
     def resolve(self, location):
-        dirname = self._extract_dirname_from_github_link()
-        if not os.path.exists(os.path.join(location, dirname)):
+        dirname = os.path.join(location, self._extract_dirname_from_github_link())
+        cached = GithubCache.get(self.github, self.version)
+        if cached:
+            self.logger.info("App found in cache %s" % cached)
+            os.symlink(cached, dirname)
+        elif not os.path.exists(dirname):
             git.Git(location).clone(self.github, '--branch', self.version, '--recurse-submodules')
-        return os.path.join(location, dirname, self.entrypoint)
+        return os.path.join(dirname, self.entrypoint)
 
     def _extract_dirname_from_github_link(self):
         dirname = self.github.rsplit('/', 2)[1] if self.github.endswith('/') else self.github.rsplit('/', 1)[1]

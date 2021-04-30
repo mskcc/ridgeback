@@ -254,3 +254,7 @@ CLEANUP_FAILED_JOBS = os.environ.get('RIDGEBACK_CLEANUP_FAILED_JOBS', 30)
 
 STATIC_ROOT = 'ridgeback_staticfiles'
 STATIC_URL = '/static/'
+
+# App Cache Configuration
+
+APP_CACHE = os.environ.get('RIDGEBACK_APP_CACHE', '/tmp')
