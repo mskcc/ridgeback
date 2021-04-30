@@ -267,22 +267,6 @@ def clean_directory(path):
     return True
 
 
-@shared_task
-@memcache_lock('add_app_to_cache')
-def add_app_to_cache(app):
-    if app.get('github'):
-        github = app['github']['repository']
-        version = app['github'].get('version', 'master')
-        if not GithubCache.get(github, version):
-            logger.info("Adding app to cache")
-            GithubCache.add(github, version)
-        else:
-            logger.info("App already in cache")
-    logger.info("App can't be added to cache")
-
-
-
-
 @shared_task(bind=True)
 def check_status_of_command_line_jobs(self):
     jobs = Job.objects.filter(status__in=(Status.CREATED, Status.RUNNING))
