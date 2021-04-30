@@ -11,6 +11,7 @@ class GithubCache(object):
     def get(github, version):
         expected_path = GithubCache._generate_directory_name(github, version)
         full_dir = os.path.join(expected_path, GithubCache._extract_dirname_from_github_link(github))
+        GithubCache.logger.info("Looking for pipeline in cache : %s" % full_dir)
         if os.path.exists(full_dir):
             GithubCache.logger.info("Pipeline found in cache : %s" % full_dir)
             return full_dir
