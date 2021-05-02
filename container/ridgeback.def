@@ -223,7 +223,7 @@ Includecmd: no
     export CELERY_FLOWER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_flower.pid
 
     echo "Killing celery services with the following settings:"
-    echo "RIDGEBACK_PATH:"$BEAGLE_PATH
+    echo "RIDGEBACK_PATH:"$RIDGEBACK_PATH
     echo "CELERY_LOG_PATH:"$CELERY_LOG_PATH
     echo "CELERY_PID_PATH:"$CELERY_PID_PATH
     echo "CELERY_BEAT_SCHEDULE_PATH:"$CELERY_BEAT_SCHEDULE_PATH
@@ -274,7 +274,7 @@ Includecmd: no
     export CELERY_FLOWER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_flower.pid
 
     echo "Current celery settings:"
-    echo "BEAGLE_PATH:"$RIDGEBACK_PATH
+    echo "RIDGEBACK_PATH:"$RIDGEBACK_PATH
     echo "CELERY_LOG_PATH:"$CELERY_LOG_PATH
     echo "CELERY_PID_PATH:"$CELERY_PID_PATH
     echo "CELERY_BEAT_SCHEDULE_PATH:"$CELERY_BEAT_SCHEDULE_PATH
