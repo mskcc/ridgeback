@@ -75,13 +75,12 @@ SINGULARITYENV_RIDGEBACK_LSF_STACKLIMIT | stacklimit for LSF | None
 
 ##### Celery
 
-Optional Variable       | Description | Default
+Variable       | Description | Suggested Default
 :--- | :--- | :---
 SINGULARITYENV_CELERY_LOG_PATH | Path to store the celery log files | /tmp
 SINGULARITYENV_CELERY_PID_PATH | Path to store the celery pid files | /tmp
 SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH | Path to store the beat schedule path | /tmp
-
-
+SINGULARITYENV_CELERY_EVENT_QUEUE_PREFIX | Prefix to identify celery workers by | ridgeback.queue
 
 
 #### Configure singularity mount points
@@ -94,9 +93,9 @@ export SINGULARITY_BIND="/juno,$SINGULARITYENV_LSF_LIBDIR,$SINGULARITYENV_LSF_SE
 
 #### Running an instance
 
-Running the following command will create a ridgeback instance named `ridgeback_service`
+Running the following command will create a beagle instance named `ridgeback`
 ```
-singularity instance start ridgeback_service.sif ridgeback_service
+singularity instance start ridgeback.sif ridgeback
 ```
 
 This is accessible through the port number set through `SINGULARITYENV_RIDGEBACK_PORT`
@@ -105,4 +104,24 @@ For example, if `SINGULARITYENV_RIDGEBACK_PORT=4003` on a machine called `silo`:
 
 ```
 http://silo:4003
+```
+
+#### Starting the ridgeback service, celery
+
+To start ridgeback and its celery component:
+```
+singularity run --app ridgeback-start instance://ridgeback
+singularity run --app celery-start instance://ridgeback
+```
+
+#### Viewing and stopping celery
+
+Use `celery-env` to view current running celery processes:
+```
+singularity run --app celery-env instance://ridgeback
+```
+
+To stop all celery processes running for `$SINGULARITYENV_CELERY_EVENT_QUEUE_PREFIX`, use `celery-stop`:
+```
+singularity run --app celery-stop instance://ridgeback
 ```
