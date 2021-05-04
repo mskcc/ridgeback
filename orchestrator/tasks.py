@@ -10,7 +10,6 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
 from .models import Job, Status, CommandLineToolJob, PipelineType
-from submitter.toil_submitter import track_commandline_jobs
 import shutil
 from lib.memcache_lock import memcache_lock
 from ridgeback.settings import MAX_RUNNING_JOBS
@@ -321,6 +320,8 @@ def check_status_of_jobs(self):
                     update_message_by_key(job, "failed_jobs", failed_jobs)
                     update_message_by_key(job, "unknown_jobs", unknown_jobs)
                     job.finished = now()
+                if os.path.exists(job.job_store_location):
+                    check_status_of_command_line_jobs.delay(job)
             else:
                 logger.info(
                     "Job [{}], Failed to retrieve job status for job with external id {}".format(
@@ -350,7 +351,7 @@ def update_command_line_jobs(command_line_jobs, root):
             command_line_job.details = job_obj["details"]
             command_line_job.save()
         else:
-            single_tool_module = CommandLineToolJob(
+            CommandLineToolJob.objects.create(
                 root=root,
                 status=job_obj["status"],
                 started=get_aware_datetime(job_obj["started"]),
@@ -360,24 +361,21 @@ def update_command_line_jobs(command_line_jobs, root):
                 job_id=job_id,
                 details=job_obj["details"],
             )
-            single_tool_module.save()
 
 
 @shared_task(bind=True)
-def check_status_of_command_line_jobs(self):
-    leader_jobs = Job.objects.filter(status__in=(Status.CREATED, Status.RUNNING))
+def check_status_of_command_line_jobs(self, job):
+    submiter = JobSubmitterFactory.factory(
+        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location
+    )
+    track_cache_str = job.track_cache
+    command_line_status = submiter.get_commandline_status(track_cache_str)
     command_line_jobs = {}
-    for current_leader_job in leader_jobs:
-        if current_leader_job.type == PipelineType.CWL:
-            job_store_path = current_leader_job.job_store_location
-            work_dir_path = current_leader_job.working_dir
-            resume_jobstore = current_leader_job.resume_job_store_location
-            track_cache_str = current_leader_job.track_cache
-            command_line_jobs_str, new_track_cache_str = track_commandline_jobs(
-                job_store_path, work_dir_path, resume_jobstore, track_cache_str
-            )
-            command_line_jobs = json.loads(command_line_jobs_str)
-            new_track_cache = json.loads(new_track_cache_str)
-            current_leader_job.track_cache = new_track_cache
-            current_leader_job.save()
-            update_command_line_jobs(command_line_jobs, current_leader_job)
+    if command_line_status:
+        command_line_jobs_str, new_track_cache_str = command_line_status
+        new_track_cache = json.loads(new_track_cache_str)
+        command_line_jobs = json.loads(command_line_jobs_str)
+        job.track_cache = new_track_cache
+        job.save()
+    if command_line_jobs:
+        update_command_line_jobs(command_line_jobs, job)
