@@ -1,14 +1,13 @@
-import time
+import uuid
+from mock import patch, call
 from django.test import TestCase
-from django.conf import settings
-from unittest import skip
-from unittest.mock import patch
-from orchestrator.tasks import check_job_status
-from orchestrator.models import Status
-from orchestrator.models import Job, PipelineType
+from orchestrator.commands import CommandType, Command
+from orchestrator.models import Job, Status, PipelineType
+from orchestrator.exceptions import RetryException
+from orchestrator.tasks import command_processor, check_job_status, process_jobs, cleanup_folders, get_job_info_path
 
 
-class CheckStatusOfJobsTest(TestCase):
+class TasksTest(TestCase):
 
     def setUp(self):
         pass
@@ -130,6 +129,13 @@ class CheckStatusOfJobsTest(TestCase):
         self.assertFalse(failed.transition(Status.PENDING))
         self.assertFalse(failed.transition(Status.CREATED))
 
+    @patch('django.core.cache.cache.delete')
+    @patch('django.core.cache.cache.add')
+    def test_check_status_unexisting_job(self, add, delete):
+        add.return_value = True
+        delete.return_value = True
+        command_processor(Command(CommandType.SUBMIT, str(uuid.uuid4())).to_dict())
+
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
     def test_submitted_to_pending(self, status):
         job = Job.objects.create(type=PipelineType.CWL,
@@ -174,22 +180,100 @@ class CheckStatusOfJobsTest(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
 
-    @skip("Don't test yet")
-    @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    def test_load_test(self, status):
-        def make_sleeper(rv):
-            def _(*args, **kwargs):
-                # time.sleep(0.1)
-                return rv
-            return _
+    @patch('orchestrator.tasks.command_processor.delay')
+    def test_process_jobs(self, command_processor):
+        job_pending_1 = Job.objects.create(type=PipelineType.CWL,
+                                 app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
+                                 external_id='ext_id', status=Status.PENDING)
+        job_created_1 = Job.objects.create(type=PipelineType.CWL,
+                                           app={"github": {"version": "1.0.0", "entrypoint": "test.cwl",
+                                                           "repository": ""}},
+                                           external_id='ext_id', status=Status.CREATED)
 
-        for i in range(1000):
-            Job.objects.create(type=PipelineType.CWL,
-                               app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
-                               external_id='ext_id', status=Status.PENDING)
-        dump_info_file.return_value = None
-        status.side_effect = make_sleeper((Status.RUNNING, ""))
-        start = time.time()
-        # check_job_status()
-        end = time.time()
-        print(end - start)
+        process_jobs()
+        calls = [
+            call(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)).to_dict()),
+            call(Command(CommandType.SUBMIT, str(job_created_1.id)).to_dict()),
+        ]
+
+        command_processor.assert_has_calls(calls, any_order=True)
+
+    @patch('django.core.cache.cache.delete')
+    @patch('django.core.cache.cache.add')
+    @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
+    def test_check_status_command_processor(self, status, add, delete):
+
+        def _raise_retryable_exception():
+            raise Exception()
+
+        job_pending_1 = Job.objects.create(type=PipelineType.CWL,
+                                           app={"github": {"version": "1.0.0", "entrypoint": "test.cwl",
+                                                           "repository": ""}},
+                                           external_id='ext_id', status=Status.PENDING)
+        add.return_value = True
+        delete.return_value = True
+        status.side_effect = _raise_retryable_exception
+        with self.assertRaises(RetryException):
+            command_processor(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)).to_dict())
+
+    @patch('django.core.cache.cache.delete')
+    @patch('django.core.cache.cache.add')
+    @patch('batch_systems.lsf_client.lsf_client.LSFClient.abort')
+    def test_command_processor_abort(self, abort, add, delete):
+        job_pending = Job.objects.create(type=PipelineType.CWL,
+                                         app={"github": {"version": "1.0.0", "entrypoint": "test.cwl",
+                                                         "repository": ""}},
+                                         external_id='ext_id', status=Status.PENDING)
+        add.return_value = True
+        delete.return_value = True
+        abort.return_value = True
+        command_processor(Command(CommandType.ABORT, str(job_pending.id)).to_dict())
+        job_pending.refresh_from_db()
+        self.assertEqual(job_pending.status, Status.ABORTED)
+
+    @patch('django.core.cache.cache.delete')
+    @patch('django.core.cache.cache.add')
+    @patch('batch_systems.lsf_client.lsf_client.LSFClient.suspend')
+    def test_command_processor_suspend(self, suspend, add, delete):
+        job_running = Job.objects.create(type=PipelineType.CWL,
+                                         app={"github": {"version": "1.0.0", "entrypoint": "test.cwl",
+                                                         "repository": ""}},
+                                         external_id='ext_id', status=Status.RUNNING)
+        add.return_value = True
+        delete.return_value = True
+        suspend.return_value = True
+        command_processor(Command(CommandType.SUSPEND, str(job_running.id)).to_dict())
+        job_running.refresh_from_db()
+        self.assertEqual(job_running.status, Status.SUSPENDED)
+
+    @patch('django.core.cache.cache.delete')
+    @patch('django.core.cache.cache.add')
+    @patch('batch_systems.lsf_client.lsf_client.LSFClient.resume')
+    def test_command_processor_resume(self, suspend, add, delete):
+        job_suspended = Job.objects.create(type=PipelineType.CWL,
+                                           app={"github": {"version": "1.0.0", "entrypoint": "test.cwl",
+                                                           "repository": ""}},
+                                           external_id='ext_id', status=Status.SUSPENDED)
+        add.return_value = True
+        delete.return_value = True
+        suspend.return_value = True
+        command_processor(Command(CommandType.RESUME, str(job_suspended.id)).to_dict())
+        job_suspended.refresh_from_db()
+        self.assertEqual(job_suspended.status, Status.RUNNING)
+
+    @patch('orchestrator.tasks.clean_directory')
+    def test_cleanup_folders(self, clean_directory):
+        cleanup_job = Job.objects.create(type=PipelineType.CWL,
+                                         app={"github": {"version": "1.0.0", "entrypoint": "test.cwl",
+                                                         "repository": ""}},
+                                         external_id='ext_id', status=Status.FAILED)
+        clean_directory.return_value = True
+        cleanup_folders(str(cleanup_job.id))
+        cleanup_job.refresh_from_db()
+        self.assertIsNotNone(cleanup_job.job_store_clean_up)
+        self.assertIsNotNone(cleanup_job.job_store_clean_up)
+
+    def test_get_job_info_path(self):
+        with self.settings(TOIL_WORK_DIR_ROOT='/toil/work/dir/root'):
+            res = get_job_info_path('job_id')
+            self.assertEqual(res, '/toil/work/dir/root/job_id/.run.info')

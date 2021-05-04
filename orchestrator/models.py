@@ -1,8 +1,12 @@
 import uuid
+import logging
 from enum import IntEnum
 from django.db import models
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
+
+
+logger = logging.getLogger(__name__)
 
 
 def message_default():
@@ -29,31 +33,62 @@ class Status(IntEnum):
 
     def transition(self, transition_to):
         if self == self.CREATED:
+            """
+            When job is received for execution it is in CREATED state. It is picked up by process_jobs and if 
+            conditions are satisfied SUBMIT Command will be sent for that job, and it will be moved to SUBMITTING 
+            state. Job in CREATED state can also be ABORTED
+            """
             if transition_to in (self.SUBMITTING, self.ABORTED,):
                 return True
         elif self == self.SUBMITTING:
             if transition_to in (self.SUBMITTED, self.ABORTED):
+                """
+                SUBMIT Command submits job to scheduler, and move the job to SUBMITTED state. Job can also be ABORTED 
+                while in SUBMITTING state by ABORT Command
+                """
                 return True
         elif self == self.SUBMITTED:
+            """
+            From SUBMITTED state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED, 
+            SUSPENDED, UNKNOWN. Job can also be ABORTED, and in that case ABORT command sends abort signal to scheduler
+            """
             if transition_to in (
             self.PENDING, self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
         elif self == self.PENDING:
+            """
+            From PENDING state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED, 
+            SUSPENDED, UNKNOWN. Job can also be ABORTED, and in that case ABORT command sends abort signal to scheduler 
+            """
             if transition_to in (self.PENDING, self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
         elif self == self.RUNNING:
+            """
+            From RUNNING state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED, 
+            SUSPENDED, UNKNOWN. Job can also be ABORTED, and in that case ABORT command sends abort signal to scheduler
+            """
             if transition_to in (self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
         elif self in (self.COMPLETED, self.FAILED, self.ABORTED,):
-            # Terminal state
+            """
+            COMPLETED, FAILED and ABORTED states are final states. There is no transition to any other state
+            """
             return False
         elif self == self.UNKNOWN:
-            # Can transition to all lsf states
+            """
+            From UNKNOWN state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED, 
+            SUSPENDED, UNKNOWN.
+            """
             if transition_to in (self.PENDING, self.RUNNING, self.COMPLETED, self.FAILED, self.ABORTED, self.SUSPENDED, self.UNKNOWN):
                 return True
         elif self == self.SUSPENDED:
+            """
+            From SUSPENDED state job can transition to PENDING and RUNNING state. Job can also be ABORTED while 
+            SUSPENDED 
+            """
             if transition_to in (self.PENDING, self.RUNNING, self.ABORTED,):
                 return True
+        logger.error('Invalid transition %s to %s' % (self.name, Status(transition_to).name))
         return False
 
 
