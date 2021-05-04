@@ -21,6 +21,7 @@ Includecmd: no
     && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH
     cd /usr/bin/ridgeback \
     && python3 -m pip install python-ldap \
+    && pip3 install toil==3.21.0 \
     && pip3 install -r requirements.txt
 
 
@@ -40,9 +41,93 @@ Includecmd: no
         exit 1
     fi
 
-    nohup python3 ${RIDGEBACK_PATH}/manage.py migrate
-    nohup python3 ${RIDGEBACK_PATH}/manage.py collectstatic
-    nohup python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT
+    ### Required envs to connect with postgres db
+    if [ -z "$RIDGEBACK_DB_NAME" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_NAME is not set."
+        exit 1
+    fi
+
+    if [ -z "$RIDGEBACK_DB_USERNAME" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_USERNAME is not set."
+        exit 1
+    fi
+
+    if [ -z "$RIDGEBACK_DB_PASSWORD" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_PASSWORD is not set."
+        exit 1
+    fi
+
+    ### Required envs to establish toil
+    if [ -z "$RIDGEBACK_TOIL_JOB_STORE_ROOT" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_TOIL_JOB_STORE_ROOT is not setr."
+        exit 1
+    fi
+
+    if [ -z "$RIDGEBACK_TOIL_WORK_DIR_ROOT" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_TOIL_WORK_DIR_ROOT is not setr."
+        exit 1
+    fi
+
+    if [ -z "$RIDGEBACK_TOIL_TMP_DIR_ROOT" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_TOIL_TMP_DIR_ROOT is not set."
+        exit 1
+    fi
+
+    if [ -z "$RIDGEBACK_TOIL" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_TOIL not set."
+        exit 1
+    fi
+
+    ### Required envs to establish nextflow
+    if [ -z "$RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT is not setr."
+        exit 1
+    fi
+
+    if [ -z "$RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT is not setr."
+        exit 1
+    fi
+
+    if [ -z "$RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT is not set."
+        exit 1
+    fi
+
+    ### LSF Parameters to communicate with LSF
+    if [ -z "$RIDGEBACK_LSF_WALLTIME" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_LSF_WALLTIME not set."
+        exit 1
+    fi
+
+    if [ -z "$RIDGEBACK_LSF_SLA" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_LSF_SLA not set."
+        exit 1
+    fi
+
+    if [ -z "$LSF_ENVDIR" ]; then
+        echo "ERROR: SINGULARITYENV_LSF_ENVDIR is not set."
+        exit 1
+    fi
+
+    if [ -z "$LSF_BINDIR" ]; then
+        echo "ERROR: SINGULARITYENV_LSF_BINDIR is not set."
+        exit 1
+    fi
+
+    if [ -z "$LSF_LIBDIR" ]; then
+        echo "ERROR: SINGULARITYENV_LSF_LIBDIR is not set."
+        exit 1
+    fi
+
+    if [ -z "$LSF_SERVERDIR" ]; then
+        echo "ERROR: SINGULARITYENV_LSF_SERVERDIR is not set."
+        exit 1
+    fi
+
+    python3 ${RIDGEBACK_PATH}/manage.py migrate
+    python3 ${RIDGEBACK_PATH}/manage.py collectstatic
+    python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
 
 ##############################
 # start celery
@@ -50,6 +135,7 @@ Includecmd: no
 
 %apprun celery-start
 
+    ### General env variables
     if [ -z "$RIDGEBACK_VENV" ]; then
         echo "ERROR environment variable SINGULARITYENV_RIDGEBACK_VENV is not defined, Toil will not work"
         exit 1
@@ -70,26 +156,54 @@ Includecmd: no
         exit 1
     fi
 
-    if [ -z "${CELERY_LOG_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_LOG_PATH not set; suggest setting to default /tmp, accessible by container."
+    ### rabbitmq queue variables
+    if [ -z "RIDGEBACK_CHECK_STATUS_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CHECK_STATUS_QUEUE is not defined"
+        exit 1
+    fi
+    
+    if [ -z "RIDGEBACK_CHECK_STATUS_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_ACTION_QUEUE is not defined"
         exit 1
     fi
 
-    if [ -z "${CELERY_PID_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_PID_PATH not set; suggest setting to default /tmp, accessible by container."
+    if [ -z "RIDGEBACK_CLEANUP_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CLEANUP_QUEUE is not defined"
+        exit 1
+    fi
+    
+    if [ -z "RIDGEBACK_SUBMIT_JOB_LSF_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_SUBMIT_JOB_LSF_QUEUE is not defined"
         exit 1
     fi
 
-    if [ -z "${CELERY_BEAT_SCHEDULE_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH not set; suggest setting to default /tmp, accessible by container."
+    if [ -z "RIDGEBACK_SUBMIT_JOB_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_SUBMIT_JOB_QUEUE is not defined"
         exit 1
     fi
 
-    if [ -z "${CELERY_EVENT_QUEUE_PREFIX}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_EVENT_QUEUE_PREFIX not set."
+    ### Celery env variables
+    if [ -z "${RIDGEBACK_CELERY_LOG_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_LOG_PATH not set; suggest setting to default /tmp, accessible by container."
         exit 1
     fi
 
+    if [ -z "${RIDGEBACK_CELERY_PID_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_PID_PATH not set; suggest setting to default /tmp, accessible by container."
+        exit 1
+    fi
+
+    if [ -z "${RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH not set; suggest setting to default /tmp, accessible by container."
+        exit 1
+    fi
+
+    if [ -z "${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX not set."
+        exit 1
+    fi
+
+    ### LSF env variables
     if [ -z "$LSF_LIBDIR" ]; then
         echo "ERROR environment variable LSF_LIBDIR is not defined, LSF will not work"
         exit 1
@@ -139,50 +253,50 @@ Includecmd: no
     nohup celery -A orchestrator beat \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
-    -f ${CELERY_LOG_PATH}/ridgeback_beat.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid \
-    -s ${CELERY_BEAT_SCHEDULE_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.celerybeat-schedule >/dev/null 2>&1 < /dev/null &
+    -f ${RIDGEBACK_CELERY_LOG_PATH}/ridgeback_beat.log \
+    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid \
+    -s ${RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.celerybeat-schedule >/dev/null 2>&1 < /dev/null &
 
     nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE} \
-    -f ${CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.pid \
+    -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.log \
+    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.pid \
     --concurrency=10 \
-    -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE} >/dev/null 2>&1 < /dev/null &
+    -n ${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE} >/dev/null 2>&1 < /dev/null &
 
     nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_ACTION_QUEUE} \
-    -f ${CELERY_LOG_PATH}/${RIDGEBACK_ACTION_QUEUE}.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid \
+    -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_ACTION_QUEUE}.log \
+    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid \
     --concurrency=10 \
-    -n ${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE} >/dev/null 2>&1 < /dev/null &
+    -n ${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE} >/dev/null 2>&1 < /dev/null &
 
     nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
-    -f ${CELERY_LOG_PATH}/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
+    -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
+    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
     nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
-    -f ${CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
+    -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
+    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
     nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CLEANUP_QUEUE} \
-    -f ${CELERY_LOG_PATH}/${RIDGEBACK_CLEANUP_QUEUE}.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid \
+    -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_CLEANUP_QUEUE}.log \
+    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid \
     --concurrency=2 >/dev/null 2>&1 < /dev/null &
 
 
@@ -196,52 +310,81 @@ Includecmd: no
         exit 1
     fi
 
-    if [ -z "${CELERY_LOG_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_LOG_PATH not set; suggest setting to default /tmp, accessible by container."
+    if [ -z "${RIDGEBACK_CELERY_LOG_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_LOG_PATH not set; suggest setting to default /tmp, accessible by container."
         exit 1
     fi
 
-    if [ -z "${CELERY_PID_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_PID_PATH not set; suggest setting to default /tmp, accessible by container."
+    if [ -z "${RIDGEBACK_CELERY_PID_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_PID_PATH not set; suggest setting to default /tmp, accessible by container."
         exit 1
     fi
 
-    if [ -z "${CELERY_BEAT_SCHEDULE_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH not set; suggest setting to default /tmp, accessible by container."
+    if [ -z "${RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH not set; suggest setting to default /tmp, accessible by container."
         exit 1
     fi
 
-    if [ -z "${CELERY_EVENT_QUEUE_PREFIX}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_EVENT_QUEUE_PREFIX not set."
+    if [ -z "${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX not set."
         exit 1
     fi
 
-    export CELERY_BEAT_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_beat.pid
-    export CELERY_WORKER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_worker.pid
-    export CELERY_SCHEDULER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_scheduler.pid
-    export CELERY_RUNNER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_runner.pid
-    export CELERY_FLOWER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_flower.pid
+    ### rabbitmq queue variables
+    if [ -z "RIDGEBACK_CHECK_STATUS_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CHECK_STATUS_QUEUE is not defined"
+        exit 1
+    fi
+    
+    if [ -z "RIDGEBACK_CHECK_STATUS_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_ACTION_QUEUE is not defined"
+        exit 1
+    fi
+
+    if [ -z "RIDGEBACK_CLEANUP_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CLEANUP_QUEUE is not defined"
+        exit 1
+    fi
+    
+    if [ -z "RIDGEBACK_SUBMIT_JOB_LSF_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_SUBMIT_JOB_LSF_QUEUE is not defined"
+        exit 1
+    fi
+
+    if [ -z "RIDGEBACK_SUBMIT_JOB_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_SUBMIT_JOB_QUEUE is not defined"
+        exit 1
+    fi
+
+    export RIDGEBACK_CELERY_BEAT_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid
+    export RIDGEBACK_SUBMIT_JOB_LSF_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.pid
+    export RIDGEBACK_ACTION_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid
+    export RIDGEBACK_CHECK_STATUS_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid
+    export RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid
+    export RIDGEBACK_CLEANUP_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid
 
     echo "Killing celery services with the following settings:"
     echo "RIDGEBACK_PATH:"$RIDGEBACK_PATH
-    echo "CELERY_LOG_PATH:"$CELERY_LOG_PATH
-    echo "CELERY_PID_PATH:"$CELERY_PID_PATH
-    echo "CELERY_BEAT_SCHEDULE_PATH:"$CELERY_BEAT_SCHEDULE_PATH
-    echo "CELERY_EVENT_QUEUE_PREFIX:"$CELERY_EVENT_QUEUE_PREFIX
-    echo "CELERY_BEAT_PID_FILE:"$CELERY_BEAT_PID_FILE
-    echo "CELERY_WORKER_PID_FILE:"$CELERY_WORKER_PID_FILE
-    echo "CELERY_SCHEDULER_PID_FILE:"$CELERY_SCHEDULER_PID_FILE
-    echo "CELERY_RUNNER_PID_FILE:"$CELERY_RUNNER_PID_FILE
-    echo "CELERY_FLOWER_PID_FILE:"$CELERY_FLOWER_PID_FILE
+    echo "RIDGEBACK_CELERY_LOG_PATH:"$RIDGEBACK_CELERY_LOG_PATH
+    echo "RIDGEBACK_CELERY_PID_PATH:"$RIDGEBACK_CELERY_PID_PATH
+    echo "RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH:"$RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH
+    echo "RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX:"$RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX
+    echo "RIDGEBACK_CELERY_BEAT_PID_FILE:"$RIDGEBACK_CELERY_BEAT_PID_FILE
+    echo "RIDGEBACK_SUBMIT_JOB_LSF_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_LSF_QUEUE_PID_FILE
+    echo "RIDGEBACK_ACTION_PID_FILE:"$RIDGEBACK_ACTION_PID_FILE
+    echo "RIDGEBACK_CHECK_STATUS_QUEUE_PID_FILE:"$RIDGEBACK_CHECK_STATUS_QUEUE_PID_FILE
+    echo "RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
+    echo "RIDGEBACK_CLEANUP_QUEUE_PID_FILE:"$RIDGEBACK_CLEANUP_QUEUE_PID_FILE
 
-    ps auxww | grep 'celery' | grep $CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
-    ps auxww | grep 'celery' | grep $CELERY_WORKER_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
-    ps auxww | grep 'celery' | grep $CELERY_SCHEDULER_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
-    ps auxww | grep 'celery' | grep $CELERY_RUNNER_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
-    ps auxww | grep 'celery' | grep $CELERY_FLOWER_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+    ps auxww | grep 'celery' | grep $RIDGEBACK_CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+    ps auxww | grep 'celery' | grep $RIDGEBACK_SUBMIT_JOB_LSF_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+    ps auxww | grep 'celery' | grep $RIDGEBACK_ACTION_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+    ps auxww | grep 'celery' | grep $RIDGEBACK_CHECK_STATUS_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+    ps auxww | grep 'celery' | grep $RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+    ps auxww | grep 'celery' | grep $RIDGEBACK_CLEANUP_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
 
 ############################################################
-# check env variables with celery-env, beagle-env 
+# check env variables with celery-env
 # 
 # view how many processes are running for each celery worker
 ############################################################
@@ -252,51 +395,57 @@ Includecmd: no
         exit 1
     fi
 
-    if [ -z "${CELERY_LOG_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_LOG_PATH not set; suggest setting to default /tmp, accessible by container."
+    if [ -z "${RIDGEBACK_CELERY_LOG_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_LOG_PATH not set; suggest setting to default /tmp, accessible by container."
         exit 1
     fi
 
-    if [ -z "${CELERY_PID_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_PID_PATH not set; suggest setting to default /tmp, accessible by container."
+    if [ -z "${RIDGEBACK_CELERY_PID_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_PID_PATH not set; suggest setting to default /tmp, accessible by container."
         exit 1
     fi
 
-    if [ -z "${CELERY_BEAT_SCHEDULE_PATH}" ]; then
-        echo "ERROR: SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH not set; suggest setting to default /tmp, accessible by container."
+    if [ -z "${RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH not set; suggest setting to default /tmp, accessible by container."
         exit 1
     fi
 
-    export CELERY_BEAT_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_beat.pid
-    export CELERY_WORKER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_worker.pid
-    export CELERY_SCHEDULER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_scheduler.pid
-    export CELERY_RUNNER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_runner.pid
-    export CELERY_FLOWER_PID_FILE=${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.beagle_flower.pid
+    if [ -z "${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX not set."
+        exit 1
+    fi
+ 
+
+    export RIDGEBACK_CELERY_BEAT_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid
+    export RIDGEBACK_SUBMIT_JOB_LSF_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_LSF_QUEUE}.pid
+    export RIDGEBACK_ACTION_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid
+    export RIDGEBACK_CHECK_STATUS_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid
+    export RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid
+    export RIDGEBACK_CLEANUP_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid
 
     echo "Current celery settings:"
     echo "RIDGEBACK_PATH:"$RIDGEBACK_PATH
-    echo "CELERY_LOG_PATH:"$CELERY_LOG_PATH
-    echo "CELERY_PID_PATH:"$CELERY_PID_PATH
-    echo "CELERY_BEAT_SCHEDULE_PATH:"$CELERY_BEAT_SCHEDULE_PATH
-    echo "CELERY_EVENT_QUEUE_PREFIX:"$CELERY_EVENT_QUEUE_PREFIX
-    echo "CELERY_BEAT_PID_FILE:"$CELERY_BEAT_PID_FILE
-    echo "CELERY_WORKER_PID_FILE:"$CELERY_WORKER_PID_FILE
-    echo "CELERY_SCHEDULER_PID_FILE:"$CELERY_SCHEDULER_PID_FILE
-    echo "CELERY_RUNNER_PID_FILE:"$CELERY_RUNNER_PID_FILE
-    echo "CELERY_FLOWER_PID_FILE:"$CELERY_FLOWER_PID_FILE
+    echo "RIDGEBACK_CELERY_LOG_PATH:"$RIDGEBACK_CELERY_LOG_PATH
+    echo "RIDGEBACK_CELERY_PID_PATH:"$RIDGEBACK_CELERY_PID_PATH
+    echo "RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH:"$RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH
+    echo "RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX:"$RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX
+    echo "RIDGEBACK_CELERY_BEAT_PID_FILE:"$RIDGEBACK_CELERY_BEAT_PID_FILE
+    echo "RIDGEBACK_SUBMIT_JOB_LSF_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_LSF_QUEUE_PID_FILE
+    echo "RIDGEBACK_ACTION_PID_FILE:"$RIDGEBACK_ACTION_PID_FILE
+    echo "RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
+    echo "RIDGEBACK_CLEANUP_QUEUE_PID_FILE:"$RIDGEBACK_CLEANUP_QUEUE_PID_FILE
     echo ""
 
-    export CELERY_BEAT=`ps auxww | grep 'celery' | grep $CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
-    export CELERY_WORKER=`ps auxww | grep 'celery' | grep $CELERY_WORKER_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
-    export CELERY_SCHEDULER=`ps auxww | grep 'celery' | grep $CELERY_SCHEDULER_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
-    export CELERY_RUNNER=`ps auxww | grep 'celery' | grep $CELERY_RUNNER_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
-    export CELERY_FLOWER=`ps auxww | grep 'celery' | grep $CELERY_FLOWER_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
+    export RIDGEBACK_CELERY_BEAT=`ps auxww | grep 'celery' | grep $RIDGEBACK_CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
+    export RIDGEBACK_SUBMIT_JOB_LSF_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_SUBMIT_JOB_LSF_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
+    export RIDGEBACK_ACTION_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_ACTION_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
+    export RIDGEBACK_CHECK_STATUS_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_CHECK_STATUS_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
+    export RIDGEBACK_SUBMIT_JOB_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
+    export RIDGEBACK_CLEANUP_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_CLEANUP_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
 
-    echo "Number of celery processes currently running for $CELERY_EVENT_QUEUE_PREFIX:"
-    echo "Beat - $CELERY_BEAT"
-    echo "Worker - $CELERY_WORKER"
-    echo "Scheduler - $CELERY_SCHEDULER"
-    echo "Runner - $CELERY_RUNNER"
-    echo "Flower - $CELERY_FLOWER"
-
-
+    echo "Number of celery processes currently running for $RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX:"
+    echo "Beat - $RIDGEBACK_CELERY_BEAT"
+    echo "Submit job lsf queue - $RIDGEBACK_SUBMIT_JOB_LSF_QUEUE"
+    echo "Action queue - $RIDGEBACK_ACTION_QUEUE"
+    echo "Submit job queue - $RIDGEBACK_SUBMIT_JOB_QUEUE"
+    echo "Cleanup queue - $RIDGEBACK_CLEANUP_QUEUE"
