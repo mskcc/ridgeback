@@ -5,7 +5,6 @@ import logging
 from submitter.app.cache.github_cache import GithubCache
 
 
-
 class App(object):
 
     def factory(app):
