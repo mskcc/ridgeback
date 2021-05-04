@@ -1,15 +1,18 @@
 import os
 import json
 import shutil
+import copy
 from django.conf import settings
-from submitter import JobSubmitter
-from .toil_track_utils import ToilTrack, ToolStatus
 from django.core.serializers.json import DjangoJSONEncoder
 from orchestrator.models import Status
-import copy
+from submitter import JobSubmitter
+from .toil_track_utils import ToilTrack, ToolStatus
 
 
 def translate_toil_to_model_status(status):
+    """
+    Translate status objects from Toil to Ridgeback
+    """
     translation_dict = {
         ToolStatus.PENDING: Status.PENDING,
         ToolStatus.RUNNING: Status.RUNNING,
@@ -18,48 +21,6 @@ def translate_toil_to_model_status(status):
         ToolStatus.UNKNOWN: Status.UNKNOWN,
     }
     return translation_dict[status]
-
-
-def track_commandline_jobs(job_store_path, work_dir_path, resume_jobstore, track_cache_str):
-    restart = False
-    track_cache = {}
-    if resume_jobstore:
-        restart = True
-    if track_cache_str:
-        track_cache = json.loads(track_cache_str)
-    cache_keys = set(["jobs_path", "jobs", "work_log_to_job_id"])
-    jobs_path = {}
-    jobs = {}
-    work_log_to_job_id = {}
-    if cache_keys.issubset(track_cache.keys()):
-        jobs_path = track_cache["jobs_path"]
-        jobs = track_cache["jobs"]
-        work_log_to_job_id = track_cache["work_log_to_job_id"]
-    toil_track_obj = ToilTrack([job_store_path, work_dir_path], restart=restart)
-    toil_track_obj.jobs_path = jobs_path
-    toil_track_obj.jobs = jobs
-    toil_track_obj.work_log_to_job_id = work_log_to_job_id
-    toil_track_obj.check_status()
-    jobs_path = toil_track_obj.jobs_path
-    jobs = toil_track_obj.jobs
-    work_log_to_job_id = toil_track_obj.work_log_to_job_id
-    new_cache = {"jobs_path": jobs_path, "jobs": jobs, "work_log_to_job_id": work_log_to_job_id}
-    new_track_cache = json.dumps(new_cache, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
-    formatted_jobs = copy.deepcopy(jobs)
-    for job_id, single_job in formatted_jobs.items():
-        single_job["status"] = translate_toil_to_model_status(single_job["status"])
-        single_job["details"] = {
-            "cores_req": single_job["cores_req"],
-            "cpu_usage": single_job["cpu_usage"],
-            "job_stream": single_job["job_stream"],
-            "last_modified": single_job["last_modified"],
-            "mem_usage": single_job["mem_usage"],
-            "memory_req": single_job["memory_req"],
-        }
-    job_safe = json.dumps(formatted_jobs, default=str)
-    track_cache_safe = json.dumps(new_track_cache, default=str)
-
-    return job_safe, track_cache_safe
 
 
 class ToilJobSubmitter(JobSubmitter):
@@ -85,6 +46,50 @@ class ToilJobSubmitter(JobSubmitter):
         env["TOIL_LSF_ARGS"] = toil_lsf_args
         external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
+
+    def get_commandline_status(self, cache):
+        """
+        Get the status of the command line tools in the TOIL job
+        """
+        restart = False
+        track_cache = {}
+        if self.resume_jobstore:
+            restart = True
+        if cache:
+            track_cache = json.loads(cache)
+        cache_keys = set(["jobs_path", "jobs", "work_log_to_job_id"])
+        jobs_path = {}
+        jobs = {}
+        work_log_to_job_id = {}
+        if cache_keys.issubset(track_cache.keys()):
+            jobs_path = track_cache["jobs_path"]
+            jobs = track_cache["jobs"]
+            work_log_to_job_id = track_cache["work_log_to_job_id"]
+        toil_track_obj = ToilTrack([self.job_store_dir, self.job_work_dir], restart=restart)
+        toil_track_obj.jobs_path = jobs_path
+        toil_track_obj.jobs = jobs
+        toil_track_obj.work_log_to_job_id = work_log_to_job_id
+        toil_track_obj.check_status()
+        jobs_path = toil_track_obj.jobs_path
+        jobs = toil_track_obj.jobs
+        work_log_to_job_id = toil_track_obj.work_log_to_job_id
+        new_cache = {"jobs_path": jobs_path, "jobs": jobs, "work_log_to_job_id": work_log_to_job_id}
+        new_track_cache = json.dumps(new_cache, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
+        formatted_jobs = copy.deepcopy(jobs)
+        for job_id, single_job in formatted_jobs.items():
+            single_job["status"] = translate_toil_to_model_status(single_job["status"])
+            single_job["details"] = {
+                "cores_req": single_job["cores_req"],
+                "cpu_usage": single_job["cpu_usage"],
+                "job_stream": single_job["job_stream"],
+                "last_modified": single_job["last_modified"],
+                "mem_usage": single_job["mem_usage"],
+                "memory_req": single_job["memory_req"],
+            }
+        job_safe = json.dumps(formatted_jobs, default=str)
+        track_cache_safe = json.dumps(new_track_cache, default=str)
+
+        return job_safe, track_cache_safe
 
     def get_outputs(self):
         error_message = None
