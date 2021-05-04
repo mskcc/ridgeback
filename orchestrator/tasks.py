@@ -65,8 +65,6 @@ def suspend_job(job):
             raise RetryException("Failed to suspend job: %s" % str(job.id))
         job.update_status(Status.SUSPENDED)
         return
-    logger.info("Can't suspend job. Invalid transition from %s to %s for job: %s" % (
-    Status(job.status).name, Status.SUSPENDED.name, str(job.id)))
 
 
 def resume_job(job):
@@ -87,7 +85,7 @@ def process_jobs():
         status__in=(Status.SUBMITTED, Status.PENDING, Status.RUNNING, Status.UNKNOWN,)).values_list('pk', flat=True)
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
-        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, job_id).to_dict())
+        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
 
     jobs_running = Job.objects.filter(
         status__in=(Status.SUBMITTING, Status.SUBMITTED, Status.PENDING, Status.RUNNING,)).count()
@@ -204,7 +202,6 @@ def check_job_status(job):
             _fail(job, lsf_message)
 
     else:
-        logger.warning('Invalid transition %s to %s' % (Status(job.status).name, Status(lsf_status).name))
         raise StopException('Invalid transition %s to %s' % (Status(job.status).name, Status(lsf_status).name))
 
 
