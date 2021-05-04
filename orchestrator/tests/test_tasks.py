@@ -180,8 +180,10 @@ class TasksTest(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
 
+    @patch('django.core.cache.cache.delete')
+    @patch('django.core.cache.cache.add')
     @patch('orchestrator.tasks.command_processor.delay')
-    def test_process_jobs(self, command_processor):
+    def test_process_jobs(self, command_processor, add, delete):
         job_pending_1 = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.PENDING)
@@ -189,6 +191,8 @@ class TasksTest(TestCase):
                                            app={"github": {"version": "1.0.0", "entrypoint": "test.cwl",
                                                            "repository": ""}},
                                            external_id='ext_id', status=Status.CREATED)
+        add.return_value = True
+        delete.return_value = True
 
         process_jobs()
         calls = [
