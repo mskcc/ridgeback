@@ -18,10 +18,10 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
-app.conf.task_routes = {'orchestrator.tasks.submit_job_to_lsf': {'queue': settings.RIDGEBACK_SUBMIT_JOB_LSF_QUEUE},
-                        'orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
-                        'orchestrator.tasks.command_processor': {'queue': settings.RIDGEBACK_COMMAND_QUEUE}
-                        }
+app.conf.task_routes = {
+    'orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
+    'orchestrator.tasks.command_processor': {'queue': settings.RIDGEBACK_COMMAND_QUEUE}
+}
 
 app.conf.beat_schedule = {
     "submit_pending_jobs": {

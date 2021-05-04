@@ -127,9 +127,9 @@ class TestTasks(TestCase):
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.FAILED)
         self.assertNotEqual(self.current_job.finished, None)
-        info_message = get_message(self.current_job)['info']
-        failed_jobs = get_message(self.current_job)['failed_jobs']
-        unknown_jobs = get_message(self.current_job)['unknown_jobs']
+        info_message = self.current_job.message['info']
+        failed_jobs = self.current_job.message['failed_jobs']
+        unknown_jobs = self.current_job.message['unknown_jobs']
         expected_failed_jobs = {}
         expected_unknown_jobs = {}
         self.assertTrue('External id not provided' in info_message)
