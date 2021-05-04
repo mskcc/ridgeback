@@ -77,10 +77,10 @@ SINGULARITYENV_RIDGEBACK_LSF_STACKLIMIT | stacklimit for LSF | None
 
 Variable       | Description | Suggested Default
 :--- | :--- | :---
-SINGULARITYENV_CELERY_LOG_PATH | Path to store the celery log files | /tmp
-SINGULARITYENV_CELERY_PID_PATH | Path to store the celery pid files | /tmp
-SINGULARITYENV_CELERY_BEAT_SCHEDULE_PATH | Path to store the beat schedule path | /tmp
-SINGULARITYENV_CELERY_EVENT_QUEUE_PREFIX | Prefix to identify celery workers by | ridgeback.queue
+SINGULARITYENV_RIDGEBACK_CELERY_LOG_PATH | Path to store the celery log files | /tmp
+SINGULARITYENV_RIDGEBACK_CELERY_PID_PATH | Path to store the celery pid files | /tmp
+SINGULARITYENV_RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH | Path to store the beat schedule path | /tmp
+SINGULARITYENV_RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX | Prefix to identify celery workers by | ridgeback.queue
 
 
 #### Configure singularity mount points
@@ -121,7 +121,7 @@ Use `celery-env` to view current running celery processes:
 singularity run --app celery-env instance://ridgeback
 ```
 
-To stop all celery processes running for `$SINGULARITYENV_CELERY_EVENT_QUEUE_PREFIX`, use `celery-stop`:
+To stop all celery processes running for `$SINGULARITYENV_RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX`, use `celery-stop`:
 ```
 singularity run --app celery-stop instance://ridgeback
 ```
