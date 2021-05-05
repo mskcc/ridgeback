@@ -74,8 +74,8 @@ Includecmd: no
     fi
 
     if [ -z "$RIDGEBACK_TOIL" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_TOIL not set."
-        exit 1
+        export RIDGEBACK_TOIL=`python3 -c "import os; print(os.path.join('$RIDGEBACK_VENV','bin/cwltoil'))"`
+        echo "RIDGEBACK_TOIL set to $RIDGEBACK_TOIL"
     fi
 
     ### Required envs to establish nextflow
@@ -162,7 +162,7 @@ Includecmd: no
         exit 1
     fi
 
-    if [ -z "RIDGEBACK_COMMAND_QUEUEE" ]; then
+    if [ -z "RIDGEBACK_COMMAND_QUEUE" ]; then
         echo "ERROR: SINGULARITYENV_RIDGEBACK_COMMAND_QUEUE is not defined"
         exit 1
     fi
