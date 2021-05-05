@@ -24,16 +24,11 @@ app.conf.task_routes = {
 }
 
 app.conf.beat_schedule = {
-    "submit_pending_jobs": {
+    "process_jobs": {
         "task": "orchestrator.tasks.process_jobs",
         "schedule": 60.0,
         "options": {"queue": settings.RIDGEBACK_SUBMIT_JOB_QUEUE}
     },
-    # "check_status_of_command_line_jobs": {
-    #     "task": "orchestrator.tasks.check_status_of_command_line_jobs",
-    #     "schedule": 60.0,
-    #     "options": {"queue": settings.RIDGEBACK_CHECK_STATUS_QUEUE}
-    # },
     "cleanup_completed_jobs": {
         "task": "orchestrator.tasks.cleanup_completed_jobs",
         "schedule": crontab(
