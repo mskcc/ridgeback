@@ -6,8 +6,7 @@ from celery import shared_task
 from batch_systems.lsf_client import LSFClient
 from django.conf import settings
 from django.db import transaction
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import is_aware, make_aware, now
+from django.utils.timezone import now
 from .models import Job, Status, CommandLineToolJob
 import shutil
 from lib.memcache_lock import memcache_task_lock, memcache_lock
@@ -262,26 +261,28 @@ def clean_directory(path):
     return True
 
 
+# Check CommandLineJob statuses
+
+
 def update_command_line_jobs(command_line_jobs, root):
     for job_id, job_obj in command_line_jobs.items():
-        command_line_tool_jobs = CommandLineToolJob.objects.filter(job_id__exact=job_id)
-        if len(command_line_tool_jobs) != 0 and command_line_tool_jobs[0] is not None:
-            command_line_job = command_line_tool_jobs[0]
-            command_line_job.started = get_aware_datetime(job_obj["started"])
-            command_line_job.submitted = get_aware_datetime(job_obj["submitted"])
-            command_line_job.finished = get_aware_datetime(job_obj["finished"])
+        try:
+            command_line_job = CommandLineToolJob.objects.get(job_id=job_id)
             command_line_job.status = job_obj["status"]
+            command_line_job.started = job_obj["started"]
+            command_line_job.submitted = job_obj["submitted"]
+            command_line_job.finished = job_obj["finished"]
             command_line_job.details = job_obj["details"]
             command_line_job.save()
-        else:
+        except CommandLineToolJob.DoesNotExist:
             CommandLineToolJob.objects.create(
                 root=root,
-                status=job_obj["status"],
-                started=get_aware_datetime(job_obj["started"]),
-                submitted=get_aware_datetime(job_obj["submitted"]),
-                finished=get_aware_datetime(job_obj["finished"]),
-                job_name=job_obj["name"],
                 job_id=job_id,
+                status=job_obj["status"],
+                started=job_obj["started"],
+                submitted=job_obj["submitted"],
+                finished=job_obj["finished"],
+                job_name=job_obj["name"],
                 details=job_obj["details"],
             )
 

@@ -187,3 +187,9 @@ class CommandLineToolJob(BaseModel):
         if not is_aware(datetime_obj):
             datetime_obj = make_aware(datetime_obj)
         return datetime_obj
+
+    def save(self, *args, **kwargs):
+        self.started = self.get_aware_datetime(self.started)
+        self.submitted = self.get_aware_datetime(self.submitted)
+        self.finished = self.get_aware_datetime(self.finished)
+        super(CommandLineToolJob, self).save(*args, **kwargs)
