@@ -92,14 +92,6 @@ Includecmd: no
     nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
-    -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
-    -f ${CELERY_LOG_PATH}/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
-    --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
-    --concurrency=1 &
-
-    nohup celery -A orchestrator worker \
-    -l info \
-    --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
     -f ${CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
     --pidfile ${CELERY_PID_PATH}/${CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
