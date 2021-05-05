@@ -1,13 +1,13 @@
 from unittest import skip
-from mock import patch
 from django.test import TestCase
 from orchestrator.models import Job, Status, PipelineType
-from orchestrator.tasks import submit_job_to_lsf, submit_pending_jobs, check_status_of_jobs, on_failure_to_submit, get_message, cleanup_completed_jobs, cleanup_failed_jobs
+from orchestrator.tasks import submit_job_to_lsf, process_jobs, on_failure_to_submit, cleanup_completed_jobs, cleanup_failed_jobs, check_job_status
 from datetime import datetime, timedelta
 from mock import patch, call
 
-
 MAX_RUNNING_JOBS = 3
+
+
 @patch('orchestrator.tasks.MAX_RUNNING_JOBS', MAX_RUNNING_JOBS)
 class TestTasks(TestCase):
     fixtures = [
@@ -16,15 +16,15 @@ class TestTasks(TestCase):
 
     def setUp(self):
         self.current_job = Job.objects.first()
-        self.pending_job = Job.objects.filter(status=Status.PENDING).first()
+        self.submitting_job = Job.objects.filter(status=Status.SUBMITTING).first()
 
     def test_failure_to_submit(self):
         on_failure_to_submit(None, None, None, [self.current_job.id], None, None)
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.FAILED)
         self.assertNotEqual(self.current_job.finished, None)
-        info_message = get_message(self.current_job)['info']
-        log_path = get_message(self.current_job)['log']
+        info_message = self.current_job.message['info']
+        log_path = self.current_job.message['log']
         self.assertEqual(info_message, 'Failed to submit job')
         self.assertNotEqual(log_path, None)
 
@@ -38,10 +38,10 @@ class TestTasks(TestCase):
         submit_job_to_lsf.return_value = None
         created_jobs = len(Job.objects.filter(status=Status.CREATED))
         running_jobs = len(Job.objects.filter(status__in=(Status.RUNNING, Status.PENDING)))
-        submit_pending_jobs()
+        process_jobs()
         self.assertEqual(submit_job_to_lsf.delay.call_count, created_jobs)
         submit_job_to_lsf.reset_mock()
-        submit_pending_jobs()
+        process_jobs()
         self.assertEqual(submit_job_to_lsf.delay.call_count, 0)
 
     @patch('submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__')
@@ -50,11 +50,11 @@ class TestTasks(TestCase):
     def test_submit(self, save_job_info, submit, init):
         init.return_value = None
         save_job_info.return_value = None
-        submit.return_value = self.pending_job.external_id, "/new/job_store_location", self.current_job.working_dir, self.current_job.output_directory
-        submit_job_to_lsf(self.pending_job)
-        self.pending_job.refresh_from_db()
-        self.assertEqual(self.pending_job.finished, None)
-        self.assertEqual(self.pending_job.job_store_location, "/new/job_store_location")
+        submit.return_value = self.submitting_job.external_id, "/new/job_store_location", self.current_job.working_dir, self.current_job.output_directory
+        submit_job_to_lsf(self.submitting_job)
+        self.submitting_job.refresh_from_db()
+        self.assertEqual(self.submitting_job.finished, None)
+        self.assertEqual(self.submitting_job.job_store_location, "/new/job_store_location")
 
     @patch('orchestrator.tasks.get_job_info_path')
     @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
@@ -67,7 +67,7 @@ class TestTasks(TestCase):
         get_outputs.return_value = {'outputs': True}, None
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.COMPLETED, None
-        check_status_of_jobs()
+        check_job_status(self.current_job)
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.COMPLETED)
         self.assertNotEqual(self.current_job.finished, None)
@@ -81,13 +81,13 @@ class TestTasks(TestCase):
         init.return_value = None
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.FAILED, "submitter reason"
-        check_status_of_jobs()
+        check_job_status(self.current_job)
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.FAILED)
         self.assertNotEqual(self.current_job.finished, None)
-        info_message = get_message(self.current_job)['info']
-        failed_jobs = get_message(self.current_job)['failed_jobs']
-        unknown_jobs = get_message(self.current_job)['unknown_jobs']
+        info_message = self.current_job.message['info']
+        failed_jobs = self.current_job.message['failed_jobs']
+        unknown_jobs = self.current_job.message['unknown_jobs']
         expected_failed_jobs = {
             'failed_job_1': ['failed_job_1_id'],
             'failed_job_2': ['failed_job_2_id']
@@ -108,7 +108,7 @@ class TestTasks(TestCase):
         init.return_value = None
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.RUNNING, None
-        check_status_of_jobs()
+        check_job_status(self.current_job)
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.RUNNING)
         self.assertNotEqual(self.current_job.started, None)
@@ -123,13 +123,13 @@ class TestTasks(TestCase):
         self.current_job.status = Status.PENDING
         self.current_job.external_id = None
         self.current_job.save()
-        check_status_of_jobs()
+        check_job_status(self.current_job)
         self.current_job.refresh_from_db()
         self.assertEqual(self.current_job.status, Status.FAILED)
         self.assertNotEqual(self.current_job.finished, None)
-        info_message = get_message(self.current_job)['info']
-        failed_jobs = get_message(self.current_job)['failed_jobs']
-        unknown_jobs = get_message(self.current_job)['unknown_jobs']
+        info_message = self.current_job.message['info']
+        failed_jobs = self.current_job.message['failed_jobs']
+        unknown_jobs = self.current_job.message['unknown_jobs']
         expected_failed_jobs = {}
         expected_unknown_jobs = {}
         self.assertTrue('External id not provided' in info_message)
