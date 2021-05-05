@@ -19,27 +19,21 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 app.conf.task_routes = {
-    "orchestrator.tasks.submit_job_to_lsf": {"queue": settings.RIDGEBACK_SUBMIT_JOB_LSF_QUEUE},
-    "orchestrator.tasks.cleanup_folders": {"queue": settings.RIDGEBACK_ACTION_QUEUE},
-    "orchestrator.tasks.resume_job": {"queue": settings.RIDGEBACK_ACTION_QUEUE},
-    "orchestrator.tasks.suspend_job": {"queue": settings.RIDGEBACK_ACTION_QUEUE},
-    "orchestrator.tasks.abort_job": {"queue": settings.RIDGEBACK_ACTION_QUEUE},
-    "orchestrator.tasks.check_status_of_command_line_jobs": {
-        "queue": settings.RIDGEBACK_CHECK_COMMAND_STATUS_QUEUE
-    },
+    'orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
+    'orchestrator.tasks.command_processor': {'queue': settings.RIDGEBACK_COMMAND_QUEUE}
 }
 
 app.conf.beat_schedule = {
-    "check_status_of_jobs": {
-        "task": "orchestrator.tasks.check_status_of_jobs",
-        "schedule": 47.0,
-        "options": {"queue": settings.RIDGEBACK_CHECK_STATUS_QUEUE},
-    },
     "submit_pending_jobs": {
-        "task": "orchestrator.tasks.submit_pending_jobs",
-        "schedule": 60.0 * 5,
-        "options": {"queue": settings.RIDGEBACK_SUBMIT_JOB_QUEUE},
+        "task": "orchestrator.tasks.process_jobs",
+        "schedule": 60.0,
+        "options": {"queue": settings.RIDGEBACK_SUBMIT_JOB_QUEUE}
     },
+    # "check_status_of_command_line_jobs": {
+    #     "task": "orchestrator.tasks.check_status_of_command_line_jobs",
+    #     "schedule": 60.0,
+    #     "options": {"queue": settings.RIDGEBACK_CHECK_STATUS_QUEUE}
+    # },
     "cleanup_completed_jobs": {
         "task": "orchestrator.tasks.cleanup_completed_jobs",
         "schedule": crontab(
