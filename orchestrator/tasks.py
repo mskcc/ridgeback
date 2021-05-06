@@ -76,7 +76,6 @@ def process_jobs():
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
-        command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job_id)).to_dict())
 
     jobs_running = Job.objects.filter(
         status__in=(Status.SUBMITTING, Status.SUBMITTED, Status.PENDING, Status.RUNNING,)).count()
@@ -202,6 +201,8 @@ def check_job_status(job):
 
         elif lsf_status in (Status.FAILED,):
             _fail(job, lsf_message)
+
+        command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
     else:
         raise StopException('Invalid transition %s to %s' % (Status(job.status).name, Status(lsf_status).name))
