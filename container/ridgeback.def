@@ -3,7 +3,7 @@ From: ubuntu:18.04
 Includecmd: no
 
 %post
-    export RIDGEBACK_BRANCH=feature/refactor_merge
+    export RIDGEBACK_BRANCH=master
     echo "Building from branch $RIDGEBACK_BRANCH"
 
     export DEBIAN_FRONTEND=noninteractive \
