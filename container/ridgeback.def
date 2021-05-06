@@ -2,7 +2,10 @@ Bootstrap: docker
 From: ubuntu:18.04
 Includecmd: no
 
-%post
+%posto
+    export RIDGEBACK_BRANCH=master
+    echo "Building from branch $RIDGEBACK_BRANCH"
+
     export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean && apt-get update -qq \
     && apt-get -y install \
@@ -12,10 +15,6 @@ Includecmd: no
         gawk build-essential nodejs \
         git \
         default-jdk
-
-    if [ -z "$RIDGEBACK_BRANCH" ]; then
-    export RIDGEBACK_BRANCH=master
-    fi
 
     cd /usr/bin \
     && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH
@@ -141,8 +140,8 @@ Includecmd: no
         exit 1
     fi
 
-    if [ -z "$SINGULARITY_PATH" ]; then
-        echo "ERROR environment variable SINGULARITYENV_SINGULARITY_PATH is not defined, Singularity will not work"
+    if [ -z "$SINGULARITY_BIN_PATH" ]; then
+        echo "ERROR environment variable SINGULARITYENV_SINGULARITY_BIN_PATH is not defined, Singularity will not work"
         exit 1
     fi
 
@@ -245,20 +244,22 @@ Includecmd: no
         exit 1
     fi
 
-    export RIDGEBACK_VENV_ACTIVATE=`python3 -c "import os; print(os.path.join('$RIDGEBACK_VENV','bin/activate'))"`
-    export SINGULARITY_BIN_PATH=`python3 -c "import os; print(os.path.dirname('$SINGULARITY_PATH'))"`
+    RIDGEBACK_VENV_ACTIVATE=$RIDGEBACK_VENV/bin/activate
 
+    echo "Activating venv $RIGEBACK_VENV"
     . $RIDGEBACK_VENV_ACTIVATE
     export PATH=$LSF_BINDIR:$SINGULARITY_BIN_PATH:$PATH
 
-    nohup celery -A orchestrator beat \
+    echo "Running orchestrator beat..."
+    celery -A orchestrator beat \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -f ${RIDGEBACK_CELERY_LOG_PATH}/ridgeback_beat.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid \
     -s ${RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.celerybeat-schedule >/dev/null 2>&1 < /dev/null &
 
-    nohup celery -A orchestrator worker \
+    echo "Running command queue worker..."
+    celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_COMMAND_QUEUE} \
@@ -267,7 +268,8 @@ Includecmd: no
     --concurrency=30 \
     -n ${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_COMMAND_QUEUE} >/dev/null 2>&1 < /dev/null &
 
-    nohup celery -A orchestrator worker \
+    echo "Running action queue worker..."
+    celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_ACTION_QUEUE} \
@@ -276,7 +278,8 @@ Includecmd: no
     --concurrency=10 \
     -n ${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE} >/dev/null 2>&1 < /dev/null &
 
-    nohup celery -A orchestrator worker \
+    echo "Running check status queue worker..."
+    celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
@@ -284,7 +287,8 @@ Includecmd: no
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
-    nohup celery -A orchestrator worker \
+    echo "Running check status queue worker..."
+    celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
@@ -292,7 +296,8 @@ Includecmd: no
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
-    nohup celery -A orchestrator worker \
+    echo "Running cleanup queue worker..."
+    celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CLEANUP_QUEUE} \
@@ -336,6 +341,11 @@ Includecmd: no
         exit 1
     fi
 
+    if [ -z "RIDGEBACK_COMMAND_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_COMMAND_QUEUE is not defined"
+        exit 1
+    fi
+
     if [ -z "RIDGEBACK_CLEANUP_QUEUE" ]; then
         echo "ERROR: SINGULARITYENV_RIDGEBACK_CLEANUP_QUEUE is not defined"
         exit 1
@@ -363,7 +373,7 @@ Includecmd: no
     echo "RIDGEBACK_ACTION_PID_FILE:"$RIDGEBACK_ACTION_PID_FILE
     echo "RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
     echo "RIDGEBACK_CLEANUP_QUEUE_PID_FILE:"$RIDGEBACK_CLEANUP_QUEUE_PID_FILE
-    echo "RIDGEBACK_COMMAND_QUEUE_PID_FILE:"RIDGEBACK_COMMAND_QUEUE_PID_FILE
+    echo "RIDGEBACK_COMMAND_QUEUE_PID_FILE:"$RIDGEBACK_COMMAND_QUEUE_PID_FILE
 
     ps auxww | grep 'celery' | grep $RIDGEBACK_CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
     ps auxww | grep 'celery' | grep $RIDGEBACK_ACTION_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
@@ -422,14 +432,14 @@ Includecmd: no
     echo "RIDGEBACK_ACTION_PID_FILE:"$RIDGEBACK_ACTION_PID_FILE
     echo "RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
     echo "RIDGEBACK_CLEANUP_QUEUE_PID_FILE:"$RIDGEBACK_CLEANUP_QUEUE_PID_FILE
-    echo "RIDGEBACK_COMMAND_QUEUE_PID_FILE:"RIDGEBACK_COMMAND_QUEUE_PID_FILE
+    echo "RIDGEBACK_COMMAND_QUEUE_PID_FILE:"$RIDGEBACK_COMMAND_QUEUE_PID_FILE
 
     export RIDGEBACK_CELERY_BEAT=`ps auxww | grep 'celery' | grep $RIDGEBACK_CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
     export RIDGEBACK_ACTION_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_ACTION_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
     export RIDGEBACK_CHECK_STATUS_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_CHECK_STATUS_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
     export RIDGEBACK_SUBMIT_JOB_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
     export RIDGEBACK_CLEANUP_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_CLEANUP_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
-    export RIDGEBACK_COMMAND_QUEUE=`ps auxww | grep 'celery' | grep RIDGEBACK_COMMAND_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
+    export RIDGEBACK_COMMAND_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_COMMAND_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
 
     echo "Number of celery processes currently running for $RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX:"
     echo "Beat - $RIDGEBACK_CELERY_BEAT"
