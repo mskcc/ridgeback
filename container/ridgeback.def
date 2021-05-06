@@ -2,8 +2,8 @@ Bootstrap: docker
 From: ubuntu:18.04
 Includecmd: no
 
-%posto
-    export RIDGEBACK_BRANCH=master
+%post
+    export RIDGEBACK_BRANCH=feature/refactor_merge
     echo "Building from branch $RIDGEBACK_BRANCH"
 
     export DEBIAN_FRONTEND=noninteractive \
