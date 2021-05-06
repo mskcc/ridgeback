@@ -107,21 +107,30 @@ def command_processor(self, command_dict):
                 except Job.DoesNotExist:
                     return
                 if command.command_type == CommandType.SUBMIT:
+                    logger.info("SUBMIT command for job %s" % command.job_id)
                     submit_job_to_lsf(job)
                 elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
+                    logger.info("CHECK_STATUS_ON_LSF command for job %s" % command.job_id)
                     check_job_status(job)
                 elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
+                    logger.info("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
                     check_status_of_command_line_jobs(job)
                 elif command.command_type == CommandType.ABORT:
+                    logger.info("ABORT command for job %s" % command.job_id)
                     abort_job(job)
                 elif command.command_type == CommandType.SUSPEND:
+                    logger.info("SUSPEND command for job %s" % command.job_id)
                     suspend_job(job)
                 elif command.command_type == CommandType.RESUME:
+                    logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
             else:
+                logger.info(
+                    "Job lock not acquired for job: %s" % command.job_id
+                )
                 self.retry()
     except RetryException as e:
-        logger.warning(
+        logger.info(
             "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e)))
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
