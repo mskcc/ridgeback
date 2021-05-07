@@ -56,14 +56,16 @@ class TestTasks(TestCase):
         self.assertEqual(self.submitting_job.finished, None)
         self.assertEqual(self.submitting_job.job_store_location, "/new/job_store_location")
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('orchestrator.tasks.get_job_info_path')
     @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
     @patch('submitter.toil_submitter.ToilJobSubmitter.status')
     @patch('submitter.toil_submitter.ToilJobSubmitter.get_outputs')
-    def test_complete(self, get_outputs, status, init, get_job_info_path):
+    def test_complete(self, get_outputs, status, init, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
         init.return_value = None
+        command_processor.return_value = True
         get_outputs.return_value = {'outputs': True}, None
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.COMPLETED, None
@@ -72,13 +74,15 @@ class TestTasks(TestCase):
         self.assertEqual(self.current_job.status, Status.COMPLETED)
         self.assertNotEqual(self.current_job.finished, None)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('orchestrator.tasks.get_job_info_path')
     @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
     @patch('submitter.toil_submitter.ToilJobSubmitter.status')
-    def test_fail(self, status, init, get_job_info_path):
+    def test_fail(self, status, init, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
         init.return_value = None
+        command_processor.return_value = True
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.FAILED, "submitter reason"
         check_job_status(self.current_job)
@@ -99,13 +103,15 @@ class TestTasks(TestCase):
         self.assertEqual(failed_jobs, expected_failed_jobs)
         self.assertEqual(unknown_jobs, expected_unknown_jobs)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('orchestrator.tasks.get_job_info_path')
     @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
     @patch('submitter.toil_submitter.ToilJobSubmitter.status')
-    def test_running(self, status, init, get_job_info_path):
+    def test_running(self, status, init, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
         init.return_value = None
+        command_processor.return_value = True
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.RUNNING, None
         check_job_status(self.current_job)
@@ -114,11 +120,13 @@ class TestTasks(TestCase):
         self.assertNotEqual(self.current_job.started, None)
         self.assertEqual(self.current_job.finished, None)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('submitter.toil_submitter.ToilJobSubmitter.__init__')
     @patch('submitter.toil_submitter.ToilJobSubmitter.status')
     @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
-    def test_fail_not_submitted(self, status, init):
+    def test_fail_not_submitted(self, status, init, command_processor):
         init.return_value = None
+        command_processor.return_value = True
         status.return_value = Status.PENDING, None
         self.current_job.status = Status.PENDING
         self.current_job.external_id = None
