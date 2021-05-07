@@ -172,12 +172,14 @@ class TasksTest(TestCase):
         self.assertEqual(job.status, Status.COMPLETED)
         self.assertEqual(job.outputs, outputs)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    def test_failed(self, status):
+    def test_failed(self, status, command_processor):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.RUNNING)
         status.return_value = Status.FAILED, ""
+        command_processor.return_value = True
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
