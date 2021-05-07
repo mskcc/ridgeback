@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import Job, CommandLineToolJob, Status
 from django.contrib import messages
-from orchestrator.tasks import cleanup_folders, resume_job, suspend_job
+from orchestrator.commands import CommandType, Command
+from orchestrator.tasks import cleanup_folders, command_processor
 
 
 class StatusFilter(admin.SimpleListFilter):
@@ -58,12 +59,12 @@ Already cleaned up {cleaned_up}
     def suspend(self, request, queryset):
         for job in queryset:
             if job.external_id:
-                suspend_job.delay(job.external_id)
+                command_processor.delay(Command(CommandType.SUSPEND, str(job.id)).to_dict())
 
     def resume(self, request, queryset):
         for job in queryset:
             if job.external_id:
-                resume_job.delay(job.external_id)
+                command_processor.delay(Command(CommandType.RESUME, str(job.id)).to_dict())
 
     suspend.short_description = "Suspend Jobs"
     resume.short_description = "Resume Jobs"
