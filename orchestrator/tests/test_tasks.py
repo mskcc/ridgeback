@@ -136,12 +136,14 @@ class TasksTest(TestCase):
         delete.return_value = True
         command_processor(Command(CommandType.SUBMIT, str(uuid.uuid4())).to_dict())
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    def test_submitted_to_pending(self, status):
+    def test_submitted_to_pending(self, status, command_processor):
         job = Job.objects.create(type=PipelineType.CWL,
                            app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                            external_id='ext_id', status=Status.SUBMITTED)
         status.return_value = Status.PENDING, ""
+        command_processor.return_value = True
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.PENDING)
