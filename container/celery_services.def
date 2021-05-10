@@ -2,7 +2,7 @@ Bootstrap: docker
 From: ubuntu:18.04
 Includecmd: no
 
-%posto
+%post
     export RIDGEBACK_BRANCH=master
     echo "Building from branch $RIDGEBACK_BRANCH"
 
@@ -269,6 +269,15 @@ Includecmd: no
     echo "RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
     echo "RIDGEBACK_CLEANUP_QUEUE_PID_FILE:"$RIDGEBACK_CLEANUP_QUEUE_PID_FILE
     echo "RIDGEBACK_COMMAND_QUEUE_PID_FILE:"$RIDGEBACK_COMMAND_QUEUE_PID_FILE
+
+    echo ""
+    echo "Removing PID files..."
+    rm $RIDGEBACK_CELERY_BEAT_PID_FILE
+    rm $RIDGEBACK_ACTION_PID_FILE
+    rm $RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
+    rm $RIDGEBACK_CLEANUP_QUEUE_PID_FILE
+    rm $RIDGEBACK_COMMAND_QUEUE_PID_FILE
+    sleep 5
 
     ps auxww | grep 'celery' | grep $RIDGEBACK_CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
     ps auxww | grep 'celery' | grep $RIDGEBACK_ACTION_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
