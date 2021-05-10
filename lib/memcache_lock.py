@@ -20,13 +20,15 @@ def memcache_lock(lock_id, expiration=60 * 10):
                 finally:
                     if time.monotonic() < timeout_at:
                         cache.delete(lock_id)
+
         return wrapper
+
     return decorator
 
 
 @contextmanager
 def memcache_task_lock(lock_id, oid):
-    '''
+    """
     https://docs.celeryproject.org/en/stable/tutorials/task-cookbook.html
     This method is used when you want to acquire lock on object:
     Example:
@@ -34,7 +36,7 @@ def memcache_task_lock(lock_id, oid):
     :param lock_id:
     :param oid:
     :return:
-    '''
+    """
     timeout_at = time.monotonic() + LOCK_EXPIRE - 3
     # cache.add fails if the key already exists
     status = cache.add(lock_id, oid, LOCK_EXPIRE)
