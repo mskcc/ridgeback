@@ -181,23 +181,17 @@ RABBITMQ_USERNAME = os.environ.get("RIDGEBACK_RABBITMQ_USERNAME", "guest")
 RABBITMQ_PASSWORD = os.environ.get("RIDGEBACK_RABBITMQ_PASSWORD", "guest")
 RABBITMQ_URL = os.environ.get("RIDGEBACK_RABBITMQ_URL", "localhost")
 
-CELERY_BROKER_URL = os.environ.get(
-    "CELERY_BROKER_URL", "amqp://%s:%s@%s/" % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL)
-)
-RIDGEBACK_SUBMIT_JOB_QUEUE = os.environ.get(
-    "RIDGEBACK_SUBMIT_JOB_QUEUE", "ridgeback_submit_job_queue"
-)
-RIDGEBACK_CHECK_STATUS_QUEUE = os.environ.get(
-    "RIDGEBACK_CHECK_STATUS_QUEUE", "ridgeback_check_status_queue"
-)
-RIDGEBACK_CHECK_COMMAND_STATUS_QUEUE = os.environ.get(
-    "RIDGEBACK_CHECK_COMMAND_STATUS_QUEUE", "ridgeback_check_command_status_queue"
-)
-RIDGEBACK_ACTION_QUEUE = os.environ.get("RIDGEBACK_ACTION_QUEUE", "ridgeback_action_queue")
-RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get(
-    "RIDGEBACK_SUBMIT_JOB_LSF_QUEUE", "ridgeback_submit_job_lsf_queue"
-)
-RIDGEBACK_CLEANUP_QUEUE = os.environ.get("RIDGEBACK_CLEANUP_QUEUE", "ridgeback_cleanup_queue")
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL',
+                                   'amqp://%s:%s@%s/' % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL))
+RIDGEBACK_SUBMIT_JOB_QUEUE = os.environ.get('RIDGEBACK_SUBMIT_JOB_QUEUE',
+                                            'ridgeback_submit_job_queue')
+RIDGEBACK_CHECK_STATUS_QUEUE = os.environ.get('RIDGEBACK_CHECK_STATUS_QUEUE',
+                                              'ridgeback_check_status_queue')
+RIDGEBACK_ACTION_QUEUE = os.environ.get('RIDGEBACK_ACTION_QUEUE', 'ridgeback_action_queue')
+RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get('RIDGEBACK_SUBMIT_JOB_LSF_QUEUE',
+                                                'ridgeback_submit_job_lsf_queue')
+RIDGEBACK_CLEANUP_QUEUE = os.environ.get('RIDGEBACK_CLEANUP_QUEUE', 'ridgeback_cleanup_queue')
+RIDGEBACK_COMMAND_QUEUE = os.environ.get('RIDGEBACK_COMMAND_QUEUE', 'ridgeback_command_queue')
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -254,3 +248,7 @@ CLEANUP_FAILED_JOBS = os.environ.get("RIDGEBACK_CLEANUP_FAILED_JOBS", 30)
 
 STATIC_ROOT = "ridgeback_staticfiles"
 STATIC_URL = "/static/"
+
+# App Cache Configuration
+
+APP_CACHE = os.environ.get('RIDGEBACK_APP_CACHE', '/tmp')
