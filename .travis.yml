@@ -26,4 +26,7 @@ install:
   - python manage.py migrate
 script:
   - source travis_env.sh
-  - python manage.py test --verbosity=2
+  - coverage run --source='.' manage.py test
+  - coverage report -m --fail-under=75
+  - flake8
+

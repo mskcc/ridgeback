@@ -24,7 +24,9 @@ def translate_toil_to_model_status(status):
 
 
 class ToilJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit):
+    def __init__(
+        self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit
+    ):
         JobSubmitter.__init__(self, app, inputs, walltime, memlimit)
         self.job_id = job_id
         self.resume_jobstore = resume_jobstore
@@ -44,7 +46,9 @@ class ToilJobSubmitter(JobSubmitter):
         toil_lsf_args = "-sla %s %s" % (settings.LSF_SLA, " ".join(self._job_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
-        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, env)
+        external_id = self.lsf_client.submit(
+            command_line, self._job_args(), log_path, env
+        )
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def get_commandline_status(self, cache):
@@ -65,7 +69,9 @@ class ToilJobSubmitter(JobSubmitter):
             jobs_path = track_cache["jobs_path"]
             jobs = track_cache["jobs"]
             work_log_to_job_id = track_cache["work_log_to_job_id"]
-        toil_track_obj = ToilTrack([self.job_store_dir, self.job_work_dir], restart=restart)
+        toil_track_obj = ToilTrack(
+            [self.job_store_dir, self.job_work_dir], restart=restart
+        )
         toil_track_obj.jobs_path = jobs_path
         toil_track_obj.jobs = jobs
         toil_track_obj.work_log_to_job_id = work_log_to_job_id
@@ -73,8 +79,14 @@ class ToilJobSubmitter(JobSubmitter):
         jobs_path = toil_track_obj.jobs_path
         jobs = toil_track_obj.jobs
         work_log_to_job_id = toil_track_obj.work_log_to_job_id
-        new_cache = {"jobs_path": jobs_path, "jobs": jobs, "work_log_to_job_id": work_log_to_job_id}
-        new_track_cache = json.dumps(new_cache, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
+        new_cache = {
+            "jobs_path": jobs_path,
+            "jobs": jobs,
+            "work_log_to_job_id": work_log_to_job_id,
+        }
+        new_track_cache = json.dumps(
+            new_cache, sort_keys=True, indent=1, cls=DjangoJSONEncoder
+        )
         formatted_jobs = copy.deepcopy(jobs)
         for job_id, single_job in formatted_jobs.items():
             single_job["status"] = translate_toil_to_model_status(single_job["status"])
@@ -125,7 +137,9 @@ class ToilJobSubmitter(JobSubmitter):
 
         if self.resume_jobstore:
             if not os.path.exists(self.resume_jobstore):
-                raise Exception("The jobstore indicated to be resumed could not be found")
+                raise Exception(
+                    "The jobstore indicated to be resumed could not be found"
+                )
 
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
@@ -146,8 +160,10 @@ class ToilJobSubmitter(JobSubmitter):
             """
             Start ACCESS-specific code
             """
-            path = "PATH=/juno/home/accessbot/miniconda3/envs/ACCESS_2.0.0/bin:{}".format(
-                os.environ.get("PATH")
+            path = (
+                "PATH=/juno/home/accessbot/miniconda3/envs/ACCESS_2.0.0/bin:{}".format(
+                    os.environ.get("PATH")
+                )
             )
             command_line = [
                 path,

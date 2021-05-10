@@ -1,7 +1,6 @@
 """
 Track commandline status of toil jobs
 """
-#!/usr/bin/env python3
 import os
 import sys
 import logging
@@ -53,7 +52,9 @@ def _check_job_method(file_job_store):
     if fallback_function:
         return fallback_function
 
-    raise Exception("Unable to check jobs, possible incompatibility with the current TOIL version")
+    raise Exception(
+        "Unable to check jobs, possible incompatibility with the current TOIL version"
+    )
 
 
 def _check_retry_count(job):
@@ -284,7 +285,9 @@ def _get_job_display_name(job):
     elif "cwl" in display_name:
         cwl_path = display_name
     else:
-        raise Exception("Could not find name in possible values %s %s" % (job_name, display_name))
+        raise Exception(
+            "Could not find name in possible values %s %s" % (job_name, display_name)
+        )
     job_basename = os.path.basename(cwl_path)
     display_name = os.path.splitext(job_basename)[0]
     return display_name
@@ -405,7 +408,9 @@ class ReadOnlyFileJobStore(FileJobStore):
 
     # pylint: enable=too-many-arguments
 
-    def writeSharedFileStream(self, sharedFileName, isProtected=None, encoding=None, errors=None):
+    def writeSharedFileStream(
+        self, sharedFileName, isProtected=None, encoding=None, errors=None
+    ):
         pass
 
     def writeStatsAndLogging(self, statsAndLoggingString):
@@ -434,7 +439,11 @@ class ToilTrack:
 
     # pylint: disable=too-many-instance-attributes
     def __init__(
-        self, job_store_and_work_path, restart=False, show_cwl_internal=False, retry_count=1
+        self,
+        job_store_and_work_path,
+        restart=False,
+        show_cwl_internal=False,
+        retry_count=1,
     ):
         self.job_store_path = job_store_and_work_path[0]
         self.work_dir = job_store_and_work_path[1]
@@ -556,7 +565,9 @@ class ToilTrack:
             if retry_count is not None:
                 previous_suffix = self.total_attempts - (retry_count + 1)
                 jobstore_id = single_job.jobStoreID
-                job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_suffix)
+                job_id = self.create_job_id(
+                    jobstore_id, id_suffix_param=previous_suffix
+                )
                 job_name = single_job.jobName
                 self.mark_job_as_failed(job_id, job_name, single_job)
 
@@ -572,7 +583,9 @@ class ToilTrack:
             jobstore_id = single_job.jobStoreID
             previous_retry_count = self.total_attempts - (retry_count + 1)
             retry_job_ids[jobstore_id] = previous_retry_count
-            job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_retry_count)
+            job_id = self.create_job_id(
+                jobstore_id, id_suffix_param=previous_retry_count
+            )
             if job_id in job_dict and job_dict[job_id]["status"] != ToolStatus.FAILED:
                 job_name = single_job.jobName
                 self.mark_job_as_failed(job_id, job_name, single_job)
@@ -595,7 +608,9 @@ class ToilTrack:
                 if single_job.command:
                     job_stream = _get_job_stream_path(single_job.command)
                 if not job_stream:
-                    logger.debug("Could not find job_stream for job %s [%s]", job_name, job_id)
+                    logger.debug(
+                        "Could not find job_stream for job %s [%s]", job_name, job_id
+                    )
                 if job_stream and job_id not in jobs_dict:
                     self.jobs_path[job_stream] = job_id
                     display_name = _get_job_display_name(single_job)
@@ -634,11 +649,16 @@ class ToilTrack:
         """
         job_dict = self.jobs
         worker_log_to_job_dict = self.work_log_to_job_id
-        worker_info = _check_worker_logs(self.work_dir, worker_log_to_job_dict, self.jobs_path)
+        worker_info = _check_worker_logs(
+            self.work_dir, worker_log_to_job_dict, self.jobs_path
+        )
         for single_job_id in worker_info:
             worker_log, last_modified = worker_info[single_job_id]
             job_obj = job_dict[single_job_id]
-            if job_obj["status"] == ToolStatus.PENDING or job_obj["status"] == ToolStatus.UNKNOWN:
+            if (
+                job_obj["status"] == ToolStatus.PENDING
+                or job_obj["status"] == ToolStatus.UNKNOWN
+            ):
                 job_obj["status"] = ToolStatus.RUNNING
             if not job_obj["started"]:
                 job_obj["started"] = datetime.now()
@@ -652,13 +672,19 @@ class ToilTrack:
         Check the status of all jobs
         """
         try:
-            job_store, root_job = _resume_job_store(self.job_store_path, self.total_attempts)
+            job_store, root_job = _resume_job_store(
+                self.job_store_path, self.total_attempts
+            )
         except NoSuchJobStoreException:
-            logger.warning("Jobstore not valid, toil job may be finished or just starting")
+            logger.warning(
+                "Jobstore not valid, toil job may be finished or just starting"
+            )
             return
         root_job_id = root_job.jobStoreID
         if not job_store.check_if_job_exists(root_job_id):
-            logger.warning("Jobstore root not found, toil job may be finished or just starting")
+            logger.warning(
+                "Jobstore root not found, toil job may be finished or just starting"
+            )
         toil_state_obj = _load_job_store(job_store, root_job)
         if not toil_state_obj:
             logger.warning("TOIL state is unexpectedly empty")

@@ -5,12 +5,11 @@ from django.core.exceptions import ValidationError
 
 
 class AppField(serializers.JSONField):
-
     def validate_app(app_data):
-        if 'github' not in app_data:
-            if 'base64' in app_data:
+        if "github" not in app_data:
+            if "base64" in app_data:
                 raise ValidationError("base64 is not supported", code=501)
-            elif 'app' in app_data:
+            elif "app" in app_data:
                 raise ValidationError("app is not supported", code=501)
             else:
                 raise ValidationError("Invalid app reference type", code=400)
@@ -38,9 +37,8 @@ class AppField(serializers.JSONField):
                             title="version",
                             type=openapi.TYPE_STRING,
                         ),
-
                     },
-                    required=["repository", "entrypoint"]
+                    required=["repository", "entrypoint"],
                 ),
                 "base64": openapi.Schema(
                     title="base64",
@@ -49,13 +47,12 @@ class AppField(serializers.JSONField):
                 "app": openapi.Schema(
                     title="app",
                     type=openapi.TYPE_STRING,
-                )
-            }
-         }
+                ),
+            },
+        }
 
 
 class MessageField(serializers.JSONField):
-
     class Meta:
         swagger_schema_fields = {
             "type": openapi.TYPE_OBJECT,
@@ -76,9 +73,9 @@ class MessageField(serializers.JSONField):
                 "info": openapi.Schema(
                     title="info",
                     type=openapi.TYPE_STRING,
-                )
-            }
-         }
+                ),
+            },
+        }
 
 
 class CommandLineToolJobSerializer(serializers.ModelSerializer):
@@ -89,7 +86,7 @@ class CommandLineToolJobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommandLineToolJob
-        fields = '__all__'
+        fields = "__all__"
 
 
 class JobIdsSerializer(serializers.Serializer):
@@ -110,7 +107,7 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = '__all__'
+        fields = "__all__"
 
 
 class JobStatusSerializer(serializers.Serializer):
@@ -118,13 +115,12 @@ class JobStatusSerializer(serializers.Serializer):
 
 
 class JobSubmitSerializer(JobSerializer):
-
     class Meta:
         model = Job
-        fields = ('type', 'app', 'inputs', 'root_dir')
+        fields = ("type", "app", "inputs", "root_dir")
 
 
 class JobResumeSerializer(JobSerializer):
     class Meta:
         model = Job
-        fields = ['root_dir']
+        fields = ["root_dir"]

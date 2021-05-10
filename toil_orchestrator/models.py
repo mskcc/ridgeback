@@ -6,10 +6,10 @@ from django.contrib.postgres.fields import JSONField
 
 def message_default():
     message_default_dict = {
-        'log': '',
-        'failed_jobs': {},
-        'unknown_jobs': {},
-        'info': ''
+        "log": "",
+        "failed_jobs": {},
+        "unknown_jobs": {},
+        "info": "",
     }
     return message_default_dict
 
@@ -39,7 +39,10 @@ class Job(BaseModel):
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
-    status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=Status.CREATED)
+    status = models.IntegerField(
+        choices=[(status.value, status.name) for status in Status],
+        default=Status.CREATED,
+    )
     message = JSONField(default=message_default)
     inputs = JSONField(blank=True, null=True)
     outputs = JSONField(blank=True, null=True)
@@ -67,7 +70,10 @@ class Job(BaseModel):
 
 class CommandLineToolJob(BaseModel):
     root = models.ForeignKey(Job, blank=False, null=False, on_delete=models.CASCADE)
-    status = models.IntegerField(choices=[(status.value, status.name) for status in Status], default=Status.CREATED)
+    status = models.IntegerField(
+        choices=[(status.value, status.name) for status in Status],
+        default=Status.CREATED,
+    )
     started = models.DateTimeField(blank=True, null=True)
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
