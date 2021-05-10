@@ -1,21 +1,14 @@
 from orchestrator.models import Job, Status
-from orchestrator.serializers import (
-    JobSerializer,
-    JobSubmitSerializer,
-    JobResumeSerializer,
-    JobIdsSerializer,
-    JobStatusSerializer,
-)
-from orchestrator.tasks import abort_job
-from orchestrator.tasks import command_processor
-from orchestrator.commands import Command, CommandType
-from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
+from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, \
+    JobStatusSerializer
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
+from orchestrator.tasks import command_processor
+from orchestrator.commands.command import Command, CommandType
 
 
 class JobViewSet(
