@@ -1,6 +1,11 @@
 from orchestrator.models import Job, Status
-from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, \
-    JobStatusSerializer
+from orchestrator.serializers import (
+    JobSerializer,
+    JobSubmitSerializer,
+    JobResumeSerializer,
+    JobIdsSerializer,
+    JobStatusSerializer,
+)
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.decorators import action
@@ -34,14 +39,15 @@ class JobViewSet(
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
-        request_body=JobResumeSerializer, responses={status.HTTP_201_CREATED: JobSerializer}
+        request_body=JobResumeSerializer,
+        responses={status.HTTP_201_CREATED: JobSerializer},
     )
     @action(detail=True, methods=["post"])
     def resume(self, request, pk=None, *args, **kwargs):
         resume_data = request.data
         try:
             parent_job = Job.objects.get(id=pk)
-            if parent_job.job_store_clean_up != None:
+            if parent_job.job_store_clean_up is not None:
                 return Response(
                     "The job store of the job indicated to be resumed has been cleaned up",
                     status=status.HTTP_410_GONE,
@@ -53,11 +59,13 @@ class JobViewSet(
             return self.validate_and_save(resume_data)
         except Job.DoesNotExist:
             return Response(
-                "Could not find the indicated job to resume", status=status.HTTP_404_NOT_FOUND
+                "Could not find the indicated job to resume",
+                status=status.HTTP_404_NOT_FOUND,
             )
 
     @swagger_auto_schema(
-        request_body=JobIdsSerializer(), responses={status.HTTP_200_OK: JobStatusSerializer}
+        request_body=JobIdsSerializer(),
+        responses={status.HTTP_200_OK: JobStatusSerializer},
     )
     @action(detail=False, methods=["post"])
     def statuses(self, request):
@@ -75,13 +83,15 @@ class JobViewSet(
         if resp_serializer.is_valid():
             return Response(resp_serializer.data)
         else:
-            return Response(resp_serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                resp_serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
     @action(detail=True, methods=["get"])
     def abort(self, request, pk=None, *args, **kwargs):
         try:
-            job = Job.objects.get(id=pk)
+            Job.objects.get(id=pk)
         except Job.DoesNotExist:
             return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
         command_processor.delay(Command(CommandType.ABORT, str(pk)).to_dict())
@@ -89,7 +99,8 @@ class JobViewSet(
         return Response("Job aborted", status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        request_body=JobSubmitSerializer, responses={status.HTTP_201_CREATED: JobSerializer}
+        request_body=JobSubmitSerializer,
+        responses={status.HTTP_201_CREATED: JobSerializer},
     )
     def create(self, request, *args, **kwargs):
         return self.validate_and_save(request.data)
@@ -116,7 +127,8 @@ class JobViewSet(
             return super().destroy(request, *args, **kwargs)
         else:
             return Response(
-                "Only admins can delete job objects", status=status.HTTP_401_UNAUTHORIZED
+                "Only admins can delete job objects",
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
     @property

@@ -31,7 +31,9 @@ class TestToil(TestCase):
                 with open(download_full_path, "wb") as download:
                     download.write(response.raw.read())
             else:
-                raise Exception("Could not download TOIL mock data from: %s" % download_url)
+                raise Exception(
+                    "Could not download TOIL mock data from: %s" % download_url
+                )
         if not os.path.exists(self.mock_full_path):
             unpack_archive(download_full_path, self.mock_dir.name)
 
@@ -80,7 +82,9 @@ class TestToil(TestCase):
         new_jobstore = os.path.join(tmp_jobstore, job_id)
         copytree(jobstore, new_jobstore)
         copytree(work_dir, new_work_dir)
-        with override_settings(TOIL_JOB_STORE_ROOT=tmp_jobstore, TOIL_WORK_DIR_ROOT=tmp_work_dir):
+        with override_settings(
+            TOIL_JOB_STORE_ROOT=tmp_jobstore, TOIL_WORK_DIR_ROOT=tmp_work_dir
+        ):
             check_status_of_command_line_jobs(self.job)
 
     def test_running(self):
@@ -97,7 +101,9 @@ class TestToil(TestCase):
             mock_num_completed = 2
             mock_num_running = 1
         num_running = CommandLineToolJob.objects.filter(status=(Status.RUNNING)).count()
-        num_completed = CommandLineToolJob.objects.filter(status=(Status.COMPLETED)).count()
+        num_completed = CommandLineToolJob.objects.filter(
+            status=(Status.COMPLETED)
+        ).count()
 
         self.assertEqual(num_running, mock_num_running)
         self.assertEqual(num_completed, mock_num_completed)

@@ -111,7 +111,8 @@ else:
         "default": {
             "BACKEND": "djpymemcache.backend.PyMemcacheCache",
             "LOCATION": "127.0.0.1:%s" % MEMCACHED_PORT,
-            "OPTIONS": {  # see https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client
+            "OPTIONS": {
+                # see https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html
                 "default_noreply": False
             },
         }
@@ -181,17 +182,28 @@ RABBITMQ_USERNAME = os.environ.get("RIDGEBACK_RABBITMQ_USERNAME", "guest")
 RABBITMQ_PASSWORD = os.environ.get("RIDGEBACK_RABBITMQ_PASSWORD", "guest")
 RABBITMQ_URL = os.environ.get("RIDGEBACK_RABBITMQ_URL", "localhost")
 
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL',
-                                   'amqp://%s:%s@%s/' % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL))
-RIDGEBACK_SUBMIT_JOB_QUEUE = os.environ.get('RIDGEBACK_SUBMIT_JOB_QUEUE',
-                                            'ridgeback_submit_job_queue')
-RIDGEBACK_CHECK_STATUS_QUEUE = os.environ.get('RIDGEBACK_CHECK_STATUS_QUEUE',
-                                              'ridgeback_check_status_queue')
-RIDGEBACK_ACTION_QUEUE = os.environ.get('RIDGEBACK_ACTION_QUEUE', 'ridgeback_action_queue')
-RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get('RIDGEBACK_SUBMIT_JOB_LSF_QUEUE',
-                                                'ridgeback_submit_job_lsf_queue')
-RIDGEBACK_CLEANUP_QUEUE = os.environ.get('RIDGEBACK_CLEANUP_QUEUE', 'ridgeback_cleanup_queue')
-RIDGEBACK_COMMAND_QUEUE = os.environ.get('RIDGEBACK_COMMAND_QUEUE', 'ridgeback_command_queue')
+CELERY_BROKER_URL = os.environ.get(
+    "CELERY_BROKER_URL",
+    "amqp://%s:%s@%s/" % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL),
+)
+RIDGEBACK_SUBMIT_JOB_QUEUE = os.environ.get(
+    "RIDGEBACK_SUBMIT_JOB_QUEUE", "ridgeback_submit_job_queue"
+)
+RIDGEBACK_CHECK_STATUS_QUEUE = os.environ.get(
+    "RIDGEBACK_CHECK_STATUS_QUEUE", "ridgeback_check_status_queue"
+)
+RIDGEBACK_ACTION_QUEUE = os.environ.get(
+    "RIDGEBACK_ACTION_QUEUE", "ridgeback_action_queue"
+)
+RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get(
+    "RIDGEBACK_SUBMIT_JOB_LSF_QUEUE", "ridgeback_submit_job_lsf_queue"
+)
+RIDGEBACK_CLEANUP_QUEUE = os.environ.get(
+    "RIDGEBACK_CLEANUP_QUEUE", "ridgeback_cleanup_queue"
+)
+RIDGEBACK_COMMAND_QUEUE = os.environ.get(
+    "RIDGEBACK_COMMAND_QUEUE", "ridgeback_command_queue"
+)
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -251,4 +263,4 @@ STATIC_URL = "/static/"
 
 # App Cache Configuration
 
-APP_CACHE = os.environ.get('RIDGEBACK_APP_CACHE', '/tmp')
+APP_CACHE = os.environ.get("RIDGEBACK_APP_CACHE", "/tmp")
