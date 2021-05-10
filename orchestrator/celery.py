@@ -19,15 +19,15 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 app.conf.task_routes = {
-    'orchestrator.tasks.cleanup_folders': {'queue': settings.RIDGEBACK_ACTION_QUEUE},
-    'orchestrator.tasks.command_processor': {'queue': settings.RIDGEBACK_COMMAND_QUEUE}
+    "orchestrator.tasks.cleanup_folders": {"queue": settings.RIDGEBACK_ACTION_QUEUE},
+    "orchestrator.tasks.command_processor": {"queue": settings.RIDGEBACK_COMMAND_QUEUE},
 }
 
 app.conf.beat_schedule = {
     "process_jobs": {
         "task": "orchestrator.tasks.process_jobs",
         "schedule": 60.0,
-        "options": {"queue": settings.RIDGEBACK_SUBMIT_JOB_QUEUE}
+        "options": {"queue": settings.RIDGEBACK_SUBMIT_JOB_QUEUE},
     },
     "cleanup_completed_jobs": {
         "task": "orchestrator.tasks.cleanup_completed_jobs",
