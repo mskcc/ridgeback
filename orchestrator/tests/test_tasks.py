@@ -136,46 +136,54 @@ class TasksTest(TestCase):
         delete.return_value = True
         command_processor(Command(CommandType.SUBMIT, str(uuid.uuid4())).to_dict())
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    def test_submitted_to_pending(self, status):
+    def test_submitted_to_pending(self, status, command_processor):
         job = Job.objects.create(type=PipelineType.CWL,
                            app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                            external_id='ext_id', status=Status.SUBMITTED)
         status.return_value = Status.PENDING, ""
+        command_processor.return_value = True
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.PENDING)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    def test_pending_to_running(self, status):
+    def test_pending_to_running(self, status, command_processor):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.PENDING)
         status.return_value = Status.RUNNING, ""
+        command_processor.return_value = True
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.RUNNING)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('submitter.toil_submitter.ToilJobSubmitter.get_outputs')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    def test_running_to_completed(self, status, get_outputs):
+    def test_running_to_completed(self, status, get_outputs, command_processor):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.RUNNING)
         status.return_value = Status.COMPLETED, ""
         outputs = {"output": "test_value"}
         get_outputs.return_value = outputs, None
+        command_processor.return_value = None
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.COMPLETED)
         self.assertEqual(job.outputs, outputs)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.status')
-    def test_failed(self, status):
+    def test_failed(self, status, command_processor):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.RUNNING)
         status.return_value = Status.FAILED, ""
+        command_processor.return_value = True
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)

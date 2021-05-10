@@ -1,20 +1,16 @@
 import os
 import json
-import shutil
 import logging
 from datetime import timedelta
 from celery import shared_task
 from batch_systems.lsf_client import LSFClient
 from django.conf import settings
 from django.db import transaction
-from django.core.serializers.json import DjangoJSONEncoder
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import is_aware, make_aware, now
-from .toil_track_utils import ToilTrack
+from django.utils.timezone import now
 from .models import Job, Status, CommandLineToolJob
+import shutil
 from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
-from submitter.app.app import GithubCache
 from ridgeback.settings import MAX_RUNNING_JOBS
 from orchestrator.commands import Command, CommandType
 from orchestrator.exceptions import RetryException, StopException
@@ -23,37 +19,31 @@ from orchestrator.exceptions import RetryException, StopException
 logger = logging.getLogger(__name__)
 
 
-def get_aware_datetime(date_str):
-    datetime_obj = parse_datetime(str(date_str))
-    if not is_aware(datetime_obj):
-        datetime_obj = make_aware(datetime_obj)
-    return datetime_obj
-
-
 def get_job_info_path(job_id):
     work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, str(job_id))
-    job_info_path = os.path.join(work_dir, '.run.info')
+    job_info_path = os.path.join(work_dir, ".run.info")
     return job_info_path
 
 
 def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
     if os.path.exists(working_dir):
-        job_info = {'external_id': external_id,
-                    'job_store_location': job_store_location,
-                    'working_dir': working_dir,
-                    'output_directory': output_directory
-                    }
+        job_info = {
+            "external_id": external_id,
+            "job_store_location": job_store_location,
+            "working_dir": working_dir,
+            "output_directory": output_directory,
+        }
         job_info_path = get_job_info_path(job_id)
-        with open(job_info_path,'w') as job_info_file:
+        with open(job_info_path, 'w') as job_info_file:
             json.dump(job_info, job_info_file)
     else:
-        logger.error('Working directory %s does not exist', working_dir)
+        logger.error("Working directory %s does not exist", working_dir)
 
 
 def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
-    logger.error('On failure to submit')
+    logger.error("On failure to submit")
     job_id = args[0]
-    logger.error('Failed to submit job: %s' % job_id)
+    logger.error("Failed to submit job: %s" % job_id)
     job = Job.objects.get(id=job_id)
     job.fail('Failed to submit job')
 
@@ -116,19 +106,30 @@ def command_processor(self, command_dict):
                 except Job.DoesNotExist:
                     return
                 if command.command_type == CommandType.SUBMIT:
+                    logger.info("SUBMIT command for job %s" % command.job_id)
                     submit_job_to_lsf(job)
                 elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
+                    logger.info("CHECK_STATUS_ON_LSF command for job %s" % command.job_id)
                     check_job_status(job)
+                elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
+                    logger.info("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
+                    check_status_of_command_line_jobs(job)
                 elif command.command_type == CommandType.ABORT:
+                    logger.info("ABORT command for job %s" % command.job_id)
                     abort_job(job)
                 elif command.command_type == CommandType.SUSPEND:
+                    logger.info("SUSPEND command for job %s" % command.job_id)
                     suspend_job(job)
                 elif command.command_type == CommandType.RESUME:
+                    logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
             else:
+                logger.info(
+                    "Job lock not acquired for job: %s" % command.job_id
+                )
                 self.retry()
     except RetryException as e:
-        logger.warning(
+        logger.info(
             "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e)))
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
@@ -201,6 +202,8 @@ def check_job_status(job):
         elif lsf_status in (Status.FAILED,):
             _fail(job, lsf_message)
 
+        command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
+
     else:
         raise StopException('Invalid transition %s to %s' % (Status(job.status).name, Status(lsf_status).name))
 
@@ -232,8 +235,12 @@ def cleanup_failed_jobs(self):
 
 def cleanup_jobs(status, time_delta):
     time_threshold = now() - timedelta(days=time_delta)
-    jobs = Job.objects.filter(status__in=(status,), modified_date__lte=time_threshold, job_store_clean_up=None,
-                              working_dir_clean_up=None)
+    jobs = Job.objects.filter(
+        status__in=(status,),
+        modified_date__lte=time_threshold,
+        job_store_clean_up=None,
+        working_dir_clean_up=None,
+    )
     for job in jobs:
         cleanup_folders.delay(str(job.id))
 
@@ -264,123 +271,44 @@ def clean_directory(path):
     return True
 
 
-@shared_task(bind=True)
-def check_status_of_command_line_jobs(self):
-    jobs = Job.objects.filter(status__in=(Status.CREATED, Status.RUNNING))
-    for current_job in jobs:
-        if current_job.app != None:
-            if 'github' in current_job.app:
-                github_repo = current_job.app['github']['repository']
-                if github_repo:
-                    if "access" in github_repo.lower():
-                        continue
-        current_job_str = current_job.track_cache
-        job_updated = False
-        if current_job_str:
-            track_cache = json.loads(current_job_str)
-        else:
-            track_cache = {'current_jobs': [], 'jobs_path': {}, 'jobs': {}, 'worker_jobs': {}}
-            job_updated = True
-        jobstore_path = current_job.job_store_location
-        workdir_path = current_job.working_dir
-        toil_track_obj = ToilTrack(jobstore_path, workdir_path, False, 0, False, None)
-        cache_current_jobs = track_cache['current_jobs']
-        cache_jobs_path = track_cache['jobs_path']
-        cache_jobs = track_cache['jobs']
-        cache_worker_jobs = track_cache['worker_jobs']
-        toil_track_obj.current_jobs = cache_current_jobs
-        toil_track_obj.jobs_path = cache_jobs_path
-        toil_track_obj.jobs = cache_jobs
-        toil_track_obj.worker_jobs = cache_worker_jobs
-        job_status = toil_track_obj.check_status()
-        if toil_track_obj.current_jobs != track_cache['current_jobs']:
-            track_cache['current_jobs'] = toil_track_obj.current_jobs
-            job_updated = True
-        if toil_track_obj.jobs_path != track_cache['jobs_path']:
-            track_cache['jobs_path'] = toil_track_obj.jobs_path
-            job_updated = True
-        if toil_track_obj.jobs != track_cache['jobs']:
-            track_cache['jobs'] = toil_track_obj.jobs
-            job_updated = True
-        if toil_track_obj.worker_jobs != track_cache['worker_jobs']:
-            track_cache['worker_jobs'] = toil_track_obj.worker_jobs
-            job_updated = True
-        if job_updated:
-            current_job.track_cache = json.dumps(track_cache,sort_keys=True,indent=1,cls=DjangoJSONEncoder)
-            current_job.save()
-        for single_command_line_tool in job_status:
-            commandLineToolJobs = CommandLineToolJob.objects.filter(job_id__exact=single_command_line_tool['id'])
-            finished = single_command_line_tool['finished']
-            started = single_command_line_tool['started']
-            submitted = single_command_line_tool['submitted']
-            status = single_command_line_tool['status']
-            details = single_command_line_tool['details']
-            already_exists = False
-            updated = False
-            single_tool_module = None
-            if len(commandLineToolJobs) != 0:
-                if commandLineToolJobs[0] != None:
-                    already_exists = True
-                    single_tool_module = commandLineToolJobs[0]
-                    if single_tool_module.status != Status.COMPLETED and single_tool_module != Status.FAILED:
-                        keys_to_modify = ['started', 'submitted', 'finished', 'status', 'details']
-                        for single_key in keys_to_modify:
-                            key_value = single_command_line_tool[single_key]
-                            if key_value:
-                                if key_value != single_tool_module.__dict__[single_key]:
-                                    if single_key == 'details':
-                                        for single_detail_key in key_value:
-                                            single_detail_value = key_value[single_detail_key]
-                                            if single_detail_value != None:
-                                                old_value = None
-                                                if single_detail_key in single_tool_module.__dict__[single_key]:
-                                                    old_value = single_tool_module.__dict__[single_key][
-                                                        single_detail_key]
-                                                if single_detail_key in ['job_cpu', 'job_memory']:
-                                                    if old_value:
-                                                        last_record = old_value[-1]
-                                                        if last_record[1] != single_detail_value:
-                                                            new_record = (str(now()), single_detail_value)
-                                                            single_tool_module.__dict__[single_key][
-                                                                single_detail_key].append(new_record)
-                                                            updated = True
-                                                    else:
-                                                        new_record = (str(now()), single_detail_value)
-                                                        single_tool_module.__dict__[single_key][single_detail_key] = [
-                                                            new_record]
-                                                        updated = True
-                                                else:
-                                                    if old_value != single_detail_value:
-                                                        single_tool_module.__dict__[single_key][
-                                                            single_detail_key] = single_detail_value
-                                                        updated = True
-                                    else:
-                                        if single_key in ['started', 'submitted', 'finished']:
-                                            if single_tool_module.__dict__[single_key] != None:
-                                                continue
-                                                if get_aware_datetime(
-                                                        single_tool_module.__dict__[single_key]) == get_aware_datetime(
-                                                        key_value):
-                                                    continue
-                                        single_tool_module.__dict__[single_key] = key_value
-                                        updated = True
-            if not already_exists:
-                if details:
-                    for single_detail_key in ['job_cpu', 'job_memory']:
-                        if single_detail_key in details:
-                            single_detail_value = details[single_detail_key]
-                            if single_detail_value:
-                                new_record = (str(now()),single_detail_value)
-                                details[single_detail_key] = [new_record]
-                single_tool_module = CommandLineToolJob(root=current_job, status=status, started=started,
-                                                        submitted=submitted, finished=finished,
-                                                        job_name=single_command_line_tool['name'],
-                                                        job_id=single_command_line_tool['id'], details=details)
-                updated = True
-            if updated:
-                single_tool_module.save()
-    commandLineToolJobs = CommandLineToolJob.objects.filter(status__in=(Status.RUNNING, Status.PENDING))
-    for single_command_line_tool in commandLineToolJobs:
-        if single_command_line_tool.root.status != Status.RUNNING:
-            single_command_line_tool.__dict__['status'] = Status.UNKNOWN
-            single_command_line_tool.save()
+# Check CommandLineJob statuses
+
+
+def update_command_line_jobs(command_line_jobs, root):
+    for job_id, job_obj in command_line_jobs.items():
+        try:
+            command_line_job = CommandLineToolJob.objects.get(job_id=job_id)
+            command_line_job.status = job_obj["status"]
+            command_line_job.started = job_obj["started"]
+            command_line_job.submitted = job_obj["submitted"]
+            command_line_job.finished = job_obj["finished"]
+            command_line_job.details = job_obj["details"]
+            command_line_job.save()
+        except CommandLineToolJob.DoesNotExist:
+            CommandLineToolJob.objects.create(
+                root=root,
+                job_id=job_id,
+                status=job_obj["status"],
+                started=job_obj["started"],
+                submitted=job_obj["submitted"],
+                finished=job_obj["finished"],
+                job_name=job_obj["name"],
+                details=job_obj["details"],
+            )
+
+
+def check_status_of_command_line_jobs(job):
+    submiter = JobSubmitterFactory.factory(
+        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location
+    )
+    track_cache_str = job.track_cache
+    command_line_status = submiter.get_commandline_status(track_cache_str)
+    command_line_jobs = {}
+    if command_line_status:
+        command_line_jobs_str, new_track_cache_str = command_line_status
+        new_track_cache = json.loads(new_track_cache_str)
+        command_line_jobs = json.loads(command_line_jobs_str)
+        job.track_cache = new_track_cache
+        job.save()
+    if command_line_jobs:
+        update_command_line_jobs(command_line_jobs, job)

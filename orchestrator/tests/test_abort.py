@@ -14,10 +14,12 @@ class AbortTest(TestCase):
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.CREATED)
 
-    def test_abort_from_created(self):
+    @patch('orchestrator.tasks.command_processor.delay')
+    def test_abort_from_created(self, command_processor):
         """
         Test reciving ABORT command when Job is in CREATED state
         """
+        command_processor.return_vaule = True
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.CREATED)
@@ -28,13 +30,15 @@ class AbortTest(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Status.ABORTED)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('django.core.cache.cache.delete')
     @patch('django.core.cache.cache.add')
-    def test_abort_from_submitting(self, add, delete):
+    def test_abort_from_submitting(self, add, delete, command_processor):
         """
         Testing when ABORT command is received when Job is in SUBMITTING state.
         Test if SUBMIT command received after is handled correctly and also the check status
         """
+        command_processor.return_vaule = True
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.SUBMITTING)
@@ -48,12 +52,14 @@ class AbortTest(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Status.ABORTED)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.abort')
-    def test_abort_from_submitted(self, abort):
+    def test_abort_from_submitted(self, abort, command_processor):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.SUBMITTED)
         abort.return_value = True
+        command_processor.return_value = True
         abort_job(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.ABORTED)
@@ -72,12 +78,14 @@ class AbortTest(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Status.SUBMITTED)
 
+    @patch('orchestrator.tasks.command_processor.delay')
     @patch('batch_systems.lsf_client.lsf_client.LSFClient.abort')
-    def test_abort_from_running(self, abort):
+    def test_abort_from_running(self, abort, command_processor):
         job = Job.objects.create(type=PipelineType.CWL,
                                  app={"github": {"version": "1.0.0", "entrypoint": "test.cwl", "repository": ""}},
                                  external_id='ext_id', status=Status.RUNNING)
         abort.return_value = True
+        command_processor.return_value = True
         abort_job(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.ABORTED)
