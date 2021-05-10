@@ -32,6 +32,8 @@ class LSFClient(object):
         Args:
             command (str): command to submit
             stdout (str): log file path
+            job_args (list): Additional options for leader bsub
+            tool_args (list): Additional options for tool bsub
 
         Returns:
             int: lsf job id
