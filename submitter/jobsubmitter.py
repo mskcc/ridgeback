@@ -5,7 +5,6 @@ from batch_systems.lsf_client.lsf_client import LSFClient
 
 
 class JobSubmitter(object):
-
     def __init__(self, app, inputs, walltime, memlimit):
         self.app = App.factory(app)
         self.inputs = inputs
@@ -25,6 +24,11 @@ class JobSubmitter(object):
 
     def abort(self, external_id):
         return self.lsf_client.abort(external_id)
+
+    def get_commandline_status(self, cache):
+        """
+        Get the status of the command line tools in the job
+        """
 
     def get_outputs(self):
         """
@@ -48,4 +52,3 @@ class JobSubmitter(object):
 
     def _command_line(self):
         pass
-

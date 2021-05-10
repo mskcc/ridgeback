@@ -2,8 +2,9 @@ import uuid
 import logging
 from enum import IntEnum
 from django.db import models
-from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import is_aware, make_aware, now
 
 
 logger = logging.getLogger(__name__)
@@ -132,7 +133,7 @@ class Job(BaseModel):
         self.working_dir = job_work_dir
         self.output_directory = job_output_dir
         self.log_path = log_path
-        self.submitted = timezone.now()
+        self.submitted = now()
         self.message['log'] = log_path
         self.save(update_fields=['status',
                                  'external_id',
@@ -144,7 +145,7 @@ class Job(BaseModel):
 
     def update_status(self, lsf_status):
         if self.status == Status.PENDING and lsf_status == Status.RUNNING:
-            self.started = timezone.now()
+            self.started = now()
         self.status = lsf_status
         self.save(update_fields=['status', 'started'])
 
@@ -152,7 +153,7 @@ class Job(BaseModel):
         self.track_cache = None
         self.outputs = outputs
         self.status = Status.COMPLETED
-        self.finished = timezone.now()
+        self.finished = now()
         self.save()
 
     def fail(self, error_message, failed_jobs='', unknown_jobs=''):
@@ -160,12 +161,12 @@ class Job(BaseModel):
         self.message['failed_jobs'] = failed_jobs
         self.message['unknown_jobs'] = unknown_jobs
         self.status = Status.FAILED
-        self.finished = timezone.now()
+        self.finished = now()
         self.save()
 
     def abort(self):
         self.status = Status.ABORTED
-        self.finished = timezone.now()
+        self.finished = now()
         self.save()
 
 
@@ -178,3 +179,17 @@ class CommandLineToolJob(BaseModel):
     job_name = models.CharField(max_length=100)
     job_id = models.CharField(max_length=20)
     details = JSONField(blank=True, null=True)
+
+    def get_aware_datetime(self, date_str):
+        if not date_str:
+            return None
+        datetime_obj = parse_datetime(str(date_str))
+        if not is_aware(datetime_obj):
+            datetime_obj = make_aware(datetime_obj)
+        return datetime_obj
+
+    def save(self, *args, **kwargs):
+        self.started = self.get_aware_datetime(self.started)
+        self.submitted = self.get_aware_datetime(self.submitted)
+        self.finished = self.get_aware_datetime(self.finished)
+        super(CommandLineToolJob, self).save(*args, **kwargs)
