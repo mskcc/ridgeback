@@ -22,19 +22,21 @@ from rest_framework import permissions
 from ridgeback import __version__
 
 
-
 schema_view = get_schema_view(
-   openapi.Info(
-      title="Ridgeback API",
-      default_version=__version__
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
+    openapi.Info(title="Ridgeback API", default_version=__version__),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
 )
 
 urlpatterns = [
-    url(r'^$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    path('admin/', admin.site.urls),
-    path('v0/', include('orchestrator.urls')),
+    url(
+        r"^$", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"
+    ),
+    url(
+        r"^swagger(?P<format>\.json|\.yaml)$",
+        schema_view.without_ui(cache_timeout=0),
+        name="schema-json",
+    ),
+    path("admin/", admin.site.urls),
+    path("v0/", include("orchestrator.urls")),
 ]

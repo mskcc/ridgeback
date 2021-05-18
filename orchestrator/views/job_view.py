@@ -1,21 +1,30 @@
 from orchestrator.models import Job, Status
-from orchestrator.serializers import JobSerializer, JobSubmitSerializer, JobResumeSerializer, JobIdsSerializer, JobStatusSerializer
-from orchestrator.tasks import abort_job
+from orchestrator.serializers import (
+    JobSerializer,
+    JobSubmitSerializer,
+    JobResumeSerializer,
+    JobIdsSerializer,
+    JobStatusSerializer,
+)
 from rest_framework import mixins
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework.decorators import action
+from orchestrator.tasks import command_processor
+from orchestrator.commands.command import Command, CommandType
 
 
-class JobViewSet(mixins.CreateModelMixin,
-                 mixins.DestroyModelMixin,
-                 mixins.RetrieveModelMixin,
-                 mixins.UpdateModelMixin,
-                 mixins.ListModelMixin,
-                 GenericViewSet):
-    queryset = Job.objects.order_by('created_date').all()
+class JobViewSet(
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet,
+):
+    queryset = Job.objects.order_by("created_date").all()
 
     def get_serializer_class(self):
         return JobSerializer
@@ -29,30 +38,40 @@ class JobViewSet(mixins.CreateModelMixin,
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(request_body=JobResumeSerializer, responses={status.HTTP_201_CREATED: JobSerializer})
-    @action(detail=True, methods=['post'])
+    @swagger_auto_schema(
+        request_body=JobResumeSerializer,
+        responses={status.HTTP_201_CREATED: JobSerializer},
+    )
+    @action(detail=True, methods=["post"])
     def resume(self, request, pk=None, *args, **kwargs):
         resume_data = request.data
         try:
             parent_job = Job.objects.get(id=pk)
-            if parent_job.job_store_clean_up != None:
-                return Response("The job store of the job indicated to be resumed has been cleaned up",
-                                status=status.HTTP_410_GONE)
-            resume_data['type'] = parent_job.type
-            resume_data['app'] = parent_job.app
-            resume_data['inputs'] = parent_job.inputs
-            resume_data['resume_job_store_location'] = parent_job.job_store_location
+            if parent_job.job_store_clean_up is not None:
+                return Response(
+                    "The job store of the job indicated to be resumed has been cleaned up",
+                    status=status.HTTP_410_GONE,
+                )
+            resume_data["type"] = parent_job.type
+            resume_data["app"] = parent_job.app
+            resume_data["inputs"] = parent_job.inputs
+            resume_data["resume_job_store_location"] = parent_job.job_store_location
             return self.validate_and_save(resume_data)
         except Job.DoesNotExist:
-            return Response("Could not find the indicated job to resume", status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                "Could not find the indicated job to resume",
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-    @swagger_auto_schema(request_body=JobIdsSerializer(), responses={status.HTTP_200_OK: JobStatusSerializer})
-    @action(detail=False, methods=['post'])
+    @swagger_auto_schema(
+        request_body=JobIdsSerializer(),
+        responses={status.HTTP_200_OK: JobStatusSerializer},
+    )
+    @action(detail=False, methods=["post"])
     def statuses(self, request):
         serializer = JobIdsSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         job_ids = serializer.validated_data.get("job_ids")
         job_status_data = {}
         for single_job in self.queryset.filter(id__in=job_ids):
@@ -60,34 +79,44 @@ class JobViewSet(mixins.CreateModelMixin,
             job_data = job_obj.data
             job_id = job_data["id"]
             job_status_data[job_id] = job_data
-        resp_serializer = JobStatusSerializer(data={'jobs':job_status_data})
+        resp_serializer = JobStatusSerializer(data={"jobs": job_status_data})
         if resp_serializer.is_valid():
             return Response(resp_serializer.data)
         else:
-            return Response(resp_serializer.errors,
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                resp_serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def abort(self, request, pk=None, *args, **kwargs):
         try:
-            job = Job.objects.get(id=pk)
+            Job.objects.get(id=pk)
         except Job.DoesNotExist:
             return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
-        abort_job.delay(str(pk))
+        command_processor.delay(Command(CommandType.ABORT, str(pk)).to_dict())
+
         return Response("Job aborted", status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(request_body=JobSubmitSerializer, responses={status.HTTP_201_CREATED: JobSerializer})
+    @swagger_auto_schema(
+        request_body=JobSubmitSerializer,
+        responses={status.HTTP_201_CREATED: JobSerializer},
+    )
     def create(self, request, *args, **kwargs):
         return self.validate_and_save(request.data)
 
     def list(self, request, *args, **kwargs):
-        queryset = Job.objects.order_by('created_date').all()
-        status_param = request.query_params.get('status')
+        queryset = Job.objects.order_by("created_date").all()
+        status_param = request.query_params.get("status")
         if status_param:
             if status_param not in [s.name for s in Status]:
-                return Response({'details': 'Invalid status value %s: expected values %s' % (
-                status_param, [s.name for s in Status])}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        "details": "Invalid status value %s: expected values %s"
+                        % (status_param, [s.name for s in Status])
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             queryset = queryset.filter(status=Status[status_param].value)
         page = self.paginate_queryset(queryset)
         serializer = JobSerializer(page, many=True)
@@ -97,14 +126,17 @@ class JobViewSet(mixins.CreateModelMixin,
         if request.user.is_superuser:
             return super().destroy(request, *args, **kwargs)
         else:
-            return Response("Only admins can delete job objects", status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                "Only admins can delete job objects",
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
     @property
     def paginator(self):
         """
         The paginator instance associated with the view, or `None`.
         """
-        if not hasattr(self, '_paginator'):
+        if not hasattr(self, "_paginator"):
             if self.pagination_class is None:
                 self._paginator = None
             else:

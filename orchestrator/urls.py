@@ -6,10 +6,10 @@ from .views.cmdlinetooljob_view import JobCmdLineToolViewSet
 
 router = routers.DefaultRouter()
 
-router.register('jobs', JobViewSet)
-router.register('status', JobCmdLineToolViewSet)
+router.register("jobs", JobViewSet)
+router.register("status", JobCmdLineToolViewSet)
 
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]
