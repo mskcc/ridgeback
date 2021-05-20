@@ -156,6 +156,12 @@ class ToilJobSubmitter(JobSubmitter):
         return ["-M", self.memlimit] if self.memlimit else []
 
     def _command_line(self):
+        # Todo: (ian) build a more robust soultion for handling workflow creds
+        if "access" in self.app.github.lower():
+            for k, v in os.environ.items():
+                if "SINGULARITY_DOCKER_" in k:
+                    os.environ[k] = None
+                    
         if "access" in self.app.github.lower() and "nucleo" not in self.app.github.lower():
             """
             Start ACCESS-specific code
