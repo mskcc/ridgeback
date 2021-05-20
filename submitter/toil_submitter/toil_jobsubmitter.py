@@ -46,6 +46,12 @@ class ToilJobSubmitter(JobSubmitter):
         toil_lsf_args = "-sla %s %s" % (settings.LSF_SLA, " ".join(self._job_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
+        
+        if "access" in self.app.github.lower():
+            for k, v in os.environ.items():
+                if "SINGULARITY_DOCKER_" in k:
+                    os.environ[k] = None
+                    
         external_id = self.lsf_client.submit(
             command_line, self._job_args(), log_path, env
         )
@@ -156,12 +162,6 @@ class ToilJobSubmitter(JobSubmitter):
         return ["-M", self.memlimit] if self.memlimit else []
 
     def _command_line(self):
-        # Todo: (ian) build a more robust soultion for handling workflow creds
-        if "access" in self.app.github.lower():
-            for k, v in os.environ.items():
-                if "SINGULARITY_DOCKER_" in k:
-                    os.environ[k] = None
-                    
         if "access" in self.app.github.lower() and "nucleo" not in self.app.github.lower():
             """
             Start ACCESS-specific code
