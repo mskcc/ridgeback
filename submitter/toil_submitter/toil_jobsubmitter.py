@@ -48,9 +48,11 @@ class ToilJobSubmitter(JobSubmitter):
         env["TOIL_LSF_ARGS"] = toil_lsf_args
         
         if "access" in self.app.github.lower():
-            for k, v in env.items():
-                if "SINGULARITY_DOCKER_" in k:
-                    env[k] = None
+            for e in ['SINGULARITYENV_SINGULARITY_DOCKER_USERNAME',
+                      'SINGULARITY_DOCKER_USERNAME',
+                      'SINGULARITYENV_SINGULARITY_DOCKER_PASSWORD',
+                      'SINGULARITY_DOCKER_PASSWORD']:
+                env[e] = None
                     
         external_id = self.lsf_client.submit(
             command_line, self._job_args(), log_path, env
