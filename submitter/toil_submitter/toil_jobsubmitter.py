@@ -227,6 +227,8 @@ class ToilJobSubmitter(JobSubmitter):
                 "--disable-host-provenance",
                 "--stats",
                 "--debug",
+                "--disableProgress",
+                "--doubleMem",
                 "--disableCaching",
                 "--preserve-environment",
                 "PATH",
