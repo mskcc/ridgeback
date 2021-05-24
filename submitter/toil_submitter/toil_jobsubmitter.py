@@ -46,14 +46,14 @@ class ToilJobSubmitter(JobSubmitter):
         toil_lsf_args = "-sla %s %s" % (settings.LSF_SLA, " ".join(self._job_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
-        
+
         if "access" in self.app.github.lower():
             for e in ['SINGULARITYENV_SINGULARITY_DOCKER_USERNAME',
                       'SINGULARITY_DOCKER_USERNAME',
                       'SINGULARITYENV_SINGULARITY_DOCKER_PASSWORD',
                       'SINGULARITY_DOCKER_PASSWORD']:
                 env[e] = None
-                    
+
         external_id = self.lsf_client.submit(
             command_line, self._job_args(), log_path, env
         )
