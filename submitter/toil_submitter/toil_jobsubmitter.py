@@ -223,6 +223,8 @@ class ToilJobSubmitter(JobSubmitter):
                 "toil_log.log",
                 "--batchSystem",
                 "lsf",
+                "--statePollingWait",
+                settings.TOIL_STATE_POLLING_WAIT,
                 "--disable-user-provenance",
                 "--disable-host-provenance",
                 "--stats",
