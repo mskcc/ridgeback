@@ -32,6 +32,7 @@ class LSFClient(object):
         Args:
             command (str): command to submit
             stdout (str): log file path
+            job_args (list): argument list for job
 
         Returns:
             int: lsf job id
