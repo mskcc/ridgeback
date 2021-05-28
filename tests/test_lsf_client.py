@@ -11,17 +11,17 @@ class TestLSFClient(TestCase):
     """
 
     def setUp(self):
-        please_wait_str = '''Cannot connect to LSF. Please wait ...
+        please_wait_str = """Cannot connect to LSF. Please wait ...
         Cannot connect to LSF. Please wait ...
         Cannot connect to LSF. Please wait ...
-        '''
+        """
         self.example_id = 12345678
-        self.submit_response = 'Job <{}> is submitted'.format(self.example_id)
+        self.submit_response = "Job <{}> is submitted".format(self.example_id)
         self.submit_response_please_wait = please_wait_str + self.submit_response
         self.lsf_client = LSFClient()
         self.exist_reason = "TERM_OWNER: job killed by owner"
         self.pend_reason = "New job is waiting for scheduling;"
-        self.status_failed_response = '''
+        self.status_failed_response = """
         {
           "COMMAND":"bjobs",
           "JOBS":1,
@@ -35,8 +35,8 @@ class TestLSFClient(TestCase):
             }
           ]
         }
-        '''
-        self.status_pend_response = '''
+        """
+        self.status_pend_response = """
         {
           "COMMAND":"bjobs",
           "JOBS":1,
@@ -50,7 +50,7 @@ class TestLSFClient(TestCase):
             }
           ]
         }
-        '''
+        """
         self.status_failed_please_wait = please_wait_str + self.status_failed_response
         self.status_pend_please_wait = please_wait_str + self.status_pend_response
 
@@ -59,13 +59,13 @@ class TestLSFClient(TestCase):
         """
         Test LSF submit
         """
-        command = ['ls']
+        command = ["ls"]
         args = []
-        stdout_file = 'stdout.txt'
+        stdout_file = "stdout.txt"
         submit_process_obj = Mock()
         submit_process_obj.stdout = self.submit_response
         submit_process.return_value = submit_process_obj
-        lsf_id = self.lsf_client.submit(command, args,stdout_file,{})
+        lsf_id = self.lsf_client.submit(command, args, stdout_file, {})
         expected_command = ["bsub", "-sla", settings.LSF_SLA, "-oo", stdout_file] + args + command
         self.assertEqual(lsf_id, self.example_id)
         self.assertEqual(submit_process.call_args[0][0], expected_command)
@@ -75,13 +75,13 @@ class TestLSFClient(TestCase):
         """
         Test LSF submit when LSF is slow
         """
-        command = ['ls']
+        command = ["ls"]
         args = []
-        stdout_file = 'stdout.txt'
+        stdout_file = "stdout.txt"
         submit_process_obj = Mock()
         submit_process_obj.stdout = self.submit_response_please_wait
         submit_process.return_value = submit_process_obj
-        lsf_id = self.lsf_client.submit(command, args,stdout_file,{})
+        lsf_id = self.lsf_client.submit(command, args, stdout_file, {})
         self.assertEqual(lsf_id, self.example_id)
 
     @patch("subprocess.run")
@@ -92,7 +92,7 @@ class TestLSFClient(TestCase):
         abort_process_obj = Mock()
         abort_process_obj.returncode = 0
         abort_process.return_value = abort_process_obj
-        expected_command = ['bkill',self.example_id]
+        expected_command = ["bkill", self.example_id]
         aborted = self.lsf_client.abort(self.example_id)
         self.assertEqual(abort_process.call_args[0][0], expected_command)
         self.assertEqual(aborted, True)
@@ -108,7 +108,7 @@ class TestLSFClient(TestCase):
         status_process.return_value = status_process_obj
         status = self.lsf_client.status(self.example_id)
         expected_status = Status.FAILED, "exit reason: {}".format(self.exist_reason)
-        self.assertEqual(status,expected_status )
+        self.assertEqual(status, expected_status)
 
     @patch("subprocess.run")
     def test_pend_status(self, status_process):
@@ -121,7 +121,7 @@ class TestLSFClient(TestCase):
         status_process.return_value = status_process_obj
         status = self.lsf_client.status(self.example_id)
         expected_status = Status.PENDING, self.pend_reason
-        self.assertEqual(status,expected_status )
+        self.assertEqual(status, expected_status)
 
     @patch("subprocess.run")
     def test_failed_status_slow_lsf(self, status_process):
@@ -134,7 +134,7 @@ class TestLSFClient(TestCase):
         status_process.return_value = status_process_obj
         status = self.lsf_client.status(self.example_id)
         expected_status = Status.FAILED, "exit reason: {}".format(self.exist_reason)
-        self.assertEqual(status,expected_status )
+        self.assertEqual(status, expected_status)
 
     @patch("subprocess.run")
     def test_pend_status_slow_lsf(self, status_process):
@@ -147,4 +147,4 @@ class TestLSFClient(TestCase):
         status_process.return_value = status_process_obj
         status = self.lsf_client.status(self.example_id)
         expected_status = Status.PENDING, self.pend_reason
-        self.assertEqual(status,expected_status )
+        self.assertEqual(status, expected_status)
