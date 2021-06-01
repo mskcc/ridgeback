@@ -39,7 +39,7 @@ class LSFClient(object):
         bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-oo", stdout] + job_args
 
         bsub_command.extend(command)
-        current_env = os.environ
+        current_env = os.environ.copy()
         for k, v in env.items():
             if v:
                 current_env[k] = v
