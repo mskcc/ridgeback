@@ -171,15 +171,16 @@ class TestTasks(TestCase):
             app={"app": "link"},
             status=Status.COMPLETED,
             created_date=datetime.now() - timedelta(days=1),
+            finished=datetime.now() - timedelta(days=1),
         )
         testtime = datetime.now() - timedelta(days=32)
         with patch("django.utils.timezone.now") as mock_now:
             mock_now.return_value = testtime
             job_old_completed = Job.objects.create(
-                type=PipelineType.CWL, app={"app": "link"}, status=Status.COMPLETED
+                type=PipelineType.CWL, app={"app": "link"}, status=Status.COMPLETED, finished=testtime
             )
             job_old_failed = Job.objects.create(
-                type=PipelineType.CWL, app={"app": "link"}, status=Status.FAILED
+                type=PipelineType.CWL, app={"app": "link"}, status=Status.FAILED, finished=testtime
             )
 
         cleanup_completed_jobs()
