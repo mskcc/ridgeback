@@ -322,9 +322,9 @@ def cleanup_jobs(status, time_delta):
     time_threshold = now() - timedelta(days=time_delta)
     jobs = Job.objects.filter(
         status__in=(status,),
-        modified_date__lte=time_threshold,
-        job_store_clean_up=None,
-        working_dir_clean_up=None,
+        finished__lte=time_threshold,
+        job_store_clean_up__isnull=True,
+        working_dir_clean_up__isnull=True,
     )
     for job in jobs:
         cleanup_folders.delay(str(job.id))
