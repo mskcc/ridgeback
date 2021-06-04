@@ -36,9 +36,6 @@ ELASTIC_APM = {
   # a-z, A-Z, 0-9, -, _, and space
   'SERVICE_NAME': 'ridgeback',
 
-  # Use if APM Server requires a secret token
-  #'SECRET_TOKEN': '',
-
   # Set the custom APM Server URL (default: http://localhost:8200)
   'SERVER_URL': 'http://bic-dockerapp01.mskcc.org:8200/',
 
