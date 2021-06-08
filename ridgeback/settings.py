@@ -31,6 +31,18 @@ DEBUG = ENVIRONMENT == "dev"
 ALLOWED_HOSTS = os.environ.get("RIDGEBACK_ALLOWED_HOSTS", "localhost").split(",")
 
 
+ELASTIC_APM = {
+  # Set the required service name. Allowed characters:
+  # a-z, A-Z, 0-9, -, _, and space
+  'SERVICE_NAME': 'ridgeback',
+
+  # Set the custom APM Server URL (default: http://localhost:8200)
+  'SERVER_URL': 'http://bic-dockerapp01.mskcc.org:8200/',
+
+  # Set the service environment
+  'ENVIRONMENT': ENVIRONMENT,
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -47,6 +59,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "elasticapm.contrib.django.middleware.TracingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
