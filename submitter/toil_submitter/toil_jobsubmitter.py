@@ -238,6 +238,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "TOIL_LSF_ARGS",
                 "SINGULARITY_PULLDIR",
                 "SINGULARITY_CACHEDIR",
+                "SINGULARITYENV_LC_ALL",
                 "PWD",
                 "SINGULARITY_DOCKER_USERNAME",
                 "SINGULARITY_DOCKER_PASSWORD",
