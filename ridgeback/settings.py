@@ -256,7 +256,7 @@ TOIL_WORK_DIR_ROOT = os.environ["RIDGEBACK_TOIL_WORK_DIR_ROOT"]
 TOIL_TMP_DIR_ROOT = os.environ["RIDGEBACK_TOIL_TMP_DIR_ROOT"]
 LSF_WALLTIME = os.environ["RIDGEBACK_LSF_WALLTIME"]
 LSF_SLA = os.environ["RIDGEBACK_LSF_SLA"]
-CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "cwltoil")
+CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
 
 
