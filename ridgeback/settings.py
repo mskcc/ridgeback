@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "orchestrator.apps.OrchestratorConfig",
     "rest_framework",
     "drf_yasg",
+    "elasticapm",
 ]
 
 MIDDLEWARE = [
