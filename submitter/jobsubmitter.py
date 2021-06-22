@@ -3,8 +3,9 @@ from batch_systems.lsf_client.lsf_client import LSFClient
 
 
 class JobSubmitter(object):
-    def __init__(self, app, inputs, walltime, memlimit):
+    def __init__(self, job_id, app, inputs, walltime, memlimit):
         self.app = App.factory(app)
+        self.job_id = job_id
         self.inputs = inputs
         self.lsf_client = LSFClient()
         self.walltime = walltime
@@ -20,8 +21,23 @@ class JobSubmitter(object):
     def status(self, external_id):
         return self.lsf_client.status(external_id)
 
-    def abort(self, external_id):
-        return self.lsf_client.abort(external_id)
+    def abort(self):
+        """
+        Aborts the job
+        """
+        return self.lsf_client.abort(self.job_id)
+
+    def resume(self):
+        """
+        Resumes the job
+        """
+        return self.lsf_client.resume(self.job_id)
+
+    def suspend(self):
+        """
+        Suspends the job
+        """
+        return self.lsf_client.suspend(self.job_id)
 
     def get_commandline_status(self, cache):
         """
