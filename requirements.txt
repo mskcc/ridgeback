@@ -18,4 +18,5 @@ django-pymemcache==1.0.0
 tenacity==7.0.0
 coverage==5.5
 flake8==3.9.0
+black==21.6b0
 elastic-apm==6.1.3
