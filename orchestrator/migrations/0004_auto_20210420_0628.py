@@ -4,7 +4,7 @@ from django.db import migrations
 
 
 def migrate_statuses(apps, _):
-    Job = apps.get_model('orchestrator', 'Job')
+    Job = apps.get_model("orchestrator", "Job")
     jobs = Job.objects.all()
     for job in jobs:
         if job.status > 0:
@@ -13,7 +13,7 @@ def migrate_statuses(apps, _):
 
 
 def revert_statuses(apps, _):
-    Job = apps.get_model('orchestrator', 'Job')
+    Job = apps.get_model("orchestrator", "Job")
     jobs = Job.objects.all()
     for job in jobs:
         if job.status > 3 and job.status < 9:
@@ -24,9 +24,7 @@ def revert_statuses(apps, _):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0003_auto_20210406_1455'),
+        ("orchestrator", "0003_auto_20210406_1455"),
     ]
 
-    operations = [
-        migrations.RunPython(migrate_statuses)
-    ]
+    operations = [migrations.RunPython(migrate_statuses)]
