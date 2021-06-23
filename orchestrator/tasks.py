@@ -3,7 +3,6 @@ import json
 import logging
 from datetime import timedelta
 from celery import shared_task
-from batch_systems.lsf_client import LSFClient
 from django.conf import settings
 from django.db import transaction
 from django.utils.timezone import now
