@@ -16,10 +16,6 @@ class JobSubmitterFactory(object):
         memlimit=None,
     ):
         if type == PipelineType.CWL:
-            return ToilJobSubmitter(
-                job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit
-            )
+            return ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
         elif type == PipelineType.NEXTFLOW:
-            return NextflowJobSubmitter(
-                job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit
-            )
+            return NextflowJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)

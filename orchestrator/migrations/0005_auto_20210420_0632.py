@@ -8,25 +8,63 @@ import orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0004_auto_20210420_0628'),
+        ("orchestrator", "0004_auto_20210420_0628"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='JobCommands',
+            name="JobCommands",
             fields=[
-                ('basemodel_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='orchestrator.BaseModel')),
+                (
+                    "basemodel_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to="orchestrator.BaseModel",
+                    ),
+                ),
             ],
-            bases=('orchestrator.basemodel',),
+            bases=("orchestrator.basemodel",),
         ),
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'SUBMITTING'), (2, 'SUBMITTED'), (3, 'PENDING'), (4, 'RUNNING'), (5, 'COMPLETED'), (6, 'FAILED'), (7, 'ABORTED'), (8, 'UNKNOWN'), (9, 'SUSPENDED')], default=orchestrator.models.Status(0)),
+            model_name="commandlinetooljob",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "SUBMITTING"),
+                    (2, "SUBMITTED"),
+                    (3, "PENDING"),
+                    (4, "RUNNING"),
+                    (5, "COMPLETED"),
+                    (6, "FAILED"),
+                    (7, "ABORTED"),
+                    (8, "UNKNOWN"),
+                    (9, "SUSPENDED"),
+                ],
+                default=orchestrator.models.Status(0),
+            ),
         ),
         migrations.AlterField(
-            model_name='job',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'SUBMITTING'), (2, 'SUBMITTED'), (3, 'PENDING'), (4, 'RUNNING'), (5, 'COMPLETED'), (6, 'FAILED'), (7, 'ABORTED'), (8, 'UNKNOWN'), (9, 'SUSPENDED')], default=orchestrator.models.Status(0)),
+            model_name="job",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "SUBMITTING"),
+                    (2, "SUBMITTED"),
+                    (3, "PENDING"),
+                    (4, "RUNNING"),
+                    (5, "COMPLETED"),
+                    (6, "FAILED"),
+                    (7, "ABORTED"),
+                    (8, "UNKNOWN"),
+                    (9, "SUSPENDED"),
+                ],
+                default=orchestrator.models.Status(0),
+            ),
         ),
     ]
