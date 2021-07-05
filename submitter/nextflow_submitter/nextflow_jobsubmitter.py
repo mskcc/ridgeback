@@ -99,7 +99,7 @@ class NextflowJobSubmitter(JobSubmitter):
 
     def get_outputs(self):
         result = list()
-        with open(os.path.join(self.job_work_dir, self.inputs["outputs"])) as f:
+        with open(self.inputs["outputs"]) as f:
             files = f.readlines()
             for f in files:
                 path = f.strip()
