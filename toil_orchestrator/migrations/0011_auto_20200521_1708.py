@@ -7,18 +7,38 @@ import toil_orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0010_job_working_dir_clean_up'),
+        ("toil_orchestrator", "0010_job_working_dir_clean_up"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED'), (5, 'UNKNOWN')], default=0),
+            model_name="commandlinetooljob",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PENDING"),
+                    (2, "RUNNING"),
+                    (3, "COMPLETED"),
+                    (4, "FAILED"),
+                    (5, "UNKNOWN"),
+                ],
+                default=0,
+            ),
         ),
         migrations.AlterField(
-            model_name='job',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED'), (5, 'UNKNOWN')], default=toil_orchestrator.models.Status(0)),
+            model_name="job",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PENDING"),
+                    (2, "RUNNING"),
+                    (3, "COMPLETED"),
+                    (4, "FAILED"),
+                    (5, "UNKNOWN"),
+                ],
+                default=toil_orchestrator.models.Status(0),
+            ),
         ),
     ]

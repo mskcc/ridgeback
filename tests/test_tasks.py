@@ -68,18 +68,14 @@ class TestTasks(TestCase):
         submit_job_to_lsf(self.submitting_job)
         self.submitting_job.refresh_from_db()
         self.assertEqual(self.submitting_job.finished, None)
-        self.assertEqual(
-            self.submitting_job.job_store_location, "/new/job_store_location"
-        )
+        self.assertEqual(self.submitting_job.job_store_location, "/new/job_store_location")
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
     @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
     @patch("submitter.toil_submitter.ToilJobSubmitter.status")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
-    def test_complete(
-        self, get_outputs, status, init, get_job_info_path, command_processor
-    ):
+    def test_complete(self, get_outputs, status, init, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
         init.return_value = None
@@ -114,9 +110,7 @@ class TestTasks(TestCase):
             "failed_job_1": ["failed_job_1_id"],
             "failed_job_2": ["failed_job_2_id"],
         }
-        expected_unknown_jobs = {
-            "unknown_job": ["unknown_job_id_1", "unknown_job_id_2"]
-        }
+        expected_unknown_jobs = {"unknown_job": ["unknown_job_id_1", "unknown_job_id_2"]}
         self.assertEqual(info_message, "submitter reason")
         self.assertEqual(failed_jobs, expected_failed_jobs)
         self.assertEqual(unknown_jobs, expected_unknown_jobs)
@@ -141,9 +135,7 @@ class TestTasks(TestCase):
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
     @patch("submitter.toil_submitter.ToilJobSubmitter.status")
-    @skip(
-        "We are no longer failing tests on pending status, and instead letting the task fail it"
-    )
+    @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
     def test_fail_not_submitted(self, status, init, command_processor):
         init.return_value = None
         command_processor.return_value = True

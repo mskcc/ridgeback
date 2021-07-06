@@ -32,15 +32,13 @@ ALLOWED_HOSTS = os.environ.get("RIDGEBACK_ALLOWED_HOSTS", "localhost").split(","
 
 
 ELASTIC_APM = {
-  # Set the required service name. Allowed characters:
-  # a-z, A-Z, 0-9, -, _, and space
-  'SERVICE_NAME': 'ridgeback',
-
-  # Set the custom APM Server URL (default: http://localhost:8200)
-  'SERVER_URL': 'http://bic-dockerapp01.mskcc.org:8200/',
-
-  # Set the service environment
-  'ENVIRONMENT': ENVIRONMENT,
+    # Set the required service name. Allowed characters:
+    # a-z, A-Z, 0-9, -, _, and space
+    "SERVICE_NAME": "ridgeback",
+    # Set the custom APM Server URL (default: http://localhost:8200)
+    "SERVER_URL": "http://bic-dockerapp01.mskcc.org:8200/",
+    # Set the service environment
+    "ENVIRONMENT": ENVIRONMENT,
 }
 
 # Application definition
@@ -56,6 +54,7 @@ INSTALLED_APPS = [
     "orchestrator.apps.OrchestratorConfig",
     "rest_framework",
     "drf_yasg",
+    "elasticapm",
 ]
 
 MIDDLEWARE = [
@@ -199,24 +198,12 @@ CELERY_BROKER_URL = os.environ.get(
     "CELERY_BROKER_URL",
     "amqp://%s:%s@%s/" % (RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_URL),
 )
-RIDGEBACK_SUBMIT_JOB_QUEUE = os.environ.get(
-    "RIDGEBACK_SUBMIT_JOB_QUEUE", "ridgeback_submit_job_queue"
-)
-RIDGEBACK_CHECK_STATUS_QUEUE = os.environ.get(
-    "RIDGEBACK_CHECK_STATUS_QUEUE", "ridgeback_check_status_queue"
-)
-RIDGEBACK_ACTION_QUEUE = os.environ.get(
-    "RIDGEBACK_ACTION_QUEUE", "ridgeback_action_queue"
-)
-RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get(
-    "RIDGEBACK_SUBMIT_JOB_LSF_QUEUE", "ridgeback_submit_job_lsf_queue"
-)
-RIDGEBACK_CLEANUP_QUEUE = os.environ.get(
-    "RIDGEBACK_CLEANUP_QUEUE", "ridgeback_cleanup_queue"
-)
-RIDGEBACK_COMMAND_QUEUE = os.environ.get(
-    "RIDGEBACK_COMMAND_QUEUE", "ridgeback_command_queue"
-)
+RIDGEBACK_SUBMIT_JOB_QUEUE = os.environ.get("RIDGEBACK_SUBMIT_JOB_QUEUE", "ridgeback_submit_job_queue")
+RIDGEBACK_CHECK_STATUS_QUEUE = os.environ.get("RIDGEBACK_CHECK_STATUS_QUEUE", "ridgeback_check_status_queue")
+RIDGEBACK_ACTION_QUEUE = os.environ.get("RIDGEBACK_ACTION_QUEUE", "ridgeback_action_queue")
+RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get("RIDGEBACK_SUBMIT_JOB_LSF_QUEUE", "ridgeback_submit_job_lsf_queue")
+RIDGEBACK_CLEANUP_QUEUE = os.environ.get("RIDGEBACK_CLEANUP_QUEUE", "ridgeback_cleanup_queue")
+RIDGEBACK_COMMAND_QUEUE = os.environ.get("RIDGEBACK_COMMAND_QUEUE", "ridgeback_command_queue")
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"

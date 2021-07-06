@@ -38,9 +38,7 @@ class NextflowJobSubmitter(JobSubmitter):
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
         else:
-            self.job_store_dir = os.path.join(
-                settings.NEXTFLOW_JOB_STORE_ROOT, self.job_id
-            )
+            self.job_store_dir = os.path.join(settings.NEXTFLOW_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.NEXTFLOW_WORK_DIR_ROOT, self.job_id)
         self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(settings.NEXTFLOW_TMP_DIR_ROOT, self.job_id)
@@ -54,9 +52,7 @@ class NextflowJobSubmitter(JobSubmitter):
         env["JAVA_HOME"] = "/opt/common/CentOS_7/java/jdk1.8.0_202/"
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
-        external_id = self.lsf_client.submit(
-            command_line, self._job_args(), log_path, env
-        )
+        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def _job_args(self):
@@ -154,9 +150,7 @@ class NextflowJobSubmitter(JobSubmitter):
 
         if self.resume_jobstore:
             if not os.path.exists(self.resume_jobstore):
-                raise Exception(
-                    "The jobstore indicated to be resumed could not be found"
-                )
+                raise Exception("The jobstore indicated to be resumed could not be found")
 
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
