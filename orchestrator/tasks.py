@@ -25,9 +25,7 @@ def get_job_info_path(job_id):
     return job_info_path
 
 
-def save_job_info(
-    job_id, external_id, job_store_location, working_dir, output_directory
-):
+def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
     if os.path.exists(working_dir):
         job_info = {
             "external_id": external_id,
@@ -67,8 +65,7 @@ def resume_job(job):
         job.update_status(Status.RUNNING)
         return
     logger.info(
-        "Can't resume job: %s because it is in status %s, not in SUSPENDED"
-        % (Status(job.status).name, str(job.id))
+        "Can't resume job: %s because it is in status %s, not in SUSPENDED" % (Status(job.status).name, str(job.id))
     )
 
 
@@ -85,9 +82,7 @@ def process_jobs():
     ).values_list("pk", flat=True)
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
-        command_processor.delay(
-            Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict()
-        )
+        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
 
     jobs_running = Job.objects.filter(
         status__in=(
@@ -101,18 +96,14 @@ def process_jobs():
     if jobs_to_submit <= 0:
         return
 
-    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[
-        :jobs_to_submit
-    ]
+    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
 
     for job in jobs:
         # Send SUBMIT commands for Jobs
         with transaction.atomic():
             if Status(job.status).transition(Status.SUBMITTING):
                 job.update_status(Status.SUBMITTING)
-                command_processor.delay(
-                    Command(CommandType.SUBMIT, str(job.id)).to_dict()
-                )
+                command_processor.delay(Command(CommandType.SUBMIT, str(job.id)).to_dict())
 
 
 @shared_task(bind=True)
@@ -130,14 +121,10 @@ def command_processor(self, command_dict):
                     logger.info("SUBMIT command for job %s" % command.job_id)
                     submit_job_to_lsf(job)
                 elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
-                    logger.info(
-                        "CHECK_STATUS_ON_LSF command for job %s" % command.job_id
-                    )
+                    logger.info("CHECK_STATUS_ON_LSF command for job %s" % command.job_id)
                     check_job_status(job)
                 elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
-                    logger.info(
-                        "CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id
-                    )
+                    logger.info("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
                     check_status_of_command_line_jobs(job)
                 elif command.command_type == CommandType.ABORT:
                     logger.info("ABORT command for job %s" % command.job_id)
@@ -153,14 +140,11 @@ def command_processor(self, command_dict):
                 self.retry()
     except RetryException as e:
         logger.info(
-            "Command %s failed. Retrying in %s. Excaption %s"
-            % (command_dict, self.request.retries * 5, str(e))
+            "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e))
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
-        logger.error(
-            "Command %s failed. Not retrying. Excaption %s" % (command_dict, str(e))
-        )
+        logger.error("Command %s failed. Not retrying. Excaption %s" % (command_dict, str(e)))
 
 
 def submit_job_to_lsf(job):
@@ -182,9 +166,7 @@ def submit_job_to_lsf(job):
             job_work_dir,
             job_output_dir,
         ) = submitter.submit()
-        logger.info(
-            "Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id)
-        )
+        logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
         job.submit_to_lsf(
             external_job_id,
             job_store_dir,
@@ -193,9 +175,7 @@ def submit_job_to_lsf(job):
             os.path.join(job_work_dir, "lsf.log"),
         )
         # Keeping this for debuging purposes
-        save_job_info(
-            str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir
-        )
+        save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
 
 
 def _complete(job, outputs):
@@ -203,12 +183,8 @@ def _complete(job, outputs):
 
 
 def _fail(job, error_message=""):
-    failed_command_line_tool_jobs = CommandLineToolJob.objects.filter(
-        root__id__exact=job.id, status=Status.FAILED
-    )
-    unknown_command_line_tool_jobs = CommandLineToolJob.objects.filter(
-        root__id__exact=job.id, status=Status.UNKNOWN
-    )
+    failed_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.FAILED)
+    unknown_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.UNKNOWN)
     failed_jobs = {}
     unknown_jobs = {}
     for single_tool_job in failed_command_line_tool_jobs:
@@ -270,15 +246,10 @@ def check_job_status(job):
         elif lsf_status in (Status.FAILED,):
             _fail(job, lsf_message)
 
-        command_processor.delay(
-            Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict()
-        )
+        command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
     else:
-        raise StopException(
-            "Invalid transition %s to %s"
-            % (Status(job.status).name, Status(lsf_status).name)
-        )
+        raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
 
 def abort_job(job):

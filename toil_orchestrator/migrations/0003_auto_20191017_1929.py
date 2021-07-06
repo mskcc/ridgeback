@@ -7,33 +7,38 @@ import toil_orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0002_job_external_id'),
+        ("toil_orchestrator", "0002_job_external_id"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='job',
-            name='job_store_location',
+            model_name="job",
+            name="job_store_location",
             field=models.CharField(blank=True, max_length=1000, null=True),
         ),
         migrations.AddField(
-            model_name='job',
-            name='working_dir',
+            model_name="job",
+            name="working_dir",
             field=models.CharField(blank=True, max_length=1000, null=True),
         ),
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED')], default=0),
+            model_name="commandlinetooljob",
+            name="status",
+            field=models.IntegerField(
+                choices=[(0, "CREATED"), (1, "PENDING"), (2, "RUNNING"), (3, "COMPLETED"), (4, "FAILED")], default=0
+            ),
         ),
         migrations.AlterField(
-            model_name='job',
-            name='external_id',
+            model_name="job",
+            name="external_id",
             field=models.CharField(blank=True, max_length=50, null=True),
         ),
         migrations.AlterField(
-            model_name='job',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED')], default=toil_orchestrator.models.Status(0)),
+            model_name="job",
+            name="status",
+            field=models.IntegerField(
+                choices=[(0, "CREATED"), (1, "PENDING"), (2, "RUNNING"), (3, "COMPLETED"), (4, "FAILED")],
+                default=toil_orchestrator.models.Status(0),
+            ),
         ),
     ]

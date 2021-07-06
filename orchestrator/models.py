@@ -130,9 +130,7 @@ class Status(IntEnum):
                 self.ABORTED,
             ):
                 return True
-        logger.error(
-            "Invalid transition %s to %s" % (self.name, Status(transition_to).name)
-        )
+        logger.error("Invalid transition %s to %s" % (self.name, Status(transition_to).name))
         return False
 
 
@@ -149,11 +147,7 @@ class BaseModel(models.Model):
 
 
 class Job(BaseModel):
-    type = models.IntegerField(
-        choices=[
-            (pipeline_type.value, pipeline_type.name) for pipeline_type in PipelineType
-        ]
-    )
+    type = models.IntegerField(choices=[(pipeline_type.value, pipeline_type.name) for pipeline_type in PipelineType])
     app = JSONField(null=False)
     external_id = models.CharField(max_length=50, null=True, blank=True)
     root_dir = models.CharField(max_length=1000)
@@ -176,9 +170,7 @@ class Job(BaseModel):
     walltime = models.IntegerField(blank=True, null=True, default=None)
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
 
-    def submit_to_lsf(
-        self, external_id, job_store_dir, job_work_dir, job_output_dir, log_path
-    ):
+    def submit_to_lsf(self, external_id, job_store_dir, job_work_dir, job_output_dir, log_path):
         self.status = Status.SUBMITTED
         self.external_id = external_id
         self.job_store_location = job_store_dir

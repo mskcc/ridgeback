@@ -83,9 +83,7 @@ class JobViewSet(
         if resp_serializer.is_valid():
             return Response(resp_serializer.data)
         else:
-            return Response(
-                resp_serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response(resp_serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
     @action(detail=True, methods=["get"])
