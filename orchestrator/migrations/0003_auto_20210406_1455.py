@@ -7,18 +7,42 @@ import orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0002_auto_20210405_0500'),
+        ("orchestrator", "0002_auto_20210405_0500"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED'), (5, 'ABORTED'), (6, 'UNKNOWN'), (7, 'SUSPENDED')], default=orchestrator.models.Status(0)),
+            model_name="commandlinetooljob",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PENDING"),
+                    (2, "RUNNING"),
+                    (3, "COMPLETED"),
+                    (4, "FAILED"),
+                    (5, "ABORTED"),
+                    (6, "UNKNOWN"),
+                    (7, "SUSPENDED"),
+                ],
+                default=orchestrator.models.Status(0),
+            ),
         ),
         migrations.AlterField(
-            model_name='job',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED'), (5, 'ABORTED'), (6, 'UNKNOWN'), (7, 'SUSPENDED')], default=orchestrator.models.Status(0)),
+            model_name="job",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PENDING"),
+                    (2, "RUNNING"),
+                    (3, "COMPLETED"),
+                    (4, "FAILED"),
+                    (5, "ABORTED"),
+                    (6, "UNKNOWN"),
+                    (7, "SUSPENDED"),
+                ],
+                default=orchestrator.models.Status(0),
+            ),
         ),
     ]

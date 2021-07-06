@@ -4,41 +4,50 @@ from django.db import migrations
 
 
 def migrate_jobs(apps, schema_editor):
-    JobOld = apps.get_model('toil_orchestrator', 'Job')
-    Job = apps.get_model('orchestrator', 'Job')
+    JobOld = apps.get_model("toil_orchestrator", "Job")
+    Job = apps.get_model("orchestrator", "Job")
     jobs = JobOld.objects.all()
     for job in jobs:
-        j = Job.objects.create(id=job.id, type=0, app=job.app, external_id=job.external_id, root_dir=job.root_dir,
-                               job_store_location=job.job_store_location,
-                               resume_job_store_location=job.resume_job_store_location,
-                               working_dir=job.working_dir, status=job.status, message=job.message, inputs=job.inputs,
-                               outputs=job.outputs, job_store_clean_up=job.job_store_clean_up,
-                               working_dir_clean_up=job.working_dir_clean_up, started=job.started,
-                               submitted=job.submitted,
-                               finished=job.finished, track_cache=job.track_cache,
-                               created_date=job.created_date,
-                               modified_date=job.modified_date,
-                               output_directory=job.output_directory,
-                               walltime=job.walltime,
-                               memlimit=job.memlimit
-                               )
+        j = Job.objects.create(
+            id=job.id,
+            type=0,
+            app=job.app,
+            external_id=job.external_id,
+            root_dir=job.root_dir,
+            job_store_location=job.job_store_location,
+            resume_job_store_location=job.resume_job_store_location,
+            working_dir=job.working_dir,
+            status=job.status,
+            message=job.message,
+            inputs=job.inputs,
+            outputs=job.outputs,
+            job_store_clean_up=job.job_store_clean_up,
+            working_dir_clean_up=job.working_dir_clean_up,
+            started=job.started,
+            submitted=job.submitted,
+            finished=job.finished,
+            track_cache=job.track_cache,
+            created_date=job.created_date,
+            modified_date=job.modified_date,
+            output_directory=job.output_directory,
+            walltime=job.walltime,
+            memlimit=job.memlimit,
+        )
         j.created_date = job.created_date
         j.modified_date = job.modified_date
-        j.save(update_fields=['created_date', 'modified_date'])
+        j.save(update_fields=["created_date", "modified_date"])
 
 
 def reverse_migration(apps, _):
-    Job = apps.get_model('orchestrator', 'Job')
+    Job = apps.get_model("orchestrator", "Job")
     Job.objects.all().delete()
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0001_initial'),
-        ('toil_orchestrator', '0017_auto_20200624_1635'),
+        ("orchestrator", "0001_initial"),
+        ("toil_orchestrator", "0017_auto_20200624_1635"),
     ]
 
-    operations = [
-        migrations.RunPython(migrate_jobs, reverse_code=reverse_migration)
-    ]
+    operations = [migrations.RunPython(migrate_jobs, reverse_code=reverse_migration)]
