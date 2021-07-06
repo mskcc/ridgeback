@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0008_remove_job_output_dir'),
+        ("toil_orchestrator", "0008_remove_job_output_dir"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='job',
-            name='resume_job_store_location',
+            model_name="job",
+            name="resume_job_store_location",
             field=models.CharField(blank=True, max_length=1000, null=True),
         ),
         migrations.AlterField(
-            model_name='basemodel',
-            name='output_directory',
+            model_name="basemodel",
+            name="output_directory",
             field=models.CharField(blank=True, max_length=400, null=True),
         ),
     ]

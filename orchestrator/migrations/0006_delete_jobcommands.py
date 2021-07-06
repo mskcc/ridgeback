@@ -6,11 +6,11 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0005_auto_20210420_0632'),
+        ("orchestrator", "0005_auto_20210420_0632"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='JobCommands',
+            name="JobCommands",
         ),
     ]

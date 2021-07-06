@@ -68,9 +68,7 @@ class LSFClient(object):
             bool: successful
         """
         bkill_command = ["bkill", external_job_id]
-        process = subprocess.run(
-            bkill_command, check=True, stdout=subprocess.PIPE, universal_newlines=True
-        )
+        process = subprocess.run(bkill_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
         return False
@@ -91,7 +89,7 @@ class LSFClient(object):
         dict_start = bjobs_output_str.find("{")
         dict_end = bjobs_output_str.rfind("}")
         if dict_start != -1 and dict_end != -1:
-            bjobs_output = bjobs_output_str[dict_start: (dict_end + 1)]
+            bjobs_output = bjobs_output_str[dict_start : (dict_end + 1)]
             try:
                 bjobs_dict = json.loads(bjobs_output)
             except json.decoder.JSONDecodeError:
@@ -99,9 +97,7 @@ class LSFClient(object):
             if "RECORDS" in bjobs_dict:
                 bjobs_records = bjobs_dict["RECORDS"]
         if bjobs_records is None:
-            self.logger.error(
-                "Could not find bjobs output json in: %s", bjobs_output_str
-            )
+            self.logger.error("Could not find bjobs output json in: %s", bjobs_output_str)
 
         return bjobs_records
 
@@ -146,9 +142,7 @@ class LSFClient(object):
             if "PEND_REASON" in process_output:
                 if process_output["PEND_REASON"]:
                     pending_info = process_output["PEND_REASON"]
-            self.logger.debug(
-                "Job [%s] pending with: %s", external_job_id, pending_info
-            )
+            self.logger.debug("Job [%s] pending with: %s", external_job_id, pending_info)
             return Status.PENDING, pending_info.strip()
         if process_status == "EXIT":
             exit_info = ""
@@ -169,9 +163,7 @@ class LSFClient(object):
             self.logger.debug("Job [%s] is suspended", external_job_id)
             suspended_info = "Job suspended"
             return Status.SUSPENDED, suspended_info.strip()
-        self.logger.debug(
-            "Job [%s] is in an unhandled state (%s)", external_job_id, process_status
-        )
+        self.logger.debug("Job [%s] is in an unhandled state (%s)", external_job_id, process_status)
         status_info = "Job is in an unhandles state: {}".format(process_status)
         return Status.UNKNOWN, status_info.strip()
 
@@ -190,9 +182,7 @@ class LSFClient(object):
             process_output = bjobs_records[0]
             if "STAT" in process_output:
                 process_status = process_output["STAT"]
-                return self._handle_status(
-                    process_status, process_output, str(external_job_id)
-                )
+                return self._handle_status(process_status, process_output, str(external_job_id))
             if "ERROR" in process_output:
                 error_message = ""
                 if process_output["ERROR"]:
@@ -217,26 +207,20 @@ class LSFClient(object):
             str(external_job_id),
         ]
         self.logger.debug("Checking lsf status for job: %s", external_job_id)
-        process = subprocess.run(
-            bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True
-        )
+        process = subprocess.run(bsub_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         status = self._parse_status(process.stdout, external_job_id)
         return status
 
     def suspend(self, external_job_id):
         bsub_command = ["bstop", str(external_job_id)]
-        process = subprocess.run(
-            bsub_command, stdout=subprocess.PIPE, universal_newlines=True
-        )
+        process = subprocess.run(bsub_command, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
         return False
 
     def resume(self, external_job_id):
         bsub_command = ["bresume", str(external_job_id)]
-        process = subprocess.run(
-            bsub_command, stdout=subprocess.PIPE, universal_newlines=True
-        )
+        process = subprocess.run(bsub_command, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
         return False
