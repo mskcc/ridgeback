@@ -93,27 +93,34 @@ class NextflowJobSubmitter(JobSubmitter):
 
     def get_outputs(self):
         result = list()
-        with open(os.path.join(self.job_work_dir, self.inputs["outputs"])) as f:
-            files = f.readlines()
-            for f in files:
-                path = f.strip()
-                location = self._location(path)
-                basename = self._basename(path)
-                checksum = self._checksum(path)
-                size = self._size(path)
-                nameroot = self._nameroot(path)
-                nameext = self._nameext(path)
-                file_obj = {
-                    "location": location,
-                    "basename": basename,
-                    "checksum": checksum,
-                    "size": size,
-                    "nameroot": nameroot,
-                    "nameext": nameext,
-                    "class": "File",
-                }
-                result.append(file_obj)
-        return result
+        error_message = None
+        try:
+            with open(self.inputs["outputs"]) as f:
+                files = f.readlines()
+                for f in files:
+                    path = f.strip()
+                    location = self._location(path)
+                    basename = self._basename(path)
+                    checksum = self._checksum(path)
+                    size = self._size(path)
+                    nameroot = self._nameroot(path)
+                    nameext = self._nameext(path)
+                    file_obj = {
+                        "location": location,
+                        "basename": basename,
+                        "checksum": checksum,
+                        "size": size,
+                        "nameroot": nameroot,
+                        "nameext": nameext,
+                        "class": "File",
+                    }
+                    result.append(file_obj)
+        except FileNotFoundError:
+            error_message = "Could not find %s" % self.inputs["outputs"]
+        except Exception:
+            error_message = "Could not parse %s" % self.inputs["outputs"]
+        result_json = {"outputs": result}
+        return result_json, error_message
 
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
