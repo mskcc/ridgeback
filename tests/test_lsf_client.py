@@ -68,9 +68,7 @@ class TestLSFClient(TestCase):
         submit_process.return_value = submit_process_obj
         lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
         expected_command = (
-            ["bsub", "-sla", settings.LSF_SLA, "-g", self.example_job_id, "-oo", stdout_file]
-            + args
-            + command
+            ["bsub", "-sla", settings.LSF_SLA, "-g", self.example_job_id, "-oo", stdout_file] + args + command
         )
         self.assertEqual(lsf_id, self.example_id)
         self.assertEqual(submit_process.call_args[0][0], expected_command)
