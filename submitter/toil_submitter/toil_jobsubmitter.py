@@ -164,7 +164,7 @@ class ToilJobSubmitter(JobSubmitter):
         return ["-M", self.memlimit] if self.memlimit else []
 
     def _command_line(self):
-        if "access" in self.app.github.lower() and "nucleo" not in self.app.github.lower():
+        if "access" in self.app.name.lower() and "nucleo" not in self.app.name.lower():
             """
             Start ACCESS-specific code
             """
