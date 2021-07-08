@@ -7,7 +7,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 
 def update_message(apps, _):
-    jobs = apps.get_model('toil_orchestrator', 'Job').objects.all()
+    jobs = apps.get_model("toil_orchestrator", "Job").objects.all()
     message_obj = message_default()
     for single_job in jobs:
         message = single_job.message
@@ -15,7 +15,7 @@ def update_message(apps, _):
             try:
                 json.loads(message)
             except:
-                message_obj['info'] = message
+                message_obj["info"] = message
                 single_job.tmp_message = json.dumps(message_obj, sort_keys=True, indent=1, cls=DjangoJSONEncoder)
                 single_job.save()
 
@@ -27,9 +27,7 @@ def revert_message(apps, _):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0014_job_tmp_message'),
+        ("toil_orchestrator", "0014_job_tmp_message"),
     ]
 
-    operations = [
-        migrations.RunPython(update_message, revert_message)
-    ]
+    operations = [migrations.RunPython(update_message, revert_message)]

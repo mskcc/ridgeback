@@ -8,18 +8,10 @@ import toil_orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0015_auto_20200624_1527'),
+        ("toil_orchestrator", "0015_auto_20200624_1527"),
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name='job',
-            old_name='message',
-            new_name='old_message'
-        ),
-        migrations.RenameField(
-            model_name='job',
-            old_name='tmp_message',
-            new_name='new_message'
-        )
+        migrations.RenameField(model_name="job", old_name="message", new_name="old_message"),
+        migrations.RenameField(model_name="job", old_name="tmp_message", new_name="new_message"),
     ]

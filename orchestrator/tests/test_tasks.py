@@ -262,11 +262,7 @@ class TasksTest(TestCase):
 
         process_jobs()
         calls = [
-            call(
-                Command(
-                    CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)
-                ).to_dict()
-            ),
+            call(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)).to_dict()),
             call(Command(CommandType.SUBMIT, str(job_created_1.id)).to_dict()),
         ]
 
@@ -295,11 +291,7 @@ class TasksTest(TestCase):
         delete.return_value = True
         status.side_effect = _raise_retryable_exception
         with self.assertRaises(RetryException):
-            command_processor(
-                Command(
-                    CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)
-                ).to_dict()
-            )
+            command_processor(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)).to_dict())
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")

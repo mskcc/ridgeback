@@ -8,13 +8,13 @@ import toil_orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0013_auto_20200616_1635'),
+        ("toil_orchestrator", "0013_auto_20200616_1635"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='job',
-            name='tmp_message',
+            model_name="job",
+            name="tmp_message",
             field=django.contrib.postgres.fields.jsonb.JSONField(default=toil_orchestrator.models.message_default),
         ),
     ]

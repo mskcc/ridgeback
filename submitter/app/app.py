@@ -45,17 +45,11 @@ class GithubApp(App):
             self.logger.info("App found in cache %s" % cached)
             os.symlink(cached, dirname)
         elif not os.path.exists(dirname):
-            git.Git(location).clone(
-                self.github, "--branch", self.version, "--recurse-submodules"
-            )
+            git.Git(location).clone(self.github, "--branch", self.version, "--recurse-submodules")
         return os.path.join(dirname, self.entrypoint)
 
     def _extract_dirname_from_github_link(self):
-        dirname = (
-            self.github.rsplit("/", 2)[1]
-            if self.github.endswith("/")
-            else self.github.rsplit("/", 1)[1]
-        )
+        dirname = self.github.rsplit("/", 2)[1] if self.github.endswith("/") else self.github.rsplit("/", 1)[1]
         if dirname.endswith(".git"):
             dirname = dirname[:-4]
         return dirname

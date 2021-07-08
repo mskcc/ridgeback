@@ -8,34 +8,34 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0005_auto_20191105_2140'),
+        ("toil_orchestrator", "0005_auto_20191105_2140"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='commandlinetooljob',
-            name='finished',
+            model_name="commandlinetooljob",
+            name="finished",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='commandlinetooljob',
-            name='job_id',
+            model_name="commandlinetooljob",
+            name="job_id",
             field=models.CharField(default=django.utils.timezone.now, max_length=40),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='commandlinetooljob',
-            name='started',
+            model_name="commandlinetooljob",
+            name="started",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='commandlinetooljob',
-            name='submitted',
+            model_name="commandlinetooljob",
+            name="submitted",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='job',
-            name='track_cache',
+            model_name="job",
+            name="track_cache",
             field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, null=True),
         ),
     ]
