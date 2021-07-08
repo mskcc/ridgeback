@@ -6,19 +6,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0004_auto_20191017_1930'),
+        ("toil_orchestrator", "0004_auto_20191017_1930"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='job',
-            name='output_dir',
+            model_name="job",
+            name="output_dir",
             field=models.CharField(blank=True, max_length=1000, null=True),
         ),
         migrations.AddField(
-            model_name='job',
-            name='root_dir',
-            field=models.CharField(default='/tmp', max_length=1000),
+            model_name="job",
+            name="root_dir",
+            field=models.CharField(default="/tmp", max_length=1000),
             preserve_default=False,
         ),
     ]

@@ -7,33 +7,53 @@ import toil_orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0006_auto_20191125_1349'),
+        ("toil_orchestrator", "0006_auto_20191125_1349"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='job',
-            name='job_store_clean_up',
+            model_name="job",
+            name="job_store_clean_up",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='job',
-            name='message',
+            model_name="job",
+            name="message",
             field=models.CharField(blank=True, max_length=500, null=True),
         ),
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='job_id',
+            model_name="commandlinetooljob",
+            name="job_id",
             field=models.CharField(max_length=20),
         ),
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED'), (5, 'UNKOWN')], default=0),
+            model_name="commandlinetooljob",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PENDING"),
+                    (2, "RUNNING"),
+                    (3, "COMPLETED"),
+                    (4, "FAILED"),
+                    (5, "UNKOWN"),
+                ],
+                default=0,
+            ),
         ),
         migrations.AlterField(
-            model_name='job',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED'), (5, 'UNKOWN')], default=toil_orchestrator.models.Status(0)),
+            model_name="job",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PENDING"),
+                    (2, "RUNNING"),
+                    (3, "COMPLETED"),
+                    (4, "FAILED"),
+                    (5, "UNKOWN"),
+                ],
+                default=toil_orchestrator.models.Status(0),
+            ),
         ),
     ]

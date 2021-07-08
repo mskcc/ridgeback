@@ -19,9 +19,7 @@ class Command(object):
         self.job_id = job_id
 
     def to_dict(self):
-        self.logger.info(
-            "CommandType (%s), JobId: %s" % (self.command_type.name, self.job_id)
-        )
+        self.logger.info("CommandType (%s), JobId: %s" % (self.command_type.name, self.job_id))
         return dict(type=self.command_type, job_id=self.job_id)
 
     @classmethod

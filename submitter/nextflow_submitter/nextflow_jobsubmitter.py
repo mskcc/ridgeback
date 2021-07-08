@@ -6,9 +6,7 @@ from submitter import JobSubmitter
 
 
 class NextflowJobSubmitter(JobSubmitter):
-    def __init__(
-        self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit
-    ):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit):
         """
         :param job_id:
         :param app: github.url
@@ -40,9 +38,7 @@ class NextflowJobSubmitter(JobSubmitter):
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
         else:
-            self.job_store_dir = os.path.join(
-                settings.NEXTFLOW_JOB_STORE_ROOT, self.job_id
-            )
+            self.job_store_dir = os.path.join(settings.NEXTFLOW_JOB_STORE_ROOT, self.job_id)
         self.job_work_dir = os.path.join(settings.NEXTFLOW_WORK_DIR_ROOT, self.job_id)
         self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(settings.NEXTFLOW_TMP_DIR_ROOT, self.job_id)
@@ -56,9 +52,7 @@ class NextflowJobSubmitter(JobSubmitter):
         env["JAVA_HOME"] = "/opt/common/CentOS_7/java/jdk1.8.0_202/"
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
-        external_id = self.lsf_client.submit(
-            command_line, self._job_args(), log_path, env
-        )
+        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def _job_args(self):
@@ -99,27 +93,34 @@ class NextflowJobSubmitter(JobSubmitter):
 
     def get_outputs(self):
         result = list()
-        with open(os.path.join(self.job_work_dir, self.inputs["outputs"])) as f:
-            files = f.readlines()
-            for f in files:
-                path = f.strip()
-                location = self._location(path)
-                basename = self._basename(path)
-                checksum = self._checksum(path)
-                size = self._size(path)
-                nameroot = self._nameroot(path)
-                nameext = self._nameext(path)
-                file_obj = {
-                    "location": location,
-                    "basename": basename,
-                    "checksum": checksum,
-                    "size": size,
-                    "nameroot": nameroot,
-                    "nameext": nameext,
-                    "class": "File",
-                }
-                result.append(file_obj)
-        return result
+        error_message = None
+        try:
+            with open(self.inputs["outputs"]) as f:
+                files = f.readlines()
+                for f in files:
+                    path = f.strip()
+                    location = self._location(path)
+                    basename = self._basename(path)
+                    checksum = self._checksum(path)
+                    size = self._size(path)
+                    nameroot = self._nameroot(path)
+                    nameext = self._nameext(path)
+                    file_obj = {
+                        "location": location,
+                        "basename": basename,
+                        "checksum": checksum,
+                        "size": size,
+                        "nameroot": nameroot,
+                        "nameext": nameext,
+                        "class": "File",
+                    }
+                    result.append(file_obj)
+        except FileNotFoundError:
+            error_message = "Could not find %s" % self.inputs["outputs"]
+        except Exception:
+            error_message = "Could not parse %s" % self.inputs["outputs"]
+        result_json = {"outputs": result}
+        return result_json, error_message
 
     def _dump_app_inputs(self):
         app_location = self.app.resolve(self.job_work_dir)
@@ -156,9 +157,7 @@ class NextflowJobSubmitter(JobSubmitter):
 
         if self.resume_jobstore:
             if not os.path.exists(self.resume_jobstore):
-                raise Exception(
-                    "The jobstore indicated to be resumed could not be found"
-                )
+                raise Exception("The jobstore indicated to be resumed could not be found")
 
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
