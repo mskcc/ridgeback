@@ -11,7 +11,7 @@ from django.conf import settings
 from orchestrator.models import Status
 
 def format_lsf_job_id(job_id):
-    return "/"+job_id
+    return "/{}".format(job_id)
 
 class LSFClient(object):
     """
