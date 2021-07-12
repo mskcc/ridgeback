@@ -11,6 +11,10 @@ from django.conf import settings
 from orchestrator.models import Status
 
 
+def format_lsf_job_id(job_id):
+    return "/{}".format(job_id)
+
+
 class LSFClient(object):
     """
     Client for LSF
@@ -38,7 +42,7 @@ class LSFClient(object):
         Returns:
             int: lsf job id
         """
-        bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-g", job_id, "-oo", stdout] + job_args
+        bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
 
         bsub_command.extend(command)
         current_env = os.environ.copy()
@@ -68,7 +72,7 @@ class LSFClient(object):
             bool: successful
         """
         self.logger.debug("Aborting LSF jobs for job %s", job_id)
-        bkill_command = ["bkill", "-g", job_id, "0"]
+        bkill_command = ["bkill", "-g", format_lsf_job_id(job_id), "0"]
         process = subprocess.run(bkill_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
@@ -221,7 +225,7 @@ class LSFClient(object):
             bool: successful
         """
         self.logger.debug("Suspending LSF jobs for job %s", job_id)
-        bsub_command = ["bstop", "-g", job_id, "0"]
+        bsub_command = ["bstop", "-g", format_lsf_job_id(job_id), "0"]
         process = subprocess.run(bsub_command, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
@@ -236,7 +240,7 @@ class LSFClient(object):
             bool: successful
         """
         self.logger.debug("Unsuspending LSF jobs for job %s", job_id)
-        bsub_command = ["bresume", "-g", job_id, "0"]
+        bsub_command = ["bresume", "-g", format_lsf_job_id(job_id), "0"]
         process = subprocess.run(bsub_command, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
