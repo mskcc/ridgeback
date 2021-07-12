@@ -17,7 +17,7 @@ class TestLSFClient(TestCase):
         """
         self.example_id = 12345678
         self.example_job_id = 12345
-        self.example_lsf_id = '/12345'
+        self.example_lsf_id = "/12345"
         self.submit_response = "Job <{}> is submitted".format(self.example_id)
         self.submit_response_please_wait = please_wait_str + self.submit_response
         self.lsf_client = LSFClient()
