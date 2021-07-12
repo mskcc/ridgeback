@@ -3,7 +3,6 @@ import json
 import logging
 from datetime import timedelta
 from celery import shared_task
-from batch_systems.lsf_client import LSFClient
 from django.conf import settings
 from django.db import transaction
 from django.utils.timezone import now
@@ -50,8 +49,16 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
 
 def suspend_job(job):
     if Status(job.status).transition(Status.SUSPENDED):
-        client = LSFClient()
-        if not client.suspend(job.external_id):
+        submitter = JobSubmitterFactory.factory(
+            job.type,
+            str(job.id),
+            job.app,
+            job.inputs,
+            job.root_dir,
+            job.resume_job_store_location,
+        )
+        job_suspended = submitter.suspend()
+        if not job_suspended:
             raise RetryException("Failed to suspend job: %s" % str(job.id))
         job.update_status(Status.SUSPENDED)
         return
@@ -59,8 +66,16 @@ def suspend_job(job):
 
 def resume_job(job):
     if Status(job.status) == Status.SUSPENDED:
-        client = LSFClient()
-        if not client.resume(job.external_id):
+        submitter = JobSubmitterFactory.factory(
+            job.type,
+            str(job.id),
+            job.app,
+            job.inputs,
+            job.root_dir,
+            job.resume_job_store_location,
+        )
+        job_resumed = submitter.resume()
+        if not job_resumed:
             raise RetryException("Failed to resume job: %s" % str(job.id))
         job.update_status(Status.RUNNING)
         return
@@ -270,7 +285,7 @@ def abort_job(job):
                 job.root_dir,
                 job.resume_job_store_location,
             )
-            job_killed = submitter.abort(job.external_id)
+            job_killed = submitter.abort()
             if not job_killed:
                 raise RetryException("Failed to abort job %s" % str(job.id))
         job.abort()
