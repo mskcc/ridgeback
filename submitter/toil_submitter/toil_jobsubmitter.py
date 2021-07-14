@@ -155,10 +155,7 @@ class ToilJobSubmitter(JobSubmitter):
         return ["-M", self.memlimit] if self.memlimit else []
 
     def _command_line(self):
-        bypass_access_workflows = [
-            "nucleo",
-            "access_qc_generation"
-        ]
+        bypass_access_workflows = ["nucleo", "access_qc_generation"]
         should_bypass_access_env = any([w in self.app.github.lower() for w in bypass_access_workflows])
         if "access" in self.app.github.lower() and not should_bypass_access_env:
             """
