@@ -32,8 +32,7 @@ class NextflowJobSubmitter(JobSubmitter):
         :param root_dir:
         :param resume_jobstore:
         """
-        JobSubmitter.__init__(self, app, inputs, walltime, memlimit)
-        self.job_id = job_id
+        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
