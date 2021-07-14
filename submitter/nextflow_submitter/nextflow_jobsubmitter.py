@@ -51,7 +51,7 @@ class NextflowJobSubmitter(JobSubmitter):
         env["JAVA_HOME"] = "/opt/common/CentOS_7/java/jdk1.8.0_202/"
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
-        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, env)
+        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, self.job_id, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def _job_args(self):
