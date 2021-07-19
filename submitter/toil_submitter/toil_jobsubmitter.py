@@ -25,8 +25,7 @@ def translate_toil_to_model_status(status):
 
 class ToilJobSubmitter(JobSubmitter):
     def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit):
-        JobSubmitter.__init__(self, app, inputs, walltime, memlimit)
-        self.job_id = job_id
+        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
@@ -54,7 +53,7 @@ class ToilJobSubmitter(JobSubmitter):
             ]:
                 env[e] = None
 
-        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, env)
+        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, self.job_id, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def get_commandline_status(self, cache):
@@ -156,7 +155,9 @@ class ToilJobSubmitter(JobSubmitter):
         return ["-M", self.memlimit] if self.memlimit else []
 
     def _command_line(self):
-        if "access" in self.app.github.lower() and "nucleo" not in self.app.github.lower():
+        bypass_access_workflows = ["nucleo", "access_qc_generation"]
+        should_bypass_access_env = any([w in self.app.github.lower() for w in bypass_access_workflows])
+        if "access" in self.app.github.lower() and not should_bypass_access_env:
             """
             Start ACCESS-specific code
             """

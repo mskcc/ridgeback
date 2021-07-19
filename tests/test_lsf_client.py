@@ -16,6 +16,8 @@ class TestLSFClient(TestCase):
         Cannot connect to LSF. Please wait ...
         """
         self.example_id = 12345678
+        self.example_job_id = 12345
+        self.example_lsf_id = "/12345"
         self.submit_response = "Job <{}> is submitted".format(self.example_id)
         self.submit_response_please_wait = please_wait_str + self.submit_response
         self.lsf_client = LSFClient()
@@ -65,8 +67,10 @@ class TestLSFClient(TestCase):
         submit_process_obj = Mock()
         submit_process_obj.stdout = self.submit_response
         submit_process.return_value = submit_process_obj
-        lsf_id = self.lsf_client.submit(command, args, stdout_file, {})
-        expected_command = ["bsub", "-sla", settings.LSF_SLA, "-oo", stdout_file] + args + command
+        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
+        expected_command = (
+            ["bsub", "-sla", settings.LSF_SLA, "-g", self.example_lsf_id, "-oo", stdout_file] + args + command
+        )
         self.assertEqual(lsf_id, self.example_id)
         self.assertEqual(submit_process.call_args[0][0], expected_command)
 
@@ -81,7 +85,7 @@ class TestLSFClient(TestCase):
         submit_process_obj = Mock()
         submit_process_obj.stdout = self.submit_response_please_wait
         submit_process.return_value = submit_process_obj
-        lsf_id = self.lsf_client.submit(command, args, stdout_file, {})
+        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
         self.assertEqual(lsf_id, self.example_id)
 
     @patch("subprocess.run")
@@ -92,8 +96,8 @@ class TestLSFClient(TestCase):
         abort_process_obj = Mock()
         abort_process_obj.returncode = 0
         abort_process.return_value = abort_process_obj
-        expected_command = ["bkill", self.example_id]
-        aborted = self.lsf_client.abort(self.example_id)
+        expected_command = ["bkill", "-g", self.example_lsf_id, "0"]
+        aborted = self.lsf_client.abort(self.example_job_id)
         self.assertEqual(abort_process.call_args[0][0], expected_command)
         self.assertEqual(aborted, True)
 

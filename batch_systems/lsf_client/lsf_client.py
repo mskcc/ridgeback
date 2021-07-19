@@ -1,5 +1,5 @@
 """
-Submit and monitor LSF jobs
+Submit, monitor, and control LSF jobs
 """
 import os
 import re
@@ -9,6 +9,10 @@ import logging
 from random import randint
 from django.conf import settings
 from orchestrator.models import Status
+
+
+def format_lsf_job_id(job_id):
+    return "/{}".format(job_id)
 
 
 class LSFClient(object):
@@ -25,7 +29,7 @@ class LSFClient(object):
         """
         self.logger = logging.getLogger("LSF_client")
 
-    def submit(self, command, job_args, stdout, env={}):
+    def submit(self, command, job_args, stdout, job_id, env={}):
         """
         Submit command to LSF and store log in stdout
 
@@ -38,7 +42,7 @@ class LSFClient(object):
         Returns:
             int: lsf job id
         """
-        bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-oo", stdout] + job_args
+        bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
 
         bsub_command.extend(command)
         current_env = os.environ.copy()
@@ -57,17 +61,18 @@ class LSFClient(object):
         )
         return self._parse_procid(process.stdout)
 
-    def abort(self, external_job_id):
+    def abort(self, job_id):
         """
         Kill LSF job
 
         Args:
-            external_job_id (str): external_job_id
+            job_id (str): job_id
 
         Returns:
             bool: successful
         """
-        bkill_command = ["bkill", external_job_id]
+        self.logger.debug("Aborting LSF jobs for job %s", job_id)
+        bkill_command = ["bkill", "-g", format_lsf_job_id(job_id), "0"]
         process = subprocess.run(bkill_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
@@ -211,15 +216,31 @@ class LSFClient(object):
         status = self._parse_status(process.stdout, external_job_id)
         return status
 
-    def suspend(self, external_job_id):
-        bsub_command = ["bstop", str(external_job_id)]
+    def suspend(self, job_id):
+        """
+        Suspend LSF job
+        Args:
+            extrnsl_job_id (str): id of job
+        Returns:
+            bool: successful
+        """
+        self.logger.debug("Suspending LSF jobs for job %s", job_id)
+        bsub_command = ["bstop", "-g", format_lsf_job_id(job_id), "0"]
         process = subprocess.run(bsub_command, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
         return False
 
-    def resume(self, external_job_id):
-        bsub_command = ["bresume", str(external_job_id)]
+    def resume(self, job_id):
+        """
+        Resume LSF job
+        Args:
+            job_id (str): id of job
+        Returns:
+            bool: successful
+        """
+        self.logger.debug("Unsuspending LSF jobs for job %s", job_id)
+        bsub_command = ["bresume", "-g", format_lsf_job_id(job_id), "0"]
         process = subprocess.run(bsub_command, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:
             return True
