@@ -13,7 +13,6 @@ import glob
 from enum import IntEnum
 from datetime import datetime
 from json.decoder import JSONDecodeError
-from tenacity import retry, wait_fixed, wait_random, stop_after_attempt, after_log
 from toil.jobStores.fileJobStore import FileJobStore
 from toil.toilState import ToilState as toil_state
 from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
@@ -138,11 +137,6 @@ def _clean_job_store(read_only_job_store_obj, job_store_cache):
     return root_job
 
 
-@retry(
-    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
-    stop=stop_after_attempt(ATTEMPTS),
-    after=after_log(logger, logging.DEBUG),
-)
 def _resume_job_store(job_store_path, total_attempts):
     """
     TOIL track helper to load a created file jobstore
@@ -156,14 +150,9 @@ def _resume_job_store(job_store_path, total_attempts):
     read_only_job_store_obj.set_job_cache()
     job_store_cache = read_only_job_store_obj.job_cache
     root_job = _clean_job_store(read_only_job_store_obj, job_store_cache)
-    return (read_only_job_store_obj, root_job)
+    return read_only_job_store_obj, root_job
 
 
-@retry(
-    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
-    stop=stop_after_attempt(ATTEMPTS),
-    after=after_log(logger, logging.DEBUG),
-)
 def _load_job_store(job_store, root_job):
     """
     TOIL track helper to load a file jobstore
@@ -201,11 +190,6 @@ def _check_job_state(work_log_path, jobs_path):
     return None
 
 
-@retry(
-    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
-    stop=stop_after_attempt(ATTEMPTS),
-    after=after_log(logger, logging.DEBUG),
-)
 def _check_worker_logs(work_dir, work_log_to_job_id, jobs_path):
     """
     Check the work directory for worker logs and report
