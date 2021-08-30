@@ -16,10 +16,11 @@ from json.decoder import JSONDecodeError
 from toil.jobStores.fileJobStore import FileJobStore
 from toil.toilState import ToilState as toil_state
 from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
-from toil.jobStores.abstractJobStore import NoSuchJobException, NoSuchJobStoreException
+from toil.jobStores.abstractJobStore import NoSuchJobException, NoSuchJobStoreException, JobException
 
 
 logger = logging.getLogger(__name__)
+
 WAITTIME = 10
 JITTER = 5
 ATTEMPTS = 5
@@ -133,7 +134,11 @@ def _clean_job_store(read_only_job_store_obj, job_store_cache):
     """
     TOIL track helper to clean the jobstore
     """
-    root_job = read_only_job_store_obj.clean(jobCache=job_store_cache)
+    root_job = None
+    try:
+        root_job = read_only_job_store_obj.clean(jobCache=job_store_cache)
+    except Exception as e:
+        logger.error("Failed to clean_job_store, error %s", e)
     return root_job
 
 
@@ -632,6 +637,12 @@ class ToilTrack:
             job_store, root_job = _resume_job_store(self.job_store_path, self.total_attempts)
         except NoSuchJobStoreException:
             logger.warning("Jobstore not valid, toil job may be finished or just starting")
+            return
+        except JobException:
+            logger.warning("No job has been set as the root in this job store")
+            return
+        if not root_job:
+            logger.warning("RootJob couldn't be fetched")
             return
         root_job_id = root_job.jobStoreID
         if not job_store.check_if_job_exists(root_job_id):
