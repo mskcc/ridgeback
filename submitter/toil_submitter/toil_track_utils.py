@@ -159,14 +159,8 @@ def _load_job_store(job_store, root_job):
     into a TOIL state object and avoid random filesystem
     issues
     """
-    current_attempt = _load_job_store.retry.statistics["attempt_number"]
-    if current_attempt > 1:
-        job_store.setJobCache()
-        toil_state_obj = toil_state(job_store, root_job)
-    else:
-        job_store_cache = job_store.job_cache
-        toil_state_obj = toil_state(job_store, root_job, jobCache=job_store_cache)
-
+    job_store_cache = job_store.job_cache
+    toil_state_obj = toil_state(job_store, root_job, jobCache=job_store_cache)
     return toil_state_obj
 
 
