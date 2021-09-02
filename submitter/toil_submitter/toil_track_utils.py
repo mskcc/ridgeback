@@ -13,14 +13,15 @@ import glob
 from enum import IntEnum
 from datetime import datetime
 from json.decoder import JSONDecodeError
-from tenacity import retry, wait_fixed, wait_random, stop_after_attempt, after_log
+from orchestrator.exceptions import RetryException
 from toil.jobStores.fileJobStore import FileJobStore
 from toil.toilState import ToilState as toil_state
 from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
-from toil.jobStores.abstractJobStore import NoSuchJobException, NoSuchJobStoreException
+from toil.jobStores.abstractJobStore import NoSuchJobException, NoSuchJobStoreException, JobException
 
 
 logger = logging.getLogger(__name__)
+
 WAITTIME = 10
 JITTER = 5
 ATTEMPTS = 5
@@ -134,15 +135,14 @@ def _clean_job_store(read_only_job_store_obj, job_store_cache):
     """
     TOIL track helper to clean the jobstore
     """
-    root_job = read_only_job_store_obj.clean(jobCache=job_store_cache)
+    root_job = None
+    try:
+        root_job = read_only_job_store_obj.clean(jobCache=job_store_cache)
+    except Exception as e:
+        logger.error("Failed to clean_job_store, error %s", e)
     return root_job
 
 
-@retry(
-    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
-    stop=stop_after_attempt(ATTEMPTS),
-    after=after_log(logger, logging.DEBUG),
-)
 def _resume_job_store(job_store_path, total_attempts):
     """
     TOIL track helper to load a created file jobstore
@@ -156,28 +156,17 @@ def _resume_job_store(job_store_path, total_attempts):
     read_only_job_store_obj.set_job_cache()
     job_store_cache = read_only_job_store_obj.job_cache
     root_job = _clean_job_store(read_only_job_store_obj, job_store_cache)
-    return (read_only_job_store_obj, root_job)
+    return read_only_job_store_obj, root_job
 
 
-@retry(
-    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
-    stop=stop_after_attempt(ATTEMPTS),
-    after=after_log(logger, logging.DEBUG),
-)
 def _load_job_store(job_store, root_job):
     """
     TOIL track helper to load a file jobstore
     into a TOIL state object and avoid random filesystem
     issues
     """
-    current_attempt = _load_job_store.retry.statistics["attempt_number"]
-    if current_attempt > 1:
-        job_store.setJobCache()
-        toil_state_obj = toil_state(job_store, root_job)
-    else:
-        job_store_cache = job_store.job_cache
-        toil_state_obj = toil_state(job_store, root_job, jobCache=job_store_cache)
-
+    job_store_cache = job_store.job_cache
+    toil_state_obj = toil_state(job_store, root_job, jobCache=job_store_cache)
     return toil_state_obj
 
 
@@ -201,11 +190,6 @@ def _check_job_state(work_log_path, jobs_path):
     return None
 
 
-@retry(
-    wait=wait_fixed(WAITTIME) + wait_random(0, JITTER),
-    stop=stop_after_attempt(ATTEMPTS),
-    after=after_log(logger, logging.DEBUG),
-)
 def _check_worker_logs(work_dir, work_log_to_job_id, jobs_path):
     """
     Check the work directory for worker logs and report
@@ -655,6 +639,12 @@ class ToilTrack:
         except NoSuchJobStoreException:
             logger.warning("Jobstore not valid, toil job may be finished or just starting")
             return
+        except JobException:
+            logger.warning("No job has been set as the root in this job store")
+            return
+        if not root_job:
+            logger.warning("RootJob couldn't be fetched")
+            raise RetryException("RootJob couldn't be fetched")
         root_job_id = root_job.jobStoreID
         if not job_store.check_if_job_exists(root_job_id):
             logger.warning("Jobstore root not found, toil job may be finished or just starting")
