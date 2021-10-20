@@ -13,7 +13,7 @@ import glob
 from enum import IntEnum
 from datetime import datetime
 from json.decoder import JSONDecodeError
-from orchestrator.exceptions import RetryException
+from orchestrator.exceptions import StopException
 from toil.jobStores.fileJobStore import FileJobStore
 from toil.toilState import ToilState as toil_state
 from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
@@ -644,7 +644,7 @@ class ToilTrack:
             return
         if not root_job:
             logger.warning("RootJob couldn't be fetched")
-            raise RetryException("RootJob couldn't be fetched")
+            raise StopException("RootJob couldn't be fetched")
         root_job_id = root_job.jobStoreID
         if not job_store.check_if_job_exists(root_job_id):
             logger.warning("Jobstore root not found, toil job may be finished or just starting")
