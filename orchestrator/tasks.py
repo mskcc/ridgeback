@@ -353,6 +353,7 @@ def clean_directory(path, exclude=[]):
             shutil.copy(src, path)
         return True
 
+
 # Check CommandLineJob statuses
 
 
