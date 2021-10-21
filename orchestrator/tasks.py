@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import tempfile
 from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
@@ -328,19 +329,29 @@ def cleanup_folders(self, job_id, job_store=True, work_dir=True):
         if clean_directory(job.job_store_location):
             job.job_store_clean_up = now()
     if work_dir:
-        if clean_directory(job.working_dir):
+        if clean_directory(job.working_dir, exclude=["input.json", "lsf.log"]):
             job.working_dir_clean_up = now()
     job.save()
 
 
-def clean_directory(path):
-    try:
-        shutil.rmtree(path)
-    except Exception as e:
-        logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
-        return False
-    return True
-
+def clean_directory(path, exclude=[]):
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        for f in exclude:
+            src = os.path.join(path, f)
+            shutil.copy(src, tmpdirname)
+        try:
+            shutil.rmtree(path)
+            os.mkdir(path)
+        except Exception as e:
+            logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
+            return False
+        """
+        Return excluded files to previous location
+        """
+        for f in exclude:
+            src = os.path.join(tmpdirname, f)
+            shutil.copy(src, path)
+        return True
 
 # Check CommandLineJob statuses
 
