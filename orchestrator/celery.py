@@ -49,5 +49,5 @@ app.conf.beat_schedule = {
             hour="0",
         ),
         "options": {"queue": settings.RIDGEBACK_CLEANUP_QUEUE},
-    }
+    },
 }

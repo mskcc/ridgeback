@@ -294,26 +294,21 @@ def abort_job(job):
 
 # Cleaning jobs
 
+
 @shared_task(bind=True)
 def full_cleanup_jobs(self):
-    cleanup_jobs(Status.COMPLETED,
-                 settings.FULL_CLEANUP_JOBS)
-    cleanup_jobs(Status.FAILED,
-                 settings.FULL_CLEANUP_JOBS)
+    cleanup_jobs(Status.COMPLETED, settings.FULL_CLEANUP_JOBS)
+    cleanup_jobs(Status.FAILED, settings.FULL_CLEANUP_JOBS)
 
 
 @shared_task(bind=True)
 def cleanup_completed_jobs(self):
-    cleanup_jobs(Status.COMPLETED,
-                 settings.CLEANUP_COMPLETED_JOBS,
-                 exclude=["input.json", "lsf.log"])
+    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS, exclude=["input.json", "lsf.log"])
 
 
 @shared_task(bind=True)
 def cleanup_failed_jobs(self):
-    cleanup_jobs(Status.FAILED,
-                 settings.CLEANUP_FAILED_JOBS,
-                 exclude=["input.json", "lsf.log"])
+    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", "lsf.log"])
 
 
 def cleanup_jobs(status, time_delta, exclude=[]):
