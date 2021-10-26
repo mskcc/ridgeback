@@ -56,7 +56,7 @@ Already cleaned up {cleaned_up}
                 partially_cleaned_up_projects = partially_cleaned_up_projects + 1
             else:
                 cleaned_up_projects = cleaned_up_projects + 1
-                cleanup_folders.delay(str(job.id))
+                cleanup_folders.delay(str(job.id), exclude=[])
 
             message = report_message.format(
                 cleaning=cleaned_up_projects,
