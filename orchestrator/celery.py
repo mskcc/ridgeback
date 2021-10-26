@@ -43,4 +43,11 @@ app.conf.beat_schedule = {
         ),
         "options": {"queue": settings.RIDGEBACK_CLEANUP_QUEUE},
     },
+    "full_cleanup_jobs": {
+        "task": "orchestrator.tasks.full_cleanup_jobs",
+        "schedule": crontab(
+            hour="0",
+        ),
+        "options": {"queue": settings.RIDGEBACK_CLEANUP_QUEUE},
+    },
 }
