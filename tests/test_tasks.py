@@ -179,8 +179,8 @@ class TestTasks(TestCase):
         cleanup_failed_jobs()
 
         calls = [
-            call(str(job_old_completed.id), exclude=['input.json', 'lsf.log']),
-            call(str(job_old_failed.id), exclude=['input.json', 'lsf.log']),
+            call(str(job_old_completed.id), exclude=["input.json", "lsf.log"]),
+            call(str(job_old_failed.id), exclude=["input.json", "lsf.log"]),
         ]
 
         cleanup_folders.delay.assert_has_calls(calls, any_order=True)
