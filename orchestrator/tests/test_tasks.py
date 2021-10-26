@@ -377,7 +377,7 @@ class TasksTest(TestCase):
             status=Status.FAILED,
         )
         clean_directory.return_value = True
-        cleanup_folders(str(cleanup_job.id))
+        cleanup_folders(str(cleanup_job.id), exclude=[])
         cleanup_job.refresh_from_db()
         self.assertIsNotNone(cleanup_job.job_store_clean_up)
         self.assertIsNotNone(cleanup_job.job_store_clean_up)
