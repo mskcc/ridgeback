@@ -338,10 +338,11 @@ def clean_directory(path, exclude=[]):
     with tempfile.TemporaryDirectory() as tmpdirname:
         for f in exclude:
             src = os.path.join(path, f)
-            shutil.copy(src, tmpdirname)
+            if os.path.exists(src):
+                shutil.copy(src, tmpdirname)
         try:
             shutil.rmtree(path)
-            os.mkdir(path)
+            os.makedirs(path, exist_ok=True)
         except Exception as e:
             logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
             return False
@@ -350,7 +351,8 @@ def clean_directory(path, exclude=[]):
         """
         for f in exclude:
             src = os.path.join(tmpdirname, f)
-            shutil.copy(src, path)
+            if os.path.exists(src):
+                shutil.copy(src, path)
         return True
 
 
