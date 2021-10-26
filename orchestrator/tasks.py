@@ -329,7 +329,7 @@ def cleanup_jobs(status, time_delta, exclude=[]):
 
 
 @shared_task(bind=True)
-def cleanup_folders(self, job_id, job_store=True, work_dir=True, exclude=[]):
+def cleanup_folders(self, job_id, exclude, job_store=True, work_dir=True):
     logger.info("Cleaning up %s" % job_id)
     try:
         job = Job.objects.get(id=job_id)
