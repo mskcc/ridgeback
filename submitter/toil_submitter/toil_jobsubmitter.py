@@ -24,8 +24,8 @@ def translate_toil_to_model_status(status):
 
 
 class ToilJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit):
-        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit)
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, log_dir=None):
+        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit, log_dir)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
@@ -120,6 +120,11 @@ class ToilJobSubmitter(JobSubmitter):
         except FileNotFoundError:
             error_message = "Could not find %s" % lsf_log_path
 
+        if self.log_dir:
+            output_log_location = os.path.join(self.log_dir, "output.json")
+            with open(output_log_location, "w") as f:
+                json.dump(self.inputs, f)
+
         return result_json, error_message
 
     def _dump_app_inputs(self):
@@ -127,11 +132,18 @@ class ToilJobSubmitter(JobSubmitter):
         inputs_location = os.path.join(self.job_work_dir, "input.json")
         with open(inputs_location, "w") as f:
             json.dump(self.inputs, f)
+        if self.log_dir:
+            inputs_log_location = os.path.join(self.log_dir, "input.json")
+            with open(inputs_log_location, "w") as f:
+                json.dump(self.inputs, f)
         return app_location, inputs_location
 
     def _prepare_directories(self):
         if not os.path.exists(self.job_work_dir):
             os.mkdir(self.job_work_dir)
+
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
 
         if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
             shutil.rmtree(self.job_store_dir)
