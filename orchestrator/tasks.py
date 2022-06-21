@@ -57,6 +57,7 @@ def suspend_job(job):
             job.inputs,
             job.root_dir,
             job.resume_job_store_location,
+            log_dir=job.log_dir
         )
         job_suspended = submitter.suspend()
         if not job_suspended:
@@ -74,6 +75,7 @@ def resume_job(job):
             job.inputs,
             job.root_dir,
             job.resume_job_store_location,
+            log_dir=job.log_dir
         )
         job_resumed = submitter.resume()
         if not job_resumed:
@@ -175,6 +177,7 @@ def submit_job_to_lsf(job):
             job.resume_job_store_location,
             job.walltime,
             job.memlimit,
+            log_dir=job.log_dir
         )
         (
             external_job_id,
@@ -237,6 +240,7 @@ def check_job_status(job):
         job.inputs,
         job.root_dir,
         job.resume_job_store_location,
+        log_dir=job.log_dir
     )
     try:
         lsf_status, lsf_message = submiter.status(job.external_id)
@@ -285,6 +289,7 @@ def abort_job(job):
                 job.inputs,
                 job.root_dir,
                 job.resume_job_store_location,
+                log_dir=job.log_dir
             )
             job_killed = submitter.abort()
             if not job_killed:
@@ -397,6 +402,7 @@ def check_status_of_command_line_jobs(job):
         job.inputs,
         job.root_dir,
         job.resume_job_store_location,
+        log_dir=job.log_dir
     )
     track_cache_str = job.track_cache
     command_line_status = submiter.get_commandline_status(track_cache_str)
