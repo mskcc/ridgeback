@@ -51,13 +51,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
 def suspend_job(job):
     if Status(job.status).transition(Status.SUSPENDED):
         submitter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
-            log_dir=job.log_dir
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
         )
         job_suspended = submitter.suspend()
         if not job_suspended:
@@ -69,13 +63,7 @@ def suspend_job(job):
 def resume_job(job):
     if Status(job.status) == Status.SUSPENDED:
         submitter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
-            log_dir=job.log_dir
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
         )
         job_resumed = submitter.resume()
         if not job_resumed:
@@ -177,7 +165,7 @@ def submit_job_to_lsf(job):
             job.resume_job_store_location,
             job.walltime,
             job.memlimit,
-            log_dir=job.log_dir
+            log_dir=job.log_dir,
         )
         (
             external_job_id,
@@ -234,13 +222,7 @@ def check_job_status(job):
     ):
         return
     submiter = JobSubmitterFactory.factory(
-        job.type,
-        str(job.id),
-        job.app,
-        job.inputs,
-        job.root_dir,
-        job.resume_job_store_location,
-        log_dir=job.log_dir
+        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
     )
     try:
         lsf_status, lsf_message = submiter.status(job.external_id)
@@ -289,7 +271,7 @@ def abort_job(job):
                 job.inputs,
                 job.root_dir,
                 job.resume_job_store_location,
-                log_dir=job.log_dir
+                log_dir=job.log_dir,
             )
             job_killed = submitter.abort()
             if not job_killed:
@@ -396,13 +378,7 @@ def update_command_line_jobs(command_line_jobs, root):
 
 def check_status_of_command_line_jobs(job):
     submiter = JobSubmitterFactory.factory(
-        job.type,
-        str(job.id),
-        job.app,
-        job.inputs,
-        job.root_dir,
-        job.resume_job_store_location,
-        log_dir=job.log_dir
+        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
     )
     track_cache_str = job.track_cache
     command_line_status = submiter.get_commandline_status(track_cache_str)

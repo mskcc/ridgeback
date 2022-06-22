@@ -14,7 +14,7 @@ class JobSubmitterFactory(object):
         resume_jobstore=None,
         walltime=settings.LSF_WALLTIME,
         memlimit=None,
-        log_dir=None
+        log_dir=None,
     ):
         if type == PipelineType.CWL:
             return ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, log_dir)
