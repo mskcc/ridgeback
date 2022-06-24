@@ -117,10 +117,10 @@ class JobStatusSerializer(serializers.Serializer):
 class JobSubmitSerializer(JobSerializer):
     class Meta:
         model = Job
-        fields = ("type", "app", "inputs", "root_dir")
+        fields = ("type", "app", "inputs", "root_dir", "log_dir")
 
 
 class JobResumeSerializer(JobSerializer):
     class Meta:
         model = Job
-        fields = ["root_dir"]
+        fields = ["root_dir", "log_dir"]

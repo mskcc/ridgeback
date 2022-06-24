@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import tempfile
 from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
@@ -50,12 +51,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
 def suspend_job(job):
     if Status(job.status).transition(Status.SUSPENDED):
         submitter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
         )
         job_suspended = submitter.suspend()
         if not job_suspended:
@@ -67,12 +63,7 @@ def suspend_job(job):
 def resume_job(job):
     if Status(job.status) == Status.SUSPENDED:
         submitter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
         )
         job_resumed = submitter.resume()
         if not job_resumed:
@@ -174,6 +165,7 @@ def submit_job_to_lsf(job):
             job.resume_job_store_location,
             job.walltime,
             job.memlimit,
+            log_dir=job.log_dir,
         )
         (
             external_job_id,
@@ -230,12 +222,7 @@ def check_job_status(job):
     ):
         return
     submiter = JobSubmitterFactory.factory(
-        job.type,
-        str(job.id),
-        job.app,
-        job.inputs,
-        job.root_dir,
-        job.resume_job_store_location,
+        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
     )
     try:
         lsf_status, lsf_message = submiter.status(job.external_id)
@@ -284,6 +271,7 @@ def abort_job(job):
                 job.inputs,
                 job.root_dir,
                 job.resume_job_store_location,
+                log_dir=job.log_dir,
             )
             job_killed = submitter.abort()
             if not job_killed:
@@ -295,16 +283,22 @@ def abort_job(job):
 
 
 @shared_task(bind=True)
+def full_cleanup_jobs(self):
+    cleanup_jobs(Status.COMPLETED, settings.FULL_CLEANUP_JOBS)
+    cleanup_jobs(Status.FAILED, settings.FULL_CLEANUP_JOBS)
+
+
+@shared_task(bind=True)
 def cleanup_completed_jobs(self):
-    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS)
+    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS, exclude=["input.json", "lsf.log"])
 
 
 @shared_task(bind=True)
 def cleanup_failed_jobs(self):
-    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS)
+    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", "lsf.log"])
 
 
-def cleanup_jobs(status, time_delta):
+def cleanup_jobs(status, time_delta, exclude=[]):
     time_threshold = now() - timedelta(days=time_delta)
     jobs = Job.objects.filter(
         status__in=(status,),
@@ -313,11 +307,11 @@ def cleanup_jobs(status, time_delta):
         working_dir_clean_up__isnull=True,
     )
     for job in jobs:
-        cleanup_folders.delay(str(job.id))
+        cleanup_folders.delay(str(job.id), exclude=exclude)
 
 
 @shared_task(bind=True)
-def cleanup_folders(self, job_id, job_store=True, work_dir=True):
+def cleanup_folders(self, job_id, exclude, job_store=True, work_dir=True):
     logger.info("Cleaning up %s" % job_id)
     try:
         job = Job.objects.get(id=job_id)
@@ -328,18 +322,32 @@ def cleanup_folders(self, job_id, job_store=True, work_dir=True):
         if clean_directory(job.job_store_location):
             job.job_store_clean_up = now()
     if work_dir:
-        if clean_directory(job.working_dir):
+        if clean_directory(job.working_dir, exclude=exclude):
             job.working_dir_clean_up = now()
     job.save()
 
 
-def clean_directory(path):
-    try:
-        shutil.rmtree(path)
-    except Exception as e:
-        logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
-        return False
-    return True
+def clean_directory(path, exclude=[]):
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        for f in exclude:
+            src = os.path.join(path, f)
+            if os.path.exists(src):
+                shutil.copy(src, tmpdirname)
+        try:
+            shutil.rmtree(path)
+        except Exception as e:
+            logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
+            return False
+        """
+        Return excluded files to previous location
+        """
+        if exclude:
+            os.makedirs(path, exist_ok=True)
+            for f in exclude:
+                src = os.path.join(tmpdirname, f)
+                if os.path.exists(src):
+                    shutil.copy(src, path)
+        return True
 
 
 # Check CommandLineJob statuses
@@ -370,12 +378,7 @@ def update_command_line_jobs(command_line_jobs, root):
 
 def check_status_of_command_line_jobs(job):
     submiter = JobSubmitterFactory.factory(
-        job.type,
-        str(job.id),
-        job.app,
-        job.inputs,
-        job.root_dir,
-        job.resume_job_store_location,
+        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
     )
     track_cache_str = job.track_cache
     command_line_status = submiter.get_commandline_status(track_cache_str)

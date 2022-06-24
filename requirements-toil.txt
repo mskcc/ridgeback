@@ -2,5 +2,5 @@ mock==4.0.2
 pytest==4.3.1
 pytest-cov==2.6.1
 pytest-timeout==1.3.3
-git+https://github.com/mskcc/toil.git@5.4.0#egg=toil[cwl]
+git+https://github.com/mskcc/toil.git@5.4.2#egg=toil[cwl]
 cwltest
