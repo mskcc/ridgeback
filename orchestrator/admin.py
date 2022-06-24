@@ -50,14 +50,13 @@ Already cleaned up {cleaned_up}
         for job in queryset:
 
             if all([job.job_store_clean_up, job.working_dir_clean_up]):
-                cleaned_up_projects = cleaned_up_projects + 1
+                already_cleaned_up_projects = already_cleaned_up_projects + 1
             elif any([job.job_store_clean_up, job.working_dir_clean_up]):
-                cleaned_up_projects = cleaned_up_projects + 1
+                already_cleaned_up_projects = already_cleaned_up_projects + 1
                 partially_cleaned_up_projects = partially_cleaned_up_projects + 1
             else:
-                already_cleaned_up_projects = already_cleaned_up_projects + 1
-
-                cleanup_folders.delay(str(job.id))
+                cleaned_up_projects = cleaned_up_projects + 1
+                cleanup_folders.delay(str(job.id), exclude=[])
 
             message = report_message.format(
                 cleaning=cleaned_up_projects,

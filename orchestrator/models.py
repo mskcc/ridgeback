@@ -154,6 +154,7 @@ class Job(BaseModel):
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
+    log_dir = models.CharField(max_length=1000, null=True, blank=True)
     status = models.IntegerField(
         choices=[(status.value, status.name) for status in Status],
         default=Status.CREATED,
