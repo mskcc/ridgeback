@@ -184,9 +184,9 @@ class NextflowJobSubmitter(JobSubmitter):
         if params:
             for k, v in params.items():
                 if v:
-                    command_line.extend(["--%s" % k])
-                else:
                     command_line.extend(["--%s" % k, v])
+                else:
+                    command_line.extend(["--%s" % k])
         if self.resume_jobstore:
             command_line.extend(["-resume"])
         return command_line
