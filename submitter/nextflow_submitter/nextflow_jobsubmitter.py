@@ -6,7 +6,7 @@ from submitter import JobSubmitter
 
 
 class NextflowJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, log_dir=None):
         """
         :param job_id:
         :param app: github.url
@@ -55,7 +55,15 @@ class NextflowJobSubmitter(JobSubmitter):
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def _job_args(self):
-        return ["-M", "20"]
+        args = self._walltime()
+        args.extend(self._memlimit())
+        return args
+
+    def _walltime(self):
+        return ["-W", str(self.walltime)] if self.walltime else []
+
+    def _memlimit(self):
+        return ["-M", self.memlimit] if self.memlimit else ["-M", "20"]
 
     def _sha1(self, path, buffersize=1024 * 1024):
         try:
@@ -184,9 +192,9 @@ class NextflowJobSubmitter(JobSubmitter):
         if params:
             for k, v in params.items():
                 if v:
-                    command_line.extend(["--%s" % k])
-                else:
                     command_line.extend(["--%s" % k, v])
+                else:
+                    command_line.extend(["--%s" % k])
         if self.resume_jobstore:
             command_line.extend(["-resume"])
         return command_line

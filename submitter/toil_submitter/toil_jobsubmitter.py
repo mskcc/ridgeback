@@ -174,7 +174,7 @@ class ToilJobSubmitter(JobSubmitter):
             """
             Start ACCESS-specific code
             """
-            access_path = "PATH=/juno/home/accessbot/miniconda3/envs/ACCESS_cmplx_geno_test/bin:{}"
+            access_path = "PATH=/home/accessbot/miniconda3/envs/ACCESS_cmplx_geno_test/bin:{}"
             path = access_path.format(os.environ.get("PATH"))
             command_line = [
                 path,
