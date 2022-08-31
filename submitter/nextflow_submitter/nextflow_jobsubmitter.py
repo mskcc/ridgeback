@@ -55,7 +55,15 @@ class NextflowJobSubmitter(JobSubmitter):
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def _job_args(self):
-        return ["-M", "20"]
+        args = self._walltime()
+        args.extend(self._memlimit())
+        return args
+
+    def _walltime(self):
+        return ["-W", str(self.walltime)] if self.walltime else []
+
+    def _memlimit(self):
+        return ["-M", self.memlimit] if self.memlimit else ["-M", "20"]
 
     def _sha1(self, path, buffersize=1024 * 1024):
         try:
