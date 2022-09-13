@@ -159,6 +159,7 @@ class ToilJobSubmitter(JobSubmitter):
     def _job_args(self):
         args = self._walltime()
         args.extend(self._memlimit())
+        args.extend(self._jobGroup())
         return args
 
     def _walltime(self):
@@ -166,6 +167,9 @@ class ToilJobSubmitter(JobSubmitter):
 
     def _memlimit(self):
         return ["-M", self.memlimit] if self.memlimit else []
+
+    def _jobGroup(self):
+        return ["-g", self.job_id]
 
     def _command_line(self):
         bypass_access_workflows = ["nucleo", "access_qc_generation"]
