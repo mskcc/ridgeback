@@ -83,7 +83,8 @@ class TestTasks(TestCase):
         inputs = {}
         expected_job_args = "-g {}".format(job_id)
         jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
-        job_args = " ".join(jobsubmitterObject._job_args())
+        job_args_list = jobsubmitterObject._job_args()
+        job_args = " ".join([str(single_arg) for single_arg in job_args_list])
         self.assertEqual(job_args, expected_job_args)
 
     def test_job_args_walltime(self):
@@ -96,7 +97,8 @@ class TestTasks(TestCase):
         inputs = {}
         expected_job_args = "-W {} -g {}".format(walltime, job_id)
         jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
-        job_args = " ".join(jobsubmitterObject._job_args())
+        job_args_list = jobsubmitterObject._job_args()
+        job_args = " ".join([str(single_arg) for single_arg in job_args_list])
         self.assertEqual(job_args, expected_job_args)
 
     def test_job_args_memlimit(self):
@@ -109,7 +111,8 @@ class TestTasks(TestCase):
         inputs = {}
         expected_job_args = "-M {} -g {}".format(memlimit, job_id)
         jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
-        job_args = " ".join(jobsubmitterObject._job_args())
+        job_args_list = jobsubmitterObject._job_args()
+        job_args = " ".join([str(single_arg) for single_arg in job_args_list])
         self.assertEqual(job_args, expected_job_args)
 
     def test_job_args_all_options(self):
@@ -122,7 +125,8 @@ class TestTasks(TestCase):
         inputs = {}
         expected_job_args = "-W {} -M {} -g {}".format(walltime, memlimit, job_id)
         jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
-        job_args = " ".join(jobsubmitterObject._job_args())
+        job_args_list = jobsubmitterObject._job_args()
+        job_args = " ".join([str(single_arg) for single_arg in job_args_list])
         self.assertEqual(job_args, expected_job_args)
 
     @patch("orchestrator.tasks.command_processor.delay")
