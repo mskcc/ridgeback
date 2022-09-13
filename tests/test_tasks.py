@@ -11,6 +11,9 @@ from orchestrator.tasks import (
 )
 from datetime import datetime, timedelta
 from mock import patch, call
+import uuid
+
+from submitter.toil_submitter import ToilJobSubmitter
 
 MAX_RUNNING_JOBS = 3
 
@@ -69,6 +72,58 @@ class TestTasks(TestCase):
         self.submitting_job.refresh_from_db()
         self.assertEqual(self.submitting_job.finished, None)
         self.assertEqual(self.submitting_job.job_store_location, "/new/job_store_location")
+
+    def test_job_args(self):
+        job_id = str(uuid.uuid4())
+        app = {"github": {"entrypoint": "test.cwl"}}
+        root_dir = "test_root"
+        resume_jobstore = None
+        walltime = None
+        memlimit = None
+        inputs = {}
+        expected_job_args = "-g {}".format(job_id)
+        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
+        job_args = jobsubmitterObject._job_args()
+        self.assertEqual(job_args, expected_job_args)
+
+    def test_job_args_walltime(self):
+        job_id = str(uuid.uuid4())
+        app = {"github": {"entrypoint": "test.cwl"}}
+        root_dir = "test_root"
+        resume_jobstore = None
+        walltime = 7200
+        memlimit = None
+        inputs = {}
+        expected_job_args = "-W {} -g {}".format(walltime, job_id)
+        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
+        job_args = jobsubmitterObject._job_args()
+        self.assertEqual(job_args, expected_job_args)
+
+    def test_job_args_memlimit(self):
+        job_id = str(uuid.uuid4())
+        app = {"github": {"entrypoint": "test.cwl"}}
+        root_dir = "test_root"
+        resume_jobstore = None
+        walltime = None
+        memlimit = 10
+        inputs = {}
+        expected_job_args = "-M {} -g {}".format(memlimit, job_id)
+        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
+        job_args = jobsubmitterObject._job_args()
+        self.assertEqual(job_args, expected_job_args)
+
+    def test_job_args_all_options(self):
+        job_id = str(uuid.uuid4())
+        app = {"github": {"entrypoint": "test.cwl"}}
+        root_dir = "test_root"
+        resume_jobstore = None
+        walltime = 7200
+        memlimit = 10
+        inputs = {}
+        expected_job_args = "-W {} -M {} -g {}".format(walltime, memlimit, job_id)
+        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
+        job_args = jobsubmitterObject._job_args()
+        self.assertEqual(job_args, expected_job_args)
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
