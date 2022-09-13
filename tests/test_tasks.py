@@ -75,7 +75,7 @@ class TestTasks(TestCase):
 
     def test_job_args(self):
         job_id = str(uuid.uuid4())
-        app = {"github": {"entrypoint": "test.cwl"}}
+        app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
         walltime = None
@@ -88,7 +88,7 @@ class TestTasks(TestCase):
 
     def test_job_args_walltime(self):
         job_id = str(uuid.uuid4())
-        app = {"github": {"entrypoint": "test.cwl"}}
+        app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
         walltime = 7200
@@ -101,7 +101,7 @@ class TestTasks(TestCase):
 
     def test_job_args_memlimit(self):
         job_id = str(uuid.uuid4())
-        app = {"github": {"entrypoint": "test.cwl"}}
+        app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
         walltime = None
@@ -114,7 +114,7 @@ class TestTasks(TestCase):
 
     def test_job_args_all_options(self):
         job_id = str(uuid.uuid4())
-        app = {"github": {"entrypoint": "test.cwl"}}
+        app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
         walltime = 7200
