@@ -193,7 +193,7 @@ class Job(BaseModel):
         )
 
     def update_status(self, lsf_status):
-        if self.status == Status.PENDING and lsf_status == Status.RUNNING:
+        if self.status <= Status.PENDING and lsf_status == Status.RUNNING:
             self.started = now()
             logger.info(f"Set started time {self.started}")
         self.status = lsf_status
