@@ -82,11 +82,10 @@ class TestTasks(TestCase):
         walltime = None
         memlimit = None
         inputs = {}
-        expected_job_args = "-g {}".format(job_id)
+        expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
         jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
-        job_args_list = jobsubmitterObject._job_args()
-        job_args = " ".join([str(single_arg) for single_arg in job_args_list])
-        self.assertEqual(job_args, expected_job_args)
+        job_group = " ".join(jobsubmitterObject._job_group())
+        self.assertEqual(job_group, expected_job_group)
 
     def test_job_args_walltime(self):
         job_id = str(uuid.uuid4())
