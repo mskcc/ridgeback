@@ -7,6 +7,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from orchestrator.models import Status
 from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
+from batch_systems.lsf_client.lsf_client import format_lsf_job_id
 
 
 def translate_toil_to_model_status(status):
@@ -40,7 +41,7 @@ class ToilJobSubmitter(JobSubmitter):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, "lsf.log")
         env = dict()
-        toil_lsf_args = "-sla %s %s" % (settings.LSF_SLA, " ".join(self._job_args()))
+        toil_lsf_args = "-sla %s %s %s" % (settings.LSF_SLA, " ".join(self._job_group()), " ".join(self._job_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
 
@@ -159,7 +160,6 @@ class ToilJobSubmitter(JobSubmitter):
     def _job_args(self):
         args = self._walltime()
         args.extend(self._memlimit())
-        args.extend(self._jobGroup())
         return args
 
     def _walltime(self):
@@ -168,8 +168,8 @@ class ToilJobSubmitter(JobSubmitter):
     def _memlimit(self):
         return ["-M", self.memlimit] if self.memlimit else []
 
-    def _jobGroup(self):
-        return ["-g", self.job_id]
+    def _job_group(self):
+        return ["-g", format_lsf_job_id(self.job_id)]
 
     def _command_line(self):
         bypass_access_workflows = ["nucleo", "access_qc_generation"]
