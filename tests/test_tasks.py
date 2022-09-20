@@ -12,6 +12,7 @@ from orchestrator.tasks import (
 from datetime import datetime, timedelta
 from mock import patch, call
 import uuid
+from batch_systems.lsf_client.lsf_client import format_lsf_job_id
 
 from submitter.toil_submitter import ToilJobSubmitter
 
@@ -95,7 +96,7 @@ class TestTasks(TestCase):
         walltime = 7200
         memlimit = None
         inputs = {}
-        expected_job_args = "-W {} -g {}".format(walltime, job_id)
+        expected_job_args = "-W {}".format(walltime)
         jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
         job_args_list = jobsubmitterObject._job_args()
         job_args = " ".join([str(single_arg) for single_arg in job_args_list])
@@ -109,7 +110,7 @@ class TestTasks(TestCase):
         walltime = None
         memlimit = 10
         inputs = {}
-        expected_job_args = "-M {} -g {}".format(memlimit, job_id)
+        expected_job_args = "-M {}".format(memlimit)
         jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
         job_args_list = jobsubmitterObject._job_args()
         job_args = " ".join([str(single_arg) for single_arg in job_args_list])
@@ -123,11 +124,14 @@ class TestTasks(TestCase):
         walltime = 7200
         memlimit = 10
         inputs = {}
-        expected_job_args = "-W {} -M {} -g {}".format(walltime, memlimit, job_id)
+        expected_job_args = "-W {} -M {}".format(walltime, memlimit)
+        expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
         jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
         job_args_list = jobsubmitterObject._job_args()
         job_args = " ".join([str(single_arg) for single_arg in job_args_list])
+        job_group = " ".join(jobsubmitterObject._job_group())
         self.assertEqual(job_args, expected_job_args)
+        self.assertEqual(job_group, expected_job_group)
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
