@@ -7,7 +7,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from orchestrator.models import Status
 from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
-from batch_systems.lsf_client import format_lsf_job_id
+from batch_systems.lsf_client.lsf_client import format_lsf_job_id
 
 
 def translate_toil_to_model_status(status):
