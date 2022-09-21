@@ -21,6 +21,7 @@ before_install:
 install:
   - psql -p 5433 -c 'create database travis_ci_test;' -U postgres
   - pip install --force-reinstall 'setuptools<58.0.0'
+  - pip install toil==3.21.0
   - pip install -r requirements.txt
   - pip install -r requirements-toil.txt
   - source travis_env.sh
