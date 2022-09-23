@@ -127,4 +127,4 @@ Includecmd: no
 
     python3 ${RIDGEBACK_PATH}/manage.py migrate
     yes | python3 ${RIDGEBACK_PATH}/manage.py collectstatic
-    ddtrace-run python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
+    DD_SERVICE="ridgeback" DD_ENV="dev" ddtrace-run python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
