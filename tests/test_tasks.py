@@ -19,7 +19,6 @@ from submitter.toil_submitter import ToilJobSubmitter
 MAX_RUNNING_JOBS = 3
 
 
-@patch("orchestrator.tasks.MAX_RUNNING_JOBS", MAX_RUNNING_JOBS)
 class TestTasks(TestCase):
     fixtures = ["orchestrator.job.json"]
 
