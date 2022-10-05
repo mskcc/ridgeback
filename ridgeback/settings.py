@@ -16,9 +16,9 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SHORT_JOB_QUEUE = int(os.environ.get("SHORT_JOB_QUEUE_SIZE", 50))
-SHORT_JOB_MAX_DURATION = int(os.environ.get("SHORT_JOB_MAX_DURATION", 4320))
+SHORT_JOB_MAX_DURATION = int(os.environ.get("SHORT_JOB_MAX_DURATION", 4321))
 MEDIUM_JOB_QUEUE = int(os.environ.get("MEDIUM_JOB_QUEUE_SIZE", 100))
-MEDIUM_JOB_MAX_DURATION = int(os.environ.get("MEDIUM_JOB_MAX_DURATION", 7200))
+MEDIUM_JOB_MAX_DURATION = int(os.environ.get("MEDIUM_JOB_MAX_DURATION", 7201))
 LONG_JOB_QUEUE = int(os.environ.get("LONG_JOB_QUEUE_SIZE", 150))
 
 # Quick-start development settings - unsuitable for production
