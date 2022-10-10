@@ -168,7 +168,7 @@ class Job(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
-    walltime = models.IntegerField(blank=True, null=True, default=None)
+    walltime = models.IntegerField(default=4320)
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
 
     def submit_to_lsf(self, external_id, job_store_dir, job_work_dir, job_output_dir, log_path):
@@ -193,8 +193,9 @@ class Job(BaseModel):
         )
 
     def update_status(self, lsf_status):
-        if self.status == Status.PENDING and lsf_status == Status.RUNNING:
+        if self.status <= Status.PENDING and lsf_status == Status.RUNNING:
             self.started = now()
+            logger.info(f"Set started time {self.started}")
         self.status = lsf_status
         self.save(update_fields=["status", "started"])
 
