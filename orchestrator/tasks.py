@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 import logging
 import tempfile
 from datetime import timedelta
@@ -8,10 +9,9 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.timezone import now
 from .models import Job, Status, CommandLineToolJob
-import shutil
 from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
-from ridgeback.settings import MAX_RUNNING_JOBS
+from orchestrator.scheduler import Scheduler
 from orchestrator.commands import Command, CommandType
 from orchestrator.exceptions import RetryException, StopException
 
@@ -90,19 +90,7 @@ def process_jobs():
         # Send CHECK_STATUS commands for Jobs
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
 
-    jobs_running = Job.objects.filter(
-        status__in=(
-            Status.SUBMITTING,
-            Status.SUBMITTED,
-            Status.PENDING,
-            Status.RUNNING,
-        )
-    ).count()
-    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
-    if jobs_to_submit <= 0:
-        return
-
-    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
+    jobs = Scheduler.get_jobs_to_submit()
 
     for job in jobs:
         # Send SUBMIT commands for Jobs
