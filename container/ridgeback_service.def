@@ -9,7 +9,7 @@ Includecmd: no
     && apt-get clean && apt-get update -qq \
     && apt-get -y install \
         python python-pip python-dev python3 python3-pip python3-virtualenv wget \
-        libldap2-dev libsasl2-dev libssl-dev libxml2-dev libxslt-dev \
+        libldap2-dev libsasl2-dev libssl-dev \
         postgresql postgresql-contrib libpq-dev \
         gawk build-essential nodejs \
         git \
@@ -18,11 +18,12 @@ Includecmd: no
     cd /usr/bin \
     && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH
     cd /usr/bin/ridgeback \
+    && pip3 install --upgrade pip \
+    && pip3 install Cython \
+    && pip3 install scikit-build \
     && python3 -m pip install python-ldap \
-    && pip3 install setuptools==57.5.0 \
     && pip3 install -r requirements.txt \
     && pip3 install -r requirements-toil.txt
-
 
 ##############################
 # run ridgeback service
@@ -126,4 +127,4 @@ Includecmd: no
 
     python3 ${RIDGEBACK_PATH}/manage.py migrate
     yes | python3 ${RIDGEBACK_PATH}/manage.py collectstatic
-    python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
+    DD_SERVICE="ridgeback" DD_ENV="dev" DD_LOGS_INJECTION=true DD_TRACE_SAMPLE_RATE="1" DD_PROFILING_ENABLED=true ddtrace-run python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
