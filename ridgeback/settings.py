@@ -55,7 +55,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     "elasticapm",
-    "ddtrace.contrib.django",
 ]
 
 MIDDLEWARE = [
