@@ -286,6 +286,11 @@ def cleanup_failed_jobs(self):
     cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", "lsf.log"])
 
 
+@shared_task(bind=True)
+def cleanup_aborted_jobs(self):
+    cleanup_jobs(Status.ABORTED, settings.CLEANUP_ABORTED_JOBS, exclude=["input.json", "lsf.log"])
+
+
 def cleanup_jobs(status, time_delta, exclude=[]):
     time_threshold = now() - timedelta(days=time_delta)
     jobs = Job.objects.filter(
