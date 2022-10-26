@@ -19,6 +19,7 @@ Includecmd: no
     && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH
     cd /usr/bin/ridgeback \
     && python3 -m pip install python-ldap \
+    && pip3 install --upgrade pip \
     && pip3 install Cython \
     && pip3 install scikit-build \
     && pip3 install setuptools==57.5.0 \
