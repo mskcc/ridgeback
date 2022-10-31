@@ -62,11 +62,7 @@ class LSFClient(object):
             universal_newlines=True,
             env=current_env,
         )
-      #Get the active span
-        current_span = tracer.current_span()
-        if current_span:
-        # job_id -> 
-        current_span.set_tag('results.id', job_id)
+ 
 
         return self._parse_procid(process.stdout)
     
