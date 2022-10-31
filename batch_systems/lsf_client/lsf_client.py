@@ -62,8 +62,14 @@ class LSFClient(object):
             universal_newlines=True,
             env=current_env,
         )
-        return self._parse_procid(process.stdout)
+      #Get the active span
+        current_span = tracer.current_span()
+        if current_span:
+        # job_id -> 
+        current_span.set_tag('results.id', job_id)
 
+        return self._parse_procid(process.stdout)
+    
     def abort(self, job_id):
         """
         Kill LSF job
