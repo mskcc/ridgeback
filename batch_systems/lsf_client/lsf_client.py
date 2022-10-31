@@ -32,11 +32,6 @@ class LSFClient(object):
         self.logger = logging.getLogger("LSF_client")
 
     def submit(self, command, job_args, stdout, job_id, env={}):
-         # Get the active span
-        current_span = tracer.current_span()
-        if current_span:
-            # job_id -> 
-        current_span.set_tag('job.id', job_id)
     
         """
         Submit command to LSF and store log in stdout
