@@ -9,6 +9,8 @@ import logging
 from random import randint
 from django.conf import settings
 from orchestrator.models import Status
+from ddtrace import tracer
+
 
 
 def format_lsf_job_id(job_id):
@@ -30,6 +32,12 @@ class LSFClient(object):
         self.logger = logging.getLogger("LSF_client")
 
     def submit(self, command, job_args, stdout, job_id, env={}):
+         # Get the active span
+        current_span = tracer.current_span()
+        if current_span:
+            # job_id -> 
+        current_span.set_tag('job.id', job_id)
+    
         """
         Submit command to LSF and store log in stdout
 
