@@ -29,7 +29,7 @@ class JobViewSet(
 
     def get_serializer_class(self):
         return JobSerializer
-
+    @tracer.wrap()
     def validate_and_save(self, data):
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
