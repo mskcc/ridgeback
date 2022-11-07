@@ -53,7 +53,7 @@ class JobViewSet(
         resume_data = request.data
         current_span = tracer.current_span()
         if current_span:
-          current_span.set_tag('resume_data.id', resume_data_id)
+          current_span.set_tag('resume_data.id', resume_data)
         try:
             parent_job = Job.objects.get(id=pk)
             if parent_job.job_store_clean_up is not None:
