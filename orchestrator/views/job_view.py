@@ -31,11 +31,11 @@ class JobViewSet(
         return JobSerializer
 
     def validate_and_save(self, data):
+    current_span = tracer.current_span()
+            #request_id = data.get("inputs",{}).get("runparams",{}).get("project_prefix","None Specified")
+            #current_span.set_tag("request.id", request_id) 
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
-           # current_span = tracer.current_span()
-            # request_id = data.get("inputs",{}).get("runparams",{}).get("project_prefix","None Specified")
-            #current_span.set_tag("request.id", request_id) 
             response = serializer.save()
             response = JobSerializer(response)
             
@@ -50,10 +50,7 @@ class JobViewSet(
     )
     @action(detail=True, methods=["post"])
     def resume(self, request, pk=None, *args, **kwargs):
-        resume_data = request.data
-        current_span = tracer.current_span()
-        if current_span:
-          current_span.set_tag('resume_data.id', resume_data)
+       
         try:
             parent_job = Job.objects.get(id=pk)
             if parent_job.job_store_clean_up is not None:
