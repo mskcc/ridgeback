@@ -50,7 +50,7 @@ class JobViewSet(
     )
     @action(detail=True, methods=["post"])
     def resume(self, request, pk=None, *args, **kwargs):
-       
+        resume_data = request.data
         try:
             parent_job = Job.objects.get(id=pk)
             if parent_job.job_store_clean_up is not None:
