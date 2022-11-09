@@ -36,7 +36,15 @@ class JobViewSet(
         if serializer.is_valid():
             current_span = tracer.current_span()
             if data:
-                request_id = data.get("inputs", {}).get("runparams", {}).get("project_prefix", "None Specified")
+                inputs = data.get("inputs", {})
+                if inputs:
+                    runparams = inputs.get("runparams", {})
+                    if runparams:
+                        request_id = runparams.get("project_prefix", "None Specified")
+                    else:
+                        request_id = "Empty Runparams"
+                else:
+                    request_id = "Empty Inputs"
             else:
                 request_id = "Empty Request"
             current_span.set_tag("request.id", request_id)
