@@ -12,7 +12,6 @@ from orchestrator.models import Status
 from ddtrace import tracer
 
 
-
 def format_lsf_job_id(job_id):
     return "/{}".format(job_id)
 
@@ -32,7 +31,7 @@ class LSFClient(object):
         self.logger = logging.getLogger("LSF_client")
 
     def submit(self, command, job_args, stdout, job_id, env={}):
-    
+
         """
         Submit command to LSF and store log in stdout
 
@@ -62,10 +61,9 @@ class LSFClient(object):
             universal_newlines=True,
             env=current_env,
         )
- 
 
         return self._parse_procid(process.stdout)
-    
+
     def abort(self, job_id):
         """
         Kill LSF job
