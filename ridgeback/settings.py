@@ -61,7 +61,6 @@ INSTALLED_APPS = [
     "drf_yasg",
     "elasticapm",
     "django_extensions",
-    
 ]
 
 MIDDLEWARE = [
