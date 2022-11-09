@@ -29,21 +29,24 @@ class JobViewSet(
 
     def get_serializer_class(self):
         return JobSerializer
+
     @tracer.wrap()
     def validate_and_save(self, data):
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
             current_span = tracer.current_span()
-            request_id = data.get("inputs",{}).get("runparams",{}).get("project_prefix","None Specified")
+            if data:
+                request_id = data.get("inputs", {}).get("runparams", {}).get("project_prefix", "None Specified")
+            else:
+                request_id = "Empty Request"
             current_span.set_tag("request.id", request_id)
             response = serializer.save()
             response = JobSerializer(response)
-            
 
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
     @swagger_auto_schema(
         request_body=JobResumeSerializer,
         responses={status.HTTP_201_CREATED: JobSerializer},
