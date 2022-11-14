@@ -129,4 +129,4 @@ Includecmd: no
 
     python3 ${RIDGEBACK_PATH}/manage.py migrate
     yes | python3 ${RIDGEBACK_PATH}/manage.py collectstatic
-    DD_TRACE_ENABLED=true DD_SERVICE="ridgeback" DD_ENV="dev" DD_LOGS_INJECTION=true DD_TRACE_SAMPLE_RATE="1" DD_PROFILING_ENABLED=true ddtrace-run python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
+    DD_CELERY_DISTRIBUTED_TRACING=true DD_TRACE_ENABLED=true DD_SERVICE="ridgeback" DD_ENV="dev" DD_LOGS_INJECTION=true DD_TRACE_SAMPLE_RATE="1" DD_PROFILING_ENABLED=true ddtrace-run python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
