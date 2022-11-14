@@ -9,7 +9,6 @@ import logging
 from random import randint
 from django.conf import settings
 from orchestrator.models import Status
-from ddtrace import tracer
 
 
 def format_lsf_job_id(job_id):
