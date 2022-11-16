@@ -3,12 +3,10 @@ import os
 from celery import Celery
 from django.conf import settings
 from celery.schedules import crontab
-from ddtrace import patch
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ridgeback.settings")
 
-patch(celery=True)
 app = Celery("ridgeback_orchestrator")
 
 # Using a string here means the worker doesn't have to serialize
