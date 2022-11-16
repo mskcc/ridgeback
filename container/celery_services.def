@@ -154,7 +154,7 @@ Includecmd: no
     -s ${RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.celerybeat-schedule >/dev/null 2>&1 < /dev/null &
 
     echo "Running command queue worker..."
-    nohup ddtrace-run celery -A orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_COMMAND_QUEUE} \
@@ -164,7 +164,7 @@ Includecmd: no
     -n ${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_COMMAND_QUEUE} >/dev/null 2>&1 < /dev/null &
 
     echo "Running action queue worker..."
-    nohup ddtrace-run celery -A orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_ACTION_QUEUE} \
@@ -174,7 +174,7 @@ Includecmd: no
     -n ${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE} >/dev/null 2>&1 < /dev/null &
 
     echo "Running check status queue worker..."
-    nohup ddtrace-run celery -A orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
@@ -183,7 +183,7 @@ Includecmd: no
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
     echo "Running check status queue worker..."
-    nohup ddtrace-run celery -A orchestrator worker \
+    nohup celery -A orchestrator worker \
     -l info \
     --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
