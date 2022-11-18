@@ -61,7 +61,7 @@ class LSFClient(object):
         )
         return self._parse_procid(process.stdout)
 
-    def abort(self, job_id):
+    def term(self, job_id):
         """
         Kill LSF job
 
@@ -71,7 +71,7 @@ class LSFClient(object):
         Returns:
             bool: successful
         """
-        self.logger.debug("Aborting LSF jobs for job %s", job_id)
+        self.logger.debug("Terminating LSF jobs for job %s", job_id)
         bkill_command = ["bkill", "-g", format_lsf_job_id(job_id), "0"]
         process = subprocess.run(bkill_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         if process.returncode == 0:

@@ -89,17 +89,17 @@ class TestLSFClient(TestCase):
         self.assertEqual(lsf_id, self.example_id)
 
     @patch("subprocess.run")
-    def test_abort(self, abort_process):
+    def test_term(self, term_process):
         """
-        Test LSF abort
+        Test LSF term
         """
-        abort_process_obj = Mock()
-        abort_process_obj.returncode = 0
-        abort_process.return_value = abort_process_obj
+        term_process_obj = Mock()
+        term_process_obj.returncode = 0
+        term_process.return_value = term_process_obj
         expected_command = ["bkill", "-g", self.example_lsf_id, "0"]
-        aborted = self.lsf_client.abort(self.example_job_id)
-        self.assertEqual(abort_process.call_args[0][0], expected_command)
-        self.assertEqual(aborted, True)
+        terminated = self.lsf_client.term(self.example_job_id)
+        self.assertEqual(term_process.call_args[0][0], expected_command)
+        self.assertEqual(terminated, True)
 
     @patch("subprocess.run")
     def test_failed_status(self, status_process):
