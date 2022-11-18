@@ -120,9 +120,9 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
                     logger.info("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
                     check_status_of_command_line_jobs(job)
-                elif command.command_type == CommandType.ABORT:
-                    logger.info("ABORT command for job %s" % command.job_id)
-                    abort_job(job)
+                elif command.command_type == CommandType.TERM:
+                    logger.info("TERM command for job %s" % command.job_id)
+                    TERM_job(job)
                 elif command.command_type == CommandType.SUSPEND:
                     logger.info("SUSPEND command for job %s" % command.job_id)
                     suspend_job(job)
@@ -242,9 +242,9 @@ def check_job_status(job):
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
 
-def abort_job(job):
-    if Status(job.status).transition(Status.ABORTED):
-        logger.info("Abort job %s" % str(job.id))
+def TERM_job(job):
+    if Status(job.status).transition(Status.TERMINATED):
+        logger.info("TERM job %s" % str(job.id))
         if job.status in (
             Status.SUBMITTED,
             Status.PENDING,
@@ -261,10 +261,10 @@ def abort_job(job):
                 job.resume_job_store_location,
                 log_dir=job.log_dir,
             )
-            job_killed = submitter.abort()
+            job_killed = submitter.TERM()
             if not job_killed:
-                raise RetryException("Failed to abort job %s" % str(job.id))
-        job.abort()
+                raise RetryException("Failed to TERM job %s" % str(job.id))
+        job.TERM()
 
 
 # Cleaning jobs
@@ -287,8 +287,8 @@ def cleanup_failed_jobs(self):
 
 
 @shared_task(bind=True)
-def cleanup_aborted_jobs(self):
-    cleanup_jobs(Status.ABORTED, settings.CLEANUP_ABORTED_JOBS, exclude=["input.json", "lsf.log"])
+def cleanup_TERMINATED_jobs(self):
+    cleanup_jobs(Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", "lsf.log"])
 
 
 def cleanup_jobs(status, time_delta, exclude=[]):

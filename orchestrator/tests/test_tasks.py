@@ -26,7 +26,7 @@ class TasksTest(TestCase):
         self.assertFalse(created.transition(Status.RUNNING))
         self.assertFalse(created.transition(Status.COMPLETED))
         self.assertFalse(created.transition(Status.FAILED))
-        self.assertTrue(created.transition(Status.ABORTED))
+        self.assertTrue(created.transition(Status.TERMINATED))
         self.assertFalse(created.transition(Status.SUSPENDED))
         self.assertFalse(created.transition(Status.UNKNOWN))
 
@@ -38,7 +38,7 @@ class TasksTest(TestCase):
         self.assertFalse(submitting.transition(Status.RUNNING))
         self.assertFalse(submitting.transition(Status.COMPLETED))
         self.assertFalse(submitting.transition(Status.FAILED))
-        self.assertTrue(submitting.transition(Status.ABORTED))
+        self.assertTrue(submitting.transition(Status.TERMINATED))
         self.assertFalse(submitting.transition(Status.SUSPENDED))
         self.assertFalse(submitting.transition(Status.UNKNOWN))
 
@@ -50,7 +50,7 @@ class TasksTest(TestCase):
         self.assertTrue(submited.transition(Status.RUNNING))
         self.assertTrue(submited.transition(Status.COMPLETED))
         self.assertTrue(submited.transition(Status.FAILED))
-        self.assertTrue(submited.transition(Status.ABORTED))
+        self.assertTrue(submited.transition(Status.TERMINATED))
         self.assertTrue(submited.transition(Status.UNKNOWN))
         self.assertTrue(submited.transition(Status.SUSPENDED))
 
@@ -62,7 +62,7 @@ class TasksTest(TestCase):
         self.assertTrue(pending.transition(Status.RUNNING))
         self.assertTrue(pending.transition(Status.COMPLETED))
         self.assertTrue(pending.transition(Status.FAILED))
-        self.assertTrue(pending.transition(Status.ABORTED))
+        self.assertTrue(pending.transition(Status.TERMINATED))
         self.assertTrue(pending.transition(Status.UNKNOWN))
         self.assertTrue(pending.transition(Status.SUSPENDED))
 
@@ -74,21 +74,21 @@ class TasksTest(TestCase):
         self.assertTrue(running.transition(Status.RUNNING))
         self.assertTrue(running.transition(Status.COMPLETED))
         self.assertTrue(running.transition(Status.FAILED))
-        self.assertTrue(running.transition(Status.ABORTED))
+        self.assertTrue(running.transition(Status.TERMINATED))
         self.assertTrue(running.transition(Status.UNKNOWN))
         self.assertTrue(running.transition(Status.SUSPENDED))
 
-        aborted = Status.ABORTED
-        self.assertFalse(aborted.transition(Status.CREATED))
-        self.assertFalse(aborted.transition(Status.SUBMITTING))
-        self.assertFalse(aborted.transition(Status.SUBMITTED))
-        self.assertFalse(aborted.transition(Status.PENDING))
-        self.assertFalse(aborted.transition(Status.RUNNING))
-        self.assertFalse(aborted.transition(Status.COMPLETED))
-        self.assertFalse(aborted.transition(Status.FAILED))
-        self.assertFalse(aborted.transition(Status.ABORTED))
-        self.assertFalse(aborted.transition(Status.UNKNOWN))
-        self.assertFalse(aborted.transition(Status.SUSPENDED))
+        terminated = Status.TERMINATED
+        self.assertFalse(terminated.transition(Status.CREATED))
+        self.assertFalse(terminated.transition(Status.SUBMITTING))
+        self.assertFalse(terminated.transition(Status.SUBMITTED))
+        self.assertFalse(terminated.transition(Status.PENDING))
+        self.assertFalse(terminated.transition(Status.RUNNING))
+        self.assertFalse(terminated.transition(Status.COMPLETED))
+        self.assertFalse(terminated.transition(Status.FAILED))
+        self.assertFalse(terminated.transition(Status.TERMINATED))
+        self.assertFalse(terminated.transition(Status.UNKNOWN))
+        self.assertFalse(terminated.transition(Status.SUSPENDED))
 
         suspended = Status.SUSPENDED
         self.assertFalse(suspended.transition(Status.CREATED))
@@ -98,7 +98,7 @@ class TasksTest(TestCase):
         self.assertTrue(suspended.transition(Status.RUNNING))
         self.assertFalse(suspended.transition(Status.COMPLETED))
         self.assertFalse(suspended.transition(Status.FAILED))
-        self.assertTrue(suspended.transition(Status.ABORTED))
+        self.assertTrue(suspended.transition(Status.TERMINATED))
         self.assertFalse(suspended.transition(Status.UNKNOWN))
         self.assertFalse(suspended.transition(Status.SUSPENDED))
 
@@ -110,7 +110,7 @@ class TasksTest(TestCase):
         self.assertTrue(unknown.transition(Status.RUNNING))
         self.assertTrue(unknown.transition(Status.COMPLETED))
         self.assertTrue(unknown.transition(Status.FAILED))
-        self.assertTrue(unknown.transition(Status.ABORTED))
+        self.assertTrue(unknown.transition(Status.TERMINATED))
         self.assertTrue(unknown.transition(Status.UNKNOWN))
         self.assertTrue(unknown.transition(Status.SUSPENDED))
 
@@ -118,7 +118,7 @@ class TasksTest(TestCase):
         self.assertFalse(completed.transition(Status.RUNNING))
         self.assertFalse(completed.transition(Status.COMPLETED))
         self.assertFalse(completed.transition(Status.FAILED))
-        self.assertFalse(completed.transition(Status.ABORTED))
+        self.assertFalse(completed.transition(Status.TERMINATED))
         self.assertFalse(completed.transition(Status.SUSPENDED))
         self.assertFalse(completed.transition(Status.UNKNOWN))
         self.assertFalse(completed.transition(Status.PENDING))
@@ -128,7 +128,7 @@ class TasksTest(TestCase):
         self.assertFalse(failed.transition(Status.RUNNING))
         self.assertFalse(failed.transition(Status.COMPLETED))
         self.assertFalse(failed.transition(Status.FAILED))
-        self.assertFalse(failed.transition(Status.ABORTED))
+        self.assertFalse(failed.transition(Status.TERMINATED))
         self.assertFalse(failed.transition(Status.SUSPENDED))
         self.assertFalse(failed.transition(Status.UNKNOWN))
         self.assertFalse(failed.transition(Status.PENDING))
@@ -295,8 +295,8 @@ class TasksTest(TestCase):
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
-    @patch("batch_systems.lsf_client.lsf_client.LSFClient.abort")
-    def test_command_processor_abort(self, abort, add, delete):
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.term")
+    def test_command_processor_term(self, term, add, delete):
         job_pending = Job.objects.create(
             type=PipelineType.CWL,
             app={
@@ -311,10 +311,10 @@ class TasksTest(TestCase):
         )
         add.return_value = True
         delete.return_value = True
-        abort.return_value = True
-        command_processor(Command(CommandType.ABORT, str(job_pending.id)).to_dict())
+        term.return_value = True
+        command_processor(Command(CommandType.TERM, str(job_pending.id)).to_dict())
         job_pending.refresh_from_db()
-        self.assertEqual(job_pending.status, Status.ABORTED)
+        self.assertEqual(job_pending.status, Status.TERMINATED)
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
