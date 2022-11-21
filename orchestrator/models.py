@@ -54,7 +54,7 @@ class Status(IntEnum):
         elif self == self.SUBMITTED:
             """
             From SUBMITTED state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED,
-            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE 
+            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE
             signal to scheduler
             """
             if transition_to in (
@@ -70,7 +70,7 @@ class Status(IntEnum):
         elif self == self.PENDING:
             """
             From PENDING state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED,
-            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE 
+            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE
             signal to scheduler
             """
             if transition_to in (
