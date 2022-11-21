@@ -242,7 +242,7 @@ def check_job_status(job):
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
 
-def TERM_job(job):
+def term_job(job):
     if Status(job.status).transition(Status.TERMINATED):
         logger.info("TERM job %s" % str(job.id))
         if job.status in (
@@ -261,10 +261,10 @@ def TERM_job(job):
                 job.resume_job_store_location,
                 log_dir=job.log_dir,
             )
-            job_killed = submitter.TERM()
+            job_killed = submitter.term()
             if not job_killed:
                 raise RetryException("Failed to TERM job %s" % str(job.id))
-        job.TERM()
+        job.term()
 
 
 # Cleaning jobs
