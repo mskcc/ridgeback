@@ -55,7 +55,7 @@ class TermTest(TestCase):
         Testing when TERM command is received when Job is in SUBMITTING state.
         Test if SUBMIT command received after is handled correctly and also the check status
         """
-        command_processor.return_vaule = True
+        command_processor.return_value = True
         job = Job.objects.create(
             type=PipelineType.CWL,
             app={
