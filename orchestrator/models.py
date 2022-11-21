@@ -214,7 +214,7 @@ class Job(BaseModel):
         self.finished = now()
         self.save()
 
-    def TERM(self):
+    def term(self):
         self.status = Status.TERMINATED
         self.finished = now()
         self.save()

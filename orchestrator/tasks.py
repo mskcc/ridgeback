@@ -122,7 +122,7 @@ def command_processor(self, command_dict):
                     check_status_of_command_line_jobs(job)
                 elif command.command_type == CommandType.TERM:
                     logger.info("TERM command for job %s" % command.job_id)
-                    TERM_job(job)
+                    term_job(job)
                 elif command.command_type == CommandType.SUSPEND:
                     logger.info("SUSPEND command for job %s" % command.job_id)
                     suspend_job(job)
