@@ -120,9 +120,9 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
                     logger.info("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
                     check_status_of_command_line_jobs(job)
-                elif command.command_type == CommandType.TERM:
-                    logger.info("TERM command for job %s" % command.job_id)
-                    term_job(job)
+                elif command.command_type == CommandType.TERMINATE:
+                    logger.info("TERMINATE command for job %s" % command.job_id)
+                    terminate_job(job)
                 elif command.command_type == CommandType.SUSPEND:
                     logger.info("SUSPEND command for job %s" % command.job_id)
                     suspend_job(job)
@@ -242,9 +242,9 @@ def check_job_status(job):
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
 
-def term_job(job):
+def terminate_job(job):
     if Status(job.status).transition(Status.TERMINATED):
-        logger.info("TERM job %s" % str(job.id))
+        logger.info("TERMINATE job %s" % str(job.id))
         if job.status in (
             Status.SUBMITTED,
             Status.PENDING,
@@ -261,10 +261,10 @@ def term_job(job):
                 job.resume_job_store_location,
                 log_dir=job.log_dir,
             )
-            job_killed = submitter.term()
+            job_killed = submitter.terminate()
             if not job_killed:
-                raise RetryException("Failed to TERM job %s" % str(job.id))
-        job.term()
+                raise RetryException("Failed to TERMINATE job %s" % str(job.id))
+        job.terminate()
 
 
 # Cleaning jobs

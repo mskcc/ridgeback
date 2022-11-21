@@ -48,13 +48,13 @@ class Status(IntEnum):
             if transition_to in (self.SUBMITTED, self.TERMINATED):
                 """
                 SUBMIT Command submits job to scheduler, and move the job to SUBMITTED state. Job can also be TERMINATED
-                while in SUBMITTING state by TERM Command
+                while in SUBMITTING state by TERMINATE Command
                 """
                 return True
         elif self == self.SUBMITTED:
             """
             From SUBMITTED state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED,
-            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERM command sends TERM signal to scheduler
+            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE signal to scheduler
             """
             if transition_to in (
                 self.PENDING,
@@ -69,7 +69,7 @@ class Status(IntEnum):
         elif self == self.PENDING:
             """
             From PENDING state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED,
-            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERM command sends TERM signal to scheduler
+            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE signal to scheduler
             """
             if transition_to in (
                 self.PENDING,
@@ -84,7 +84,7 @@ class Status(IntEnum):
         elif self == self.RUNNING:
             """
             From RUNNING state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED,
-            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERM command sends TERM signal to scheduler
+            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE signal to scheduler
             """
             if transition_to in (
                 self.RUNNING,
@@ -214,7 +214,7 @@ class Job(BaseModel):
         self.finished = now()
         self.save()
 
-    def term(self):
+    def terminate(self):
         self.status = Status.TERMINATED
         self.finished = now()
         self.save()

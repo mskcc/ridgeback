@@ -61,7 +61,7 @@ class LSFClient(object):
         )
         return self._parse_procid(process.stdout)
 
-    def term(self, job_id):
+    def terminate(self, job_id):
         """
         Kill LSF job
 
