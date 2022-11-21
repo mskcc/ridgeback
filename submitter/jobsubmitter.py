@@ -22,11 +22,11 @@ class JobSubmitter(object):
     def status(self, external_id):
         return self.lsf_client.status(external_id)
 
-    def term(self):
+    def terminate(self):
         """
         Terminates the job
         """
-        return self.lsf_client.term(self.job_id)
+        return self.lsf_client.terminate(self.job_id)
 
     def resume(self):
         """

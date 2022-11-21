@@ -89,16 +89,16 @@ class TestLSFClient(TestCase):
         self.assertEqual(lsf_id, self.example_id)
 
     @patch("subprocess.run")
-    def test_term(self, term_process):
+    def test_terminate(self, terminate_process):
         """
-        Test LSF term
+        Test LSF terminate
         """
-        term_process_obj = Mock()
-        term_process_obj.returncode = 0
-        term_process.return_value = term_process_obj
+        terminate_process_obj = Mock()
+        terminate_process_obj.returncode = 0
+        terminate_process.return_value = terminate_process_obj
         expected_command = ["bkill", "-g", self.example_lsf_id, "0"]
-        terminated = self.lsf_client.term(self.example_job_id)
-        self.assertEqual(term_process.call_args[0][0], expected_command)
+        terminated = self.lsf_client.terminate(self.example_job_id)
+        self.assertEqual(terminate_process.call_args[0][0], expected_command)
         self.assertEqual(terminated, True)
 
     @patch("subprocess.run")

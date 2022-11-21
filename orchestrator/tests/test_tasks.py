@@ -295,8 +295,8 @@ class TasksTest(TestCase):
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
-    @patch("batch_systems.lsf_client.lsf_client.LSFClient.term")
-    def test_command_processor_term(self, term, add, delete):
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.terminate")
+    def test_command_processor_term(self, terminate, add, delete):
         job_pending = Job.objects.create(
             type=PipelineType.CWL,
             app={
@@ -311,8 +311,8 @@ class TasksTest(TestCase):
         )
         add.return_value = True
         delete.return_value = True
-        term.return_value = True
-        command_processor(Command(CommandType.TERM, str(job_pending.id)).to_dict())
+        terminate.return_value = True
+        command_processor(Command(CommandType.TERMINATE, str(job_pending.id)).to_dict())
         job_pending.refresh_from_db()
         self.assertEqual(job_pending.status, Status.TERMINATED)
 

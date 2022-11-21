@@ -87,7 +87,7 @@ class JobViewSet(
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
     @action(detail=True, methods=["get"])
-    def term(self, request, pk=None, *args, **kwargs):
+    def terminate(self, request, pk=None, *args, **kwargs):
         try:
             Job.objects.get(id=pk)
         except Job.DoesNotExist:
