@@ -7,18 +7,42 @@ import toil_orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toil_orchestrator', '0020_merge_20210402_1008'),
+        ("toil_orchestrator", "0020_merge_20210402_1008"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED'), (5, 'TERMINATED'), (6, 'UNKNOWN'), (7, 'SUSPENDED')], default=toil_orchestrator.models.Status(0)),
+            model_name="commandlinetooljob",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PENDING"),
+                    (2, "RUNNING"),
+                    (3, "COMPLETED"),
+                    (4, "FAILED"),
+                    (5, "TERMINATED"),
+                    (6, "UNKNOWN"),
+                    (7, "SUSPENDED"),
+                ],
+                default=toil_orchestrator.models.Status(0),
+            ),
         ),
         migrations.AlterField(
-            model_name='job',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PENDING'), (2, 'RUNNING'), (3, 'COMPLETED'), (4, 'FAILED'), (5, 'TERMINATED'), (6, 'UNKNOWN'), (7, 'SUSPENDED')], default=toil_orchestrator.models.Status(0)),
+            model_name="job",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PENDING"),
+                    (2, "RUNNING"),
+                    (3, "COMPLETED"),
+                    (4, "FAILED"),
+                    (5, "TERMINATED"),
+                    (6, "UNKNOWN"),
+                    (7, "SUSPENDED"),
+                ],
+                default=toil_orchestrator.models.Status(0),
+            ),
         ),
     ]
