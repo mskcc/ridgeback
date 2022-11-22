@@ -435,20 +435,19 @@ class TasksTest(TestCase):
 
     def test_permission_wrong_path(self):
         with self.assertRaises(RuntimeError):
-            with tempfile.TemporaryDirectory() as temp_path:
-                expected_permission = "750"
-                job_completed = Job.objects.create(
-                    type=PipelineType.CWL,
-                    app={
-                        "github": {
-                            "version": "1.0.0",
-                            "entrypoint": "test.cwl",
-                            "repository": "",
-                        }
-                    },
-                    root_dir="/awk",
-                    root_permission=expected_permission,
-                    external_id="ext_id",
-                    status=Status.COMPLETED,
-                )
-                set_permission(job_completed)
+            expected_permission = "750"
+            job_completed = Job.objects.create(
+                type=PipelineType.CWL,
+                app={
+                    "github": {
+                        "version": "1.0.0",
+                        "entrypoint": "test.cwl",
+                        "repository": "",
+                    }
+                },
+                root_dir="/awk",
+                root_permission=expected_permission,
+                external_id="ext_id",
+                status=Status.COMPLETED,
+            )
+            set_permission(job_completed)
