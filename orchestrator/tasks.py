@@ -175,6 +175,7 @@ def submit_job_to_lsf(job):
 
 def _complete(job, outputs):
     job.complete(outputs)
+    set_permission(job)
 
 
 def _fail(job, error_message=""):
@@ -265,6 +266,19 @@ def abort_job(job):
             if not job_killed:
                 raise RetryException("Failed to abort job %s" % str(job.id))
         job.abort()
+
+
+def set_permission(job):
+    root_dir = job.root_dir
+    permission_str = job.root_permission
+    try:
+        permission_octal = int(permission_str, 8)
+    except Exception:
+        raise TypeError("Could not convert %s to permission octal" % str(permission_str))
+    try:
+        os.chmod(root_dir, permission_octal)
+    except Exception:
+        raise RuntimeError("Failed to change permission of directory %s" % root_dir)
 
 
 # Cleaning jobs
