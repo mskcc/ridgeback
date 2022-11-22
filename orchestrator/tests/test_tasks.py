@@ -189,7 +189,8 @@ class TasksTest(TestCase):
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    def test_running_to_completed(self, status, get_outputs, command_processor):
+    @patch("orchestrator.tasks.set_permission")
+    def test_running_to_completed(self, permission, status, get_outputs, command_processor):
         job = Job.objects.create(
             type=PipelineType.CWL,
             app={
@@ -202,6 +203,7 @@ class TasksTest(TestCase):
             external_id="ext_id",
             status=Status.RUNNING,
         )
+        permission.return_value = None
         status.return_value = Status.COMPLETED, ""
         outputs = {"output": "test_value"}
         get_outputs.return_value = outputs, None
