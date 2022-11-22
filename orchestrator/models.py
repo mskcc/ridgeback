@@ -5,7 +5,7 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
-
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +151,7 @@ class Job(BaseModel):
     app = JSONField(null=False)
     external_id = models.CharField(max_length=50, null=True, blank=True)
     root_dir = models.CharField(max_length=1000)
+    root_permission = models.CharField(default=settings.OUTPUT_DEFAULT_PERMISSION, max_length=3)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
