@@ -129,6 +129,10 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.RESUME:
                     logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
+                elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
+                    logger.info("Setting output permission for job %s" % command.job_id)
+                    set_permission(job)
+
             else:
                 logger.info("Job lock not acquired for job: %s" % command.job_id)
                 self.retry()
@@ -175,7 +179,7 @@ def submit_job_to_lsf(job):
 
 def _complete(job, outputs):
     job.complete(outputs)
-    set_permission(job)
+    command_processor.delay(Command(CommandType.SET_OUTPUT_PERMISSION, str(job.id)).to_dict())
 
 
 def _fail(job, error_message=""):
