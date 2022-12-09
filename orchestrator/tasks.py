@@ -281,6 +281,11 @@ def set_permission(job):
         raise TypeError("Could not convert %s to permission octal" % str(permission_str))
     try:
         os.chmod(root_dir, permission_octal)
+        for root, dirs, files in os.walk(root_dir):
+            for single_dir in dirs:
+                os.chmod(os.path.join(root, single_dir), permission_octal)
+            for single_file in files:
+                os.chmod(os.path.join(root, single_file), permission_octal)
     except Exception:
         raise RuntimeError("Failed to change permission of directory %s" % root_dir)
 
