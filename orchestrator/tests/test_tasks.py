@@ -1,6 +1,8 @@
 import uuid
 from mock import patch, call
 from django.test import TestCase
+import tempfile
+import os
 from orchestrator.commands import CommandType, Command
 from orchestrator.models import Job, Status, PipelineType
 from orchestrator.exceptions import RetryException
@@ -10,6 +12,7 @@ from orchestrator.tasks import (
     process_jobs,
     cleanup_folders,
     get_job_info_path,
+    set_permission,
 )
 
 
@@ -186,7 +189,8 @@ class TasksTest(TestCase):
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    def test_running_to_completed(self, status, get_outputs, command_processor):
+    @patch("orchestrator.tasks.set_permission")
+    def test_running_to_completed(self, permission, status, get_outputs, command_processor):
         job = Job.objects.create(
             type=PipelineType.CWL,
             app={
@@ -199,6 +203,7 @@ class TasksTest(TestCase):
             external_id="ext_id",
             status=Status.RUNNING,
         )
+        permission.return_value = None
         status.return_value = Status.COMPLETED, ""
         outputs = {"output": "test_value"}
         get_outputs.return_value = outputs, None
@@ -386,3 +391,63 @@ class TasksTest(TestCase):
         with self.settings(TOIL_WORK_DIR_ROOT="/toil/work/dir/root"):
             res = get_job_info_path("job_id")
             self.assertEqual(res, "/toil/work/dir/root/job_id/.run.info")
+
+    def test_permission(self):
+        with tempfile.TemporaryDirectory() as temp_path:
+            expected_permission = "750"
+            job_completed = Job.objects.create(
+                type=PipelineType.CWL,
+                app={
+                    "github": {
+                        "version": "1.0.0",
+                        "entrypoint": "test.cwl",
+                        "repository": "",
+                    }
+                },
+                root_dir=temp_path,
+                root_permission=expected_permission,
+                external_id="ext_id",
+                status=Status.COMPLETED,
+            )
+            set_permission(job_completed)
+            current_permission = oct(os.stat(temp_path).st_mode)[-3:]
+            self.assertEqual(current_permission, expected_permission)
+
+    def test_permission_wrong_permission(self):
+        with self.assertRaises(TypeError):
+            with tempfile.TemporaryDirectory() as temp_path:
+                expected_permission = "auk"
+                job_completed = Job.objects.create(
+                    type=PipelineType.CWL,
+                    app={
+                        "github": {
+                            "version": "1.0.0",
+                            "entrypoint": "test.cwl",
+                            "repository": "",
+                        }
+                    },
+                    root_dir=temp_path,
+                    root_permission=expected_permission,
+                    external_id="ext_id",
+                    status=Status.COMPLETED,
+                )
+                set_permission(job_completed)
+
+    def test_permission_wrong_path(self):
+        with self.assertRaises(RuntimeError):
+            expected_permission = "750"
+            job_completed = Job.objects.create(
+                type=PipelineType.CWL,
+                app={
+                    "github": {
+                        "version": "1.0.0",
+                        "entrypoint": "test.cwl",
+                        "repository": "",
+                    }
+                },
+                root_dir="/awk",
+                root_permission=expected_permission,
+                external_id="ext_id",
+                status=Status.COMPLETED,
+            )
+            set_permission(job_completed)

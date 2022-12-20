@@ -129,6 +129,10 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.RESUME:
                     logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
+                elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
+                    logger.info("Setting output permission for job %s" % command.job_id)
+                    set_permission(job)
+
             else:
                 logger.info("Job lock not acquired for job: %s" % command.job_id)
                 self.retry()
@@ -175,6 +179,7 @@ def submit_job_to_lsf(job):
 
 def _complete(job, outputs):
     job.complete(outputs)
+    command_processor.delay(Command(CommandType.SET_OUTPUT_PERMISSION, str(job.id)).to_dict())
 
 
 def _fail(job, error_message=""):
@@ -265,6 +270,24 @@ def terminate_job(job):
             if not job_killed:
                 raise RetryException("Failed to TERMINATE job %s" % str(job.id))
         job.terminate()
+
+
+def set_permission(job):
+    root_dir = job.root_dir
+    permission_str = job.root_permission
+    try:
+        permission_octal = int(permission_str, 8)
+    except Exception:
+        raise TypeError("Could not convert %s to permission octal" % str(permission_str))
+    try:
+        os.chmod(root_dir, permission_octal)
+        for root, dirs, files in os.walk(root_dir):
+            for single_dir in dirs:
+                os.chmod(os.path.join(root, single_dir), permission_octal)
+            for single_file in files:
+                os.chmod(os.path.join(root, single_file), permission_octal)
+    except Exception:
+        raise RuntimeError("Failed to change permission of directory %s" % root_dir)
 
 
 # Cleaning jobs
