@@ -25,7 +25,7 @@ def translate_toil_to_model_status(status):
 
 
 class ToilJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, log_dir=None):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, image_cache, log_dir=None):
         JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit, log_dir)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
@@ -35,6 +35,7 @@ class ToilJobSubmitter(JobSubmitter):
         self.job_work_dir = os.path.join(settings.TOIL_WORK_DIR_ROOT, self.job_id)
         self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(settings.TOIL_TMP_DIR_ROOT, self.job_id)
+        self.image_cache = image_cache
 
     def submit(self):
         self._prepare_directories()
@@ -44,15 +45,7 @@ class ToilJobSubmitter(JobSubmitter):
         toil_lsf_args = "-sla %s %s %s" % (settings.LSF_SLA, " ".join(self._job_group()), " ".join(self._job_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
-
-        if "access" in self.app.github.lower():
-            for e in [
-                "SINGULARITYENV_SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITYENV_SINGULARITY_DOCKER_PASSWORD",
-                "SINGULARITY_DOCKER_PASSWORD",
-            ]:
-                env[e] = None
+        env["CWL_SINGULARITY_CACHE"] = self.image_cache
 
         external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, self.job_id, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
@@ -243,12 +236,9 @@ class ToilJobSubmitter(JobSubmitter):
                 "PATH",
                 "TMPDIR",
                 "TOIL_LSF_ARGS",
-                "SINGULARITY_PULLDIR",
-                "SINGULARITY_CACHEDIR",
+                "CWL_SINGULARITY_CACHE",
                 "SINGULARITYENV_LC_ALL",
                 "PWD",
-                "SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITY_DOCKER_PASSWORD",
                 "--defaultMemory",
                 "8G",
                 "--maxCores",
