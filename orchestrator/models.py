@@ -5,7 +5,7 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
-
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +154,7 @@ class Job(BaseModel):
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
+    image_cache = models.CharField(required=False, default=settings.DEFAULT_CACHE_PATH)
     log_dir = models.CharField(max_length=1000, null=True, blank=True)
     status = models.IntegerField(
         choices=[(status.value, status.name) for status in Status],
