@@ -20,7 +20,7 @@ class Status(IntEnum):
     RUNNING = 2
     COMPLETED = 3
     FAILED = 4
-    ABORTED = 5
+    TERMINATED = 5
     UNKNOWN = 6
     SUSPENDED = 7
 

@@ -43,8 +43,8 @@ app.conf.beat_schedule = {
         ),
         "options": {"queue": settings.RIDGEBACK_CLEANUP_QUEUE},
     },
-    "cleanup_aborted_jobs": {
-        "task": "orchestrator.tasks.cleanup_aborted_jobs",
+    "cleanup_terminated_jobs": {
+        "task": "orchestrator.tasks.cleanup_terminated_jobs",
         "schedule": crontab(
             hour="6",
         ),
