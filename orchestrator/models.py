@@ -28,7 +28,7 @@ class Status(IntEnum):
     RUNNING = 4
     COMPLETED = 5
     FAILED = 6
-    ABORTED = 7
+    TERMINATED = 7
     UNKNOWN = 8
     SUSPENDED = 9
 
@@ -37,31 +37,32 @@ class Status(IntEnum):
             """
             When job is received for execution it is in CREATED state. It is picked up by process_jobs and if
             conditions are satisfied SUBMIT Command will be sent for that job, and it will be moved to SUBMITTING
-            state. Job in CREATED state can also be ABORTED
+            state. Job in CREATED state can also be TERMINATED
             """
             if transition_to in (
                 self.SUBMITTING,
-                self.ABORTED,
+                self.TERMINATED,
             ):
                 return True
         elif self == self.SUBMITTING:
-            if transition_to in (self.SUBMITTED, self.ABORTED):
+            if transition_to in (self.SUBMITTED, self.TERMINATED):
                 """
-                SUBMIT Command submits job to scheduler, and move the job to SUBMITTED state. Job can also be ABORTED
-                while in SUBMITTING state by ABORT Command
+                SUBMIT Command submits job to scheduler, and move the job to SUBMITTED state. Job can also be TERMINATED
+                while in SUBMITTING state by TERMINATE Command
                 """
                 return True
         elif self == self.SUBMITTED:
             """
             From SUBMITTED state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED,
-            SUSPENDED, UNKNOWN. Job can also be ABORTED, and in that case ABORT command sends abort signal to scheduler
+            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE
+            signal to scheduler
             """
             if transition_to in (
                 self.PENDING,
                 self.RUNNING,
                 self.COMPLETED,
                 self.FAILED,
-                self.ABORTED,
+                self.TERMINATED,
                 self.SUSPENDED,
                 self.UNKNOWN,
             ):
@@ -69,14 +70,15 @@ class Status(IntEnum):
         elif self == self.PENDING:
             """
             From PENDING state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED,
-            SUSPENDED, UNKNOWN. Job can also be ABORTED, and in that case ABORT command sends abort signal to scheduler
+            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE
+            signal to scheduler
             """
             if transition_to in (
                 self.PENDING,
                 self.RUNNING,
                 self.COMPLETED,
                 self.FAILED,
-                self.ABORTED,
+                self.TERMINATED,
                 self.SUSPENDED,
                 self.UNKNOWN,
             ):
@@ -84,13 +86,14 @@ class Status(IntEnum):
         elif self == self.RUNNING:
             """
             From RUNNING state job can be updated to any Scheduler State. PENDING, RUNNING, COMPLETED, FAILED,
-            SUSPENDED, UNKNOWN. Job can also be ABORTED, and in that case ABORT command sends abort signal to scheduler
+            SUSPENDED, UNKNOWN. Job can also be TERMINATED, and in that case TERMINATE command sends TERMINATE
+            signal to scheduler
             """
             if transition_to in (
                 self.RUNNING,
                 self.COMPLETED,
                 self.FAILED,
-                self.ABORTED,
+                self.TERMINATED,
                 self.SUSPENDED,
                 self.UNKNOWN,
             ):
@@ -98,10 +101,10 @@ class Status(IntEnum):
         elif self in (
             self.COMPLETED,
             self.FAILED,
-            self.ABORTED,
+            self.TERMINATED,
         ):
             """
-            COMPLETED, FAILED and ABORTED states are final states. There is no transition to any other state
+            COMPLETED, FAILED and TERMINATED states are final states. There is no transition to any other state
             """
             return False
         elif self == self.UNKNOWN:
@@ -114,20 +117,20 @@ class Status(IntEnum):
                 self.RUNNING,
                 self.COMPLETED,
                 self.FAILED,
-                self.ABORTED,
+                self.TERMINATED,
                 self.SUSPENDED,
                 self.UNKNOWN,
             ):
                 return True
         elif self == self.SUSPENDED:
             """
-            From SUSPENDED state job can transition to PENDING and RUNNING state. Job can also be ABORTED while
+            From SUSPENDED state job can transition to PENDING and RUNNING state. Job can also be TERMINATED while
             SUSPENDED
             """
             if transition_to in (
                 self.PENDING,
                 self.RUNNING,
-                self.ABORTED,
+                self.TERMINATED,
             ):
                 return True
         logger.error("Invalid transition %s to %s" % (self.name, Status(transition_to).name))
@@ -214,8 +217,8 @@ class Job(BaseModel):
         self.finished = now()
         self.save()
 
-    def abort(self):
-        self.status = Status.ABORTED
+    def terminate(self):
+        self.status = Status.TERMINATED
         self.finished = now()
         self.save()
 
