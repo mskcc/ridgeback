@@ -136,9 +136,11 @@ class TestTasks(TestCase):
     @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
     @patch("submitter.toil_submitter.ToilJobSubmitter.status")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
-    def test_complete(self, get_outputs, status, init, get_job_info_path, command_processor):
+    @patch("orchestrator.tasks.set_permission")
+    def test_complete(self, permission, get_outputs, status, init, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
+        permission.return_value = None
         init.return_value = None
         command_processor.return_value = True
         get_outputs.return_value = {"outputs": True}, None
