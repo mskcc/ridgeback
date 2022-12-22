@@ -6,9 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0009_auto_20221118_1808'),
-        ('orchestrator', '0009_job_root_permission'),
+        ("orchestrator", "0009_auto_20221118_1808"),
+        ("orchestrator", "0009_job_root_permission"),
     ]
 
-    operations = [
-    ]
+    operations = []
