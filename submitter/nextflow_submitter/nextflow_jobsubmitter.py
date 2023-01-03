@@ -191,10 +191,12 @@ class NextflowJobSubmitter(JobSubmitter):
             command_line.extend(["-c", config])
         if params:
             for k, v in params.items():
-                if v:
-                    command_line.extend(["--%s" % k, v])
+                if v is None:
+                    continue
+                elif isinstance(v, bool) and v:
+                    command_line.extend([f"--{k}"])
                 else:
-                    command_line.extend(["--%s" % k])
+                    command_line.extend([f"--{k}", v])
         if self.resume_jobstore:
             command_line.extend(["-resume"])
         return command_line
