@@ -87,14 +87,14 @@ class JobViewSet(
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
     @action(detail=True, methods=["get"])
-    def abort(self, request, pk=None, *args, **kwargs):
+    def terminate(self, request, pk=None, *args, **kwargs):
         try:
             Job.objects.get(id=pk)
         except Job.DoesNotExist:
             return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
-        command_processor.delay(Command(CommandType.ABORT, str(pk)).to_dict())
+        command_processor.delay(Command(CommandType.TERMINATE, str(pk)).to_dict())
 
-        return Response("Job aborted", status=status.HTTP_200_OK)
+        return Response("Job terminated", status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         request_body=JobSubmitSerializer,

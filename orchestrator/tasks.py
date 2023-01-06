@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 import logging
 import tempfile
 from datetime import timedelta
@@ -8,10 +9,9 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.timezone import now
 from .models import Job, Status, CommandLineToolJob
-import shutil
 from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
-from ridgeback.settings import MAX_RUNNING_JOBS
+from orchestrator.scheduler import Scheduler
 from orchestrator.commands import Command, CommandType
 from orchestrator.exceptions import RetryException, StopException
 
@@ -90,19 +90,7 @@ def process_jobs():
         # Send CHECK_STATUS commands for Jobs
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
 
-    jobs_running = Job.objects.filter(
-        status__in=(
-            Status.SUBMITTING,
-            Status.SUBMITTED,
-            Status.PENDING,
-            Status.RUNNING,
-        )
-    ).count()
-    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
-    if jobs_to_submit <= 0:
-        return
-
-    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
+    jobs = Scheduler.get_jobs_to_submit()
 
     for job in jobs:
         # Send SUBMIT commands for Jobs
@@ -132,15 +120,19 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
                     logger.info("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
                     check_status_of_command_line_jobs(job)
-                elif command.command_type == CommandType.ABORT:
-                    logger.info("ABORT command for job %s" % command.job_id)
-                    abort_job(job)
+                elif command.command_type == CommandType.TERMINATE:
+                    logger.info("TERMINATE command for job %s" % command.job_id)
+                    terminate_job(job)
                 elif command.command_type == CommandType.SUSPEND:
                     logger.info("SUSPEND command for job %s" % command.job_id)
                     suspend_job(job)
                 elif command.command_type == CommandType.RESUME:
                     logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
+                elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
+                    logger.info("Setting output permission for job %s" % command.job_id)
+                    set_permission(job)
+
             else:
                 logger.info("Job lock not acquired for job: %s" % command.job_id)
                 self.retry()
@@ -187,6 +179,7 @@ def submit_job_to_lsf(job):
 
 def _complete(job, outputs):
     job.complete(outputs)
+    command_processor.delay(Command(CommandType.SET_OUTPUT_PERMISSION, str(job.id)).to_dict())
 
 
 def _fail(job, error_message=""):
@@ -254,9 +247,9 @@ def check_job_status(job):
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
 
-def abort_job(job):
-    if Status(job.status).transition(Status.ABORTED):
-        logger.info("Abort job %s" % str(job.id))
+def terminate_job(job):
+    if Status(job.status).transition(Status.TERMINATED):
+        logger.info("TERMINATE job %s" % str(job.id))
         if job.status in (
             Status.SUBMITTED,
             Status.PENDING,
@@ -273,10 +266,28 @@ def abort_job(job):
                 job.resume_job_store_location,
                 log_dir=job.log_dir,
             )
-            job_killed = submitter.abort()
+            job_killed = submitter.terminate()
             if not job_killed:
-                raise RetryException("Failed to abort job %s" % str(job.id))
-        job.abort()
+                raise RetryException("Failed to TERMINATE job %s" % str(job.id))
+        job.terminate()
+
+
+def set_permission(job):
+    root_dir = job.root_dir
+    permission_str = job.root_permission
+    try:
+        permission_octal = int(permission_str, 8)
+    except Exception:
+        raise TypeError("Could not convert %s to permission octal" % str(permission_str))
+    try:
+        os.chmod(root_dir, permission_octal)
+        for root, dirs, files in os.walk(root_dir):
+            for single_dir in dirs:
+                os.chmod(os.path.join(root, single_dir), permission_octal)
+            for single_file in files:
+                os.chmod(os.path.join(root, single_file), permission_octal)
+    except Exception:
+        raise RuntimeError("Failed to change permission of directory %s" % root_dir)
 
 
 # Cleaning jobs
@@ -296,6 +307,11 @@ def cleanup_completed_jobs(self):
 @shared_task(bind=True)
 def cleanup_failed_jobs(self):
     cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", "lsf.log"])
+
+
+@shared_task(bind=True)
+def cleanup_TERMINATED_jobs(self):
+    cleanup_jobs(Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", "lsf.log"])
 
 
 def cleanup_jobs(status, time_delta, exclude=[]):
