@@ -44,16 +44,6 @@ class ToilJobSubmitter(JobSubmitter):
         toil_lsf_args = "-sla %s %s %s" % (settings.LSF_SLA, " ".join(self._job_group()), " ".join(self._job_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
-
-        if "access" in self.app.github.lower():
-            for e in [
-                "SINGULARITYENV_SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITYENV_SINGULARITY_DOCKER_PASSWORD",
-                "SINGULARITY_DOCKER_PASSWORD",
-            ]:
-                env[e] = None
-
         external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, self.job_id, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
@@ -203,8 +193,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "PATH",
                 "TMPDIR",
                 "TOIL_LSF_ARGS",
-                "SINGULARITY_PULLDIR",
-                "SINGULARITY_CACHEDIR",
+                "CWL_SINGULARITY_CACHE",
                 "PWD",
                 "_JAVA_OPTIONS",
                 "PYTHONPATH",
@@ -243,12 +232,9 @@ class ToilJobSubmitter(JobSubmitter):
                 "PATH",
                 "TMPDIR",
                 "TOIL_LSF_ARGS",
-                "SINGULARITY_PULLDIR",
-                "SINGULARITY_CACHEDIR",
+                "CWL_SINGULARITY_CACHE",
                 "SINGULARITYENV_LC_ALL",
                 "PWD",
-                "SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITY_DOCKER_PASSWORD",
                 "--defaultMemory",
                 "8G",
                 "--maxCores",
