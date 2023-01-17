@@ -20,7 +20,7 @@ Includecmd: no
     cd /usr/bin/ridgeback \
     && python3 -m pip install python-ldap \
     && pip3 install setuptools==57.5.0 \
-    && pip3 install --upgrade cython
+    && pip3 install --upgrade cython \
     && pip3 install -r requirements.txt \
     && pip3 install -r requirements-toil.txt
 
