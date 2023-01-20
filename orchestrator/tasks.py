@@ -6,7 +6,6 @@ import tempfile
 from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
-from django.db import transaction
 from django.utils.timezone import now
 from .models import Job, Status, CommandLineToolJob
 from lib.memcache_lock import memcache_task_lock, memcache_lock
@@ -94,10 +93,9 @@ def process_jobs():
 
     for job in jobs:
         # Send SUBMIT commands for Jobs
-        with transaction.atomic():
-            if Status(job.status).transition(Status.SUBMITTING):
-                job.update_status(Status.SUBMITTING)
-                command_processor.delay(Command(CommandType.SUBMIT, str(job.id)).to_dict())
+        if Status(job.status).transition(Status.SUBMITTING):
+            job.update_status(Status.SUBMITTING)
+            command_processor.delay(Command(CommandType.SUBMIT, str(job.id)).to_dict())
 
 
 @shared_task(bind=True)
