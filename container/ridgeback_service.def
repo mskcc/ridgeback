@@ -18,6 +18,7 @@ Includecmd: no
     cd /usr/bin \
     && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH
     cd /usr/bin/ridgeback \
+    && pip3 install --upgrade pip \
     && python3 -m pip install python-ldap \
     && pip3 install setuptools==57.5.0 \
     && pip3 install -r requirements.txt \
