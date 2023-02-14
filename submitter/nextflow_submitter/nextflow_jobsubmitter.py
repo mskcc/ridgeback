@@ -32,7 +32,7 @@ class NextflowJobSubmitter(JobSubmitter):
         :param root_dir:
         :param resume_jobstore:
         """
-        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit)
+        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit, log_dir)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
@@ -137,14 +137,16 @@ class NextflowJobSubmitter(JobSubmitter):
         inputs = self.inputs.get("inputs", [])
         params = self.inputs.get("params", [])
         for i in inputs:
-            input_map[i["name"]] = self._dump_input(i["name"], i["content"])
+            input_map[i["name"]] = self._dump_input(i["name"], i["content"], self.job_work_dir)
+            if self.log_dir:
+                input_map[i["name"]] = self._dump_input(i["name"], i["content"], self.log_dir)
         config = self.inputs.get("config")
         if config:
             config_path = self._dump_config(config)
         return app_location, input_map, config_path, profile, params
 
-    def _dump_input(self, name, content):
-        file_path = os.path.join(self.job_work_dir, name)
+    def _dump_input(self, name, content, root_dir):
+        file_path = os.path.join(root_dir, name)
         with open(file_path, "w") as f:
             f.write(content)
         return file_path
