@@ -171,6 +171,10 @@ class NextflowJobSubmitter(JobSubmitter):
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
 
+        if self.log_dir:
+            if not os.path.exists(self.log_dir):
+                os.makedirs(self.log_dir, exist_ok=True)
+
     def _command_line(self):
         app_location, input_map, config, profile, params = self._dump_app_inputs()
 
