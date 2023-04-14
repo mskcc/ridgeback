@@ -244,6 +244,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--maxMemory",
                 "256G",
                 "--not-strict",
+                "--runCwlInternalJobsOnWorkers",
                 "--realTimeLogging",
                 "--jobStore",
                 self.job_store_dir,
