@@ -1,4 +1,5 @@
 from mock import patch
+from uuid import uuid4
 from orchestrator.models import Job
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -51,9 +52,11 @@ class JobTestCase(APITestCase):
             "app": self.example_job.app,
             "root_dir": self.example_job.root_dir,
             "inputs": {"example_input": True},
+            "metadata": {"run_id": str(uuid4())},
         }
         response = self.client.post(url, data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIsNotNone(response.json()["metadata"].get("run_id"))
 
     def test_create_empty(self):
         url = self.api_root + "jobs/"
