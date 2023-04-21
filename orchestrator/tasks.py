@@ -35,6 +35,9 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
         job_info.update(metadata)
         job_info_path = get_job_info_path(job_id)
         with open(job_info_path, "w") as job_info_file:
+            json.dump({"meta": "run_info"}, job_info_file)
+            job_info_file.write('\n')
+        with open(job_info_path, "a") as job_info_file:
             json.dump(job_info, job_info_file)
     else:
         logger.error("Working directory %s does not exist", working_dir)
