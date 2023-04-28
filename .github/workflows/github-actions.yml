@@ -1,1 +1,13 @@
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3     #This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4      #This action Installs a version of python
+      with:
+        python-version: "3.8"
+
 
