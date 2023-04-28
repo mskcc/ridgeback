@@ -13,8 +13,9 @@ jobs:
       uses: actions/setup-python@v4      #This action Installs a version of python
       with:
         python-version: "3.8"
-    - name: Before Install
+    - name: Before Instal  l
       run: |
+         sudo systemctl start postgresql.service 
          sudo apt-get update
          sudo apt-get --yes remove postgresql\*
          sudo apt-get install -y postgresql-11 postgresql-client-11
