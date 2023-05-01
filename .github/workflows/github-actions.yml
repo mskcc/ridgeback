@@ -21,10 +21,10 @@ jobs:
     
     steps:
     - uses: actions/checkout@v3     #This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
-    - name: Set up Python 3.10
+    - name: Set up Python 
       uses: actions/setup-python@v4      #This action Installs a version of python
       with:
-        python-version: "3.8"
+        python-version: "3.9"
   #  - name: Before Install
    #   run: |
    #      sudo systemctl start postgresql.service 
