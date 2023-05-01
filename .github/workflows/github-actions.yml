@@ -46,6 +46,9 @@ jobs:
       CELERY_LOG_PATH: /sample_path
       CELERY_PID_PATH: /sample_path
       CELERY_BEAT_SCHEDULE_PATH: /sample_path
-    
+      RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT: /sample_path
+      RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT: /sample_path
+      RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT: /sample_path
+
       
     
