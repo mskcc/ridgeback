@@ -30,10 +30,11 @@ jobs:
    #      sudo systemctl start postgresql.service 
     - name: Install dependencies 
       run: |
-       #python -m pip install --upgrade pip
-       pip install "setuptools<58.0.0"
+       python -m pip install --upgrade pip
+       #pip install "setuptools<58.0.0"
        pip install toil
        pip3 install cwl-utils
+       pip install cwltool
        pip install -r requirements.txt
        
     - name: Run tests
