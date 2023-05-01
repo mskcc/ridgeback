@@ -52,6 +52,13 @@ jobs:
       RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT: /sample_path
       RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT: /sample_path
       RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT: /sample_path
-
+      SINGULARITY_PATH: /sample_singularity
+      RIDGEBACK_VENV: /sample_path
+      RIDGEBACK_PATH: /sample_path
+      RIDGEBACK_PORT: 4009
+      RIDGEBACK_DEFAULT_QUEUE: sample_queue
+      RIDGEBACK_RABBITMQ_USERNAME: sample_username
+      RIDGEBACK_RABBITMQ_PASSWORD: sample_password
+      
       
     
