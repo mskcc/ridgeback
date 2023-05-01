@@ -38,4 +38,5 @@ jobs:
       RIDGEBACK_DB_NAME: github_actions
       RIDGEBACK_DB_PASSWORD: postgres
       RIDGEBACK_DB_USERNAME: postgres
+      RIDGEBACK_TOIL_JOB_STORE_ROOT: /sample_path
     
