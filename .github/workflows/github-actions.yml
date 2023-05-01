@@ -34,7 +34,7 @@ jobs:
        #pip install "setuptools<58.0.0"
        pip install toil
        pip3 install cwl-utils
-       pip install cwltool
+       pip install cwltool==3.1.20221201130942
        pip install -r requirements.txt
        
     - name: Run tests
