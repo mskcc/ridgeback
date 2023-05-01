@@ -7,15 +7,27 @@ jobs:
 
     runs-on: ubuntu-latest
     
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: github_actions
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    
     steps:
     - uses: actions/checkout@v3     #This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
     - name: Set up Python 3.10
       uses: actions/setup-python@v4      #This action Installs a version of python
       with:
         python-version: "3.8"
-    - name: Before Instal  l
-      run: |
-         sudo systemctl start postgresql.service 
+  #  - name: Before Install
+   #   run: |
+   #      sudo systemctl start postgresql.service 
     - name: Install dependencies 
       run: |
         psql -p 5433 -c 'create database travis_ci_test;' -U postgres
