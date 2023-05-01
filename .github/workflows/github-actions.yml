@@ -30,7 +30,7 @@ jobs:
    #      sudo systemctl start postgresql.service 
     - name: Install dependencies 
       run: |
-        pip install --force-reinstall 'setuptools<58.0.0'
+        pip install pip==21.3.1
         pip install -r requirements.txt
         pip install -r requirements-toil.txt
     - name: Run tests
