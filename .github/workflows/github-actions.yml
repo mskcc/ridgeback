@@ -41,5 +41,11 @@ jobs:
       RIDGEBACK_TOIL_JOB_STORE_ROOT: /sample_path
       RIDGEBACK_TOIL_WORK_DIR_ROOT: /sample_path
       RIDGEBACK_TOIL_TMP_DIR_ROOT: /sample_path
+      RIDGEBACK_LSF_WALLTIME: 10:00
+      RIDGEBACK_LSF_SLA: SLA
+      CELERY_LOG_PATH: /sample_path
+      CELERY_PID_PATH: /sample_path
+      CELERY_BEAT_SCHEDULE_PATH: /sample_path
+    
       
     
