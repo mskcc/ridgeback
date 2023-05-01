@@ -33,7 +33,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Run tests
-      run: python manage.py test --pattern="*test*"
+      run: python manage.py test 
     env:
       RIDGEBACK_DB_NAME: github_actions
       RIDGEBACK_DB_PASSWORD: postgres
