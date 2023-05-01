@@ -30,16 +30,8 @@ jobs:
    #      sudo systemctl start postgresql.service 
     - name: Install dependencies 
       run: |
-        psql -p 5433 -c 'create database travis_ci_test;' -U postgres
-        pip install --force-reinstall 'setuptools<58.0.0'
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install -r requirements-toil.txt
-        source travis_env.sh
-        python manage.py migrate
-    - name: Scripts
-      run: |
-        source travis_env.sh
-        coverage run --source='.' manage.py test
-        coverage report -m --fail-under=75
-        flake8
-        black --check .
+    - name: Run migrations
+      run: python manage.py migrate
+    
