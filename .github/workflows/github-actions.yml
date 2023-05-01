@@ -33,6 +33,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         source travis_env.sh
+        env:
+           RIDGEBACK_DB_NAME=github_actions
+           RIDGEBACK_DB_PASSWORD=postgres
+           RIDGEBACK_DB_USERNAME=postgres
     - name: Run migrations
       run: python manage.py migrate
     
