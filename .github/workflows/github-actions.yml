@@ -39,4 +39,7 @@ jobs:
       RIDGEBACK_DB_PASSWORD: postgres
       RIDGEBACK_DB_USERNAME: postgres
       RIDGEBACK_TOIL_JOB_STORE_ROOT: /sample_path
+      RIDGEBACK_TOIL_WORK_DIR_ROOT: /sample_path
+      RIDGEBACK_TOIL_TMP_DIR_ROOT: /sample_path
+      
     
