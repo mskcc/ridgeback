@@ -33,9 +33,10 @@ jobs:
        python -m pip install --upgrade pip
        pip install toil
        pip install -r requirements.txt
+       pip install -r requirements-toil.txt
        
     - name: Run tests
-      run: python manage.py test 
+      run: coverage run --source='.' manage.py test
     env:
       RIDGEBACK_DB_NAME: github_actions
       RIDGEBACK_DB_PASSWORD: postgres
