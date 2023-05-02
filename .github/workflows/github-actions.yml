@@ -24,14 +24,14 @@ jobs:
     - name: Set up Python 
       uses: actions/setup-python@v4      #This action Installs a version of python
       with:
-        python-version: "3.8"
+        python-version: "3.9"
   #  - name: Before Install
    #   run: |
    #      sudo systemctl start postgresql.service 
     - name: Install dependencies 
       run: |
        python -m pip install --upgrade pip
-       #pip install "setuptools<58.0.0"
+       pip install "setuptools<58.0.0"
        pip install toil
        pip3 install cwl-utils
        pip install cwltool==3.1.20221201130942
