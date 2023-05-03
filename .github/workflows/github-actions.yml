@@ -22,7 +22,9 @@ jobs:
         #pip install cwltool
         #pip install --upgrade toil[all]
         #pip install toil-cwl-runner
-        pip install --upgrade pip setuptools==57.5.0 
+        #pip install --upgrade pip 
+        pip install pip==19.3.1
+        pip install --force-reinstall 'setuptools<58.0.0'
         pip install -r requirements.txt
         pip install -r requirements-toil.txt
         python manage.py migrate
