@@ -38,6 +38,7 @@ jobs:
        sudo apt-get update
        pip install cwltool
        pip install -r requirements.txt
+       source travis_env.sh
        
     - name: Run tests
       run: python manage.py test
