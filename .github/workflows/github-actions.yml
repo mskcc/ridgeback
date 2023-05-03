@@ -39,8 +39,6 @@ jobs:
        pip install cwltool
        pip install cwltest
        pip install -r requirements.txt
-       pip install -r requirements-toil.txt
-
     
     - name: Run migrations
       run: python manage.py migrate
