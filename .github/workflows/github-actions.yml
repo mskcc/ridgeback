@@ -36,6 +36,7 @@ jobs:
        pip3 install cwl-utils
        pip install toil-cwl-runner
        pip install cwltool
+       pip install cwltest
        pip install -r requirements.txt
        
     - name: Run tests
