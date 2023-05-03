@@ -21,3 +21,25 @@ jobs:
       run: python manage.py migrate
     - name: Run tests
       run: python manage.py test
+    env:
+      RIDGEBACK_DB_NAME: github_actions
+      RIDGEBACK_DB_PASSWORD: postgres
+      RIDGEBACK_DB_USERNAME: postgres
+      RIDGEBACK_TOIL_JOB_STORE_ROOT: /sample_path
+      RIDGEBACK_TOIL_WORK_DIR_ROOT: /sample_path
+      RIDGEBACK_TOIL_TMP_DIR_ROOT: /sample_path
+      RIDGEBACK_LSF_WALLTIME: 10:00
+      RIDGEBACK_LSF_SLA: SLA
+      CELERY_LOG_PATH: /sample_path
+      CELERY_PID_PATH: /sample_path
+      CELERY_BEAT_SCHEDULE_PATH: /sample_path
+      RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT: /sample_path
+      RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT: /sample_path
+      RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT: /sample_path
+      SINGULARITY_PATH: /sample_singularity
+      RIDGEBACK_VENV: /sample_path
+      RIDGEBACK_PATH: /sample_path
+      RIDGEBACK_PORT: 4009
+      RIDGEBACK_DEFAULT_QUEUE: sample_queue
+      RIDGEBACK_RABBITMQ_USERNAME: sample_username
+      RIDGEBACK_RABBITMQ_PASSWORD: sample_password
