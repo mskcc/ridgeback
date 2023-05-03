@@ -22,8 +22,9 @@ jobs:
         #pip install cwltool
         #pip install --upgrade toil[all]
         #pip install toil-cwl-runner
-        pip install --upgrade pip
+        #pip install --upgrade pip
         pip install "setuptools<58.0.0"
+        pip install django-celery
         pip install -r requirements.txt
         pip install -r requirements-toil.txt
         python manage.py migrate
