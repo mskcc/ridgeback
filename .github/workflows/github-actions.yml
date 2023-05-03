@@ -3,70 +3,21 @@ on:
     branches: [ "feature/githubactions" ]
 
 jobs:
-  test:
+  build:
 
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: github_actions
-        ports:
-          - 5432:5432
-        # needed because the postgres container does not provide a healthcheck
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    
+
     steps:
-    - uses: actions/checkout@v3     #This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
-    - name: Set up Python 
-      uses: actions/setup-python@v4      #This action Installs a version of python
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
       with:
-        python-version: "3.9"
-  #  - name: Before Install
-   #   run: |
-   #      sudo systemctl start postgresql.service 
-    - name: Install dependencies 
+        python-version: 3.9
+    - name: Install dependencies
       run: |
-       python -m pip install --upgrade pip
-       #pip install "setuptools<58.0.0"
-       pip install toil
-       pip install --force-reinstall 'setuptools<58.0.0'
-       pip3 install cwl-utils
-       pip install toil-cwl-runner
-       pip install cwltool
-       pip install cwltest
-       pip install -r requirements.txt
-    
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
     - name: Run migrations
       run: python manage.py migrate
     - name: Run tests
       run: python manage.py test
-      #uses: py-actions/flake8@v2
-    env:
-      RIDGEBACK_DB_NAME: github_actions
-      RIDGEBACK_DB_PASSWORD: postgres
-      RIDGEBACK_DB_USERNAME: postgres
-      RIDGEBACK_TOIL_JOB_STORE_ROOT: /sample_path
-      RIDGEBACK_TOIL_WORK_DIR_ROOT: /sample_path
-      RIDGEBACK_TOIL_TMP_DIR_ROOT: /sample_path
-      RIDGEBACK_LSF_WALLTIME: 10:00
-      RIDGEBACK_LSF_SLA: SLA
-      CELERY_LOG_PATH: /sample_path
-      CELERY_PID_PATH: /sample_path
-      CELERY_BEAT_SCHEDULE_PATH: /sample_path
-      RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT: /sample_path
-      RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT: /sample_path
-      RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT: /sample_path
-      SINGULARITY_PATH: /sample_singularity
-      RIDGEBACK_VENV: /sample_path
-      RIDGEBACK_PATH: /sample_path
-      RIDGEBACK_PORT: 4009
-      RIDGEBACK_DEFAULT_QUEUE: sample_queue
-      RIDGEBACK_RABBITMQ_USERNAME: sample_username
-      RIDGEBACK_RABBITMQ_PASSWORD: sample_password
-      
-      
-    
