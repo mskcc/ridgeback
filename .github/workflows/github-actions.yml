@@ -19,6 +19,8 @@ jobs:
         pip install -r requirements.txt
         pip install toil
         pip install cwl-utils
+        pip install cwltool
+
 
 
     - name: Run migrations
