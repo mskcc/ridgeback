@@ -24,7 +24,7 @@ def get_job_info_path(job_id):
     return job_info_path
 
 
-def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
+def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory, metadata={}):
     if os.path.exists(working_dir):
         job_info = {
             "external_id": external_id,
@@ -32,8 +32,12 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
             "working_dir": working_dir,
             "output_directory": output_directory,
         }
+        job_info.update(metadata)
         job_info_path = get_job_info_path(job_id)
         with open(job_info_path, "w") as job_info_file:
+            json.dump({"meta": "run_info"}, job_info_file)
+            job_info_file.write('\n')
+        with open(job_info_path, "a") as job_info_file:
             json.dump(job_info, job_info_file)
     else:
         logger.error("Working directory %s does not exist", working_dir)
@@ -172,7 +176,7 @@ def submit_job_to_lsf(job):
             os.path.join(job_work_dir, "lsf.log"),
         )
         # Keeping this for debuging purposes
-        save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
+        save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir, job.metadata)
 
 
 def _complete(job, outputs):
