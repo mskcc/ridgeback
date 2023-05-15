@@ -174,6 +174,7 @@ class Job(BaseModel):
     track_cache = JSONField(blank=True, null=True)
     walltime = models.IntegerField(default=4320)
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
+    metadata = JSONField(blank=True, null=True, default=dict)
 
     def submit_to_lsf(self, external_id, job_store_dir, job_work_dir, job_output_dir, log_path):
         self.status = Status.SUBMITTED
