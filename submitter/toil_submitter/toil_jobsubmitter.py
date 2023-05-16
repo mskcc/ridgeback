@@ -213,7 +213,7 @@ class ToilJobSubmitter(JobSubmitter):
             End ACCESS-specific code
             """
         if single_machine:
-                        command_line = [
+            command_line = [
                 settings.CWLTOIL,
                 "--singularity",
                 "--coalesceStatusCalls",
