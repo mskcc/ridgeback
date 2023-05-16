@@ -164,55 +164,8 @@ class ToilJobSubmitter(JobSubmitter):
     def _command_line(self):
         bypass_access_workflows = ["nucleo", "access_qc_generation"]
         should_bypass_access_env = any([w in self.app.github.lower() for w in bypass_access_workflows])
-        single_machine_mode_workflows = ["nucleo_qc"]
-        should_run_access_single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
-        if "access" in self.app.github.lower() and not should_bypass_access_env and should_run_access_single_machine:
-            """
-            Start ACCESS-Single Machine 
-            """
-            access_path = "PATH=/home/accessbot/miniconda3/envs/ACCESS_cmplx_geno_test/bin:{}"
-            path = access_path.format(os.environ.get("PATH"))
-            command_line = [
-                path,
-                "toil-cwl-runner",
-                "--no-container",
-                "--logFile",
-                "toil_log.log",
-                "--batchSystem",
-                "single_machine",
-                "--logLevel",
-                "DEBUG",
-                "--stats",
-                "--cleanWorkDir",
-                "onSuccess",
-                "--disableCaching",
-                "--defaultMemory",
-                "10G",
-                "--retryCount",
-                "2",
-                "--disableChaining",
-                "--runCwlInternalJobsOnWorkers",
-                "--preserve-environment",
-                "PATH",
-                "TMPDIR",
-                "TOIL_LSF_ARGS",
-                "CWL_SINGULARITY_CACHE",
-                "PWD",
-                "_JAVA_OPTIONS",
-                "PYTHONPATH",
-                "TEMP",
-                "--jobStore",
-                self.job_store_dir,
-                "--tmpdir-prefix",
-                self.job_tmp_dir,
-                "--workDir",
-                self.job_work_dir,
-                "--outdir",
-                self.job_outputs_dir,
-            ]
-            """
-            End ACCESS-Single Machine specific code
-            """
+        single_machine_mode_workflows = ["nucleo_qc", "generate-qc-sv"]
+        single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
         if "access" in self.app.github.lower() and not should_bypass_access_env:
             """
             Start ACCESS-specific code
@@ -259,6 +212,53 @@ class ToilJobSubmitter(JobSubmitter):
             """
             End ACCESS-specific code
             """
+        if single_machine:
+            command_line = [
+                settings.CWLTOIL,
+                "--singularity",
+                "--coalesceStatusCalls",
+                "--logFile",
+                "toil_log.log",
+                "--batchSystem",
+                "single_machine",
+                "--statePollingWait",
+                str(settings.TOIL_STATE_POLLING_WAIT),
+                "--disable-user-provenance",
+                "--disable-host-provenance",
+                "--stats",
+                "--debug",
+                "--disableProgress",
+                "--doubleMem",
+                "--disableCaching",
+                "--preserve-environment",
+                "PATH",
+                "TMPDIR",
+                "TOIL_LSF_ARGS",
+                "CWL_SINGULARITY_CACHE",
+                "SINGULARITYENV_LC_ALL",
+                "PWD",
+                "--defaultMemory",
+                "8G",
+                "--maxCores",
+                "16",
+                "--maxDisk",
+                "128G",
+                "--maxMemory",
+                "256G",
+                "--not-strict",
+                "--runCwlInternalJobsOnWorkers",
+                "--realTimeLogging",
+                "--jobStore",
+                self.job_store_dir,
+                "--tmpdir-prefix",
+                self.job_tmp_dir,
+                "--workDir",
+                self.job_work_dir,
+                "--outdir",
+                self.job_outputs_dir,
+                "--maxLocalJobs",
+                "500",
+            ]
         else:
             command_line = [
                 settings.CWLTOIL,
