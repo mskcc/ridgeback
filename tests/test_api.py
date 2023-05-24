@@ -53,6 +53,7 @@ class JobTestCase(APITestCase):
             "root_dir": self.example_job.root_dir,
             "inputs": {"example_input": True},
             "metadata": {"run_id": str(uuid4())},
+            "base_dir": "/base_dir",
         }
         response = self.client.post(url, data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

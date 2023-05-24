@@ -153,6 +153,7 @@ class Job(BaseModel):
     type = models.IntegerField(choices=[(pipeline_type.value, pipeline_type.name) for pipeline_type in PipelineType])
     app = JSONField(null=False)
     external_id = models.CharField(max_length=50, null=True, blank=True)
+    base_dir = models.CharField(max_length=1000)
     root_dir = models.CharField(max_length=1000)
     root_permission = models.CharField(default=settings.OUTPUT_DEFAULT_PERMISSION, max_length=3)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
