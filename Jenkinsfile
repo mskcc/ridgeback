@@ -25,7 +25,7 @@ pipeline {
             steps {
               echo "deply to stage"
               sshagent(credentials: ['a4d999a5-6318-4659-83be-3f148a5490ca']) {
-               sh 'ssh  -o StrictHostKeyChecking=no  voyager@silo.mskcc.org "cd /srv/services/staging_voyager/ridgeback && git checkout $BRANCH_NAME && git pull && source run_restart.sh"'
+               sh 'ssh  -o StrictHostKeyChecking=no  voyager@silo.mskcc.org "cd /srv/services/staging_voyager/ridgeback && git pull  && git checkout $BRANCH_NAME && source run_restart.sh"'
 
              }
               }
