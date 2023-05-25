@@ -12,7 +12,7 @@ pipeline {
       steps {
         echo "deply to dev"
            sshagent(credentials: ['a4d999a5-6318-4659-83be-3f148a5490ca']) {
-            sh 'ssh  -o StrictHostKeyChecking=no  voyager@silo.mskcc.org "cd /srv/services/ridgeback_dev_2/code/ridgeback && git pull && git checkout $BRANCH_NAME && source run_restart.sh"'
+            sh 'ssh  -o StrictHostKeyChecking=no  voyager@silo.mskcc.org "cd /srv/services/ridgeback_dev_2/code/ridgeback && git pull && git checkout $BRANCH_NAME && cd /srv/services/ridgeback_dev_2 && source run_restart.sh"'
 
           }
 
