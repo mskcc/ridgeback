@@ -405,6 +405,7 @@ class TasksTest(TestCase):
                     }
                 },
                 root_dir=temp_path,
+                base_dir=temp_path,
                 root_permission=expected_permission,
                 external_id="ext_id",
                 status=Status.COMPLETED,
