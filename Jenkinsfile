@@ -5,7 +5,7 @@ pipeline {
 
      }
   stages {
-      /*stage("Deploy to Dev") {
+      stage("Deploy to Dev") {
       when {
       expression { params.SERVER == 'DEV' }
     }
@@ -17,7 +17,7 @@ pipeline {
           }
 
         }
-      } */
+      } 
       stage('Deploy to Stage') {
       when {
       expression { params.SERVER == 'STAGE' }
