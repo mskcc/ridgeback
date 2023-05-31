@@ -36,7 +36,7 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
         job_info_path = get_job_info_path(job_id)
         with open(job_info_path, "w") as job_info_file:
             json.dump({"meta": "run_info"}, job_info_file)
-            job_info_file.write('\n')
+            job_info_file.write("\n")
         with open(job_info_path, "a") as job_info_file:
             json.dump(job_info, job_info_file)
     else:
@@ -275,7 +275,7 @@ def terminate_job(job):
 
 
 def set_permission(job):
-    root_dir = job.root_dir
+    root_dir = job.base_dir
     permission_str = job.root_permission
     try:
         permission_octal = int(permission_str, 8)
@@ -285,9 +285,13 @@ def set_permission(job):
         os.chmod(root_dir, permission_octal)
         for root, dirs, files in os.walk(root_dir):
             for single_dir in dirs:
-                os.chmod(os.path.join(root, single_dir), permission_octal)
+                if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
+                    logger.info(f"Setting permissions for {os.path.join(root, single_dir)}")
+                    os.chmod(os.path.join(root, single_dir), permission_octal)
             for single_file in files:
-                os.chmod(os.path.join(root, single_file), permission_octal)
+                if oct(os.lstat(os.path.join(root, single_file)).st_mode)[-3:] != permission_octal:
+                    logger.info(f"Setting permissions for {os.path.join(root, single_file)}")
+                    os.chmod(os.path.join(root, single_file), permission_octal)
     except Exception:
         raise RuntimeError("Failed to change permission of directory %s" % root_dir)
 
