@@ -29,12 +29,13 @@ class JobViewSet(
 
     def get_serializer_class(self):
         return JobSerializer
+
     @tracer.wrap()
     def validate_and_save(self, data):
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
             current_span = tracer.current_span()
-            request_id = data.get("inputs",{}).get("runparams",{}).get("project_prefix","None Specified")
+            request_id = data.get("inputs", {}).get("runparams", {}).get("project_prefix", "None Specified")
             current_span.set_tag("request.id", request_id)
             response = serializer.save()
             response = JobSerializer(response)
