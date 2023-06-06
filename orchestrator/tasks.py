@@ -276,7 +276,7 @@ def terminate_job(job):
 
 def set_permission(job):
     first_dir = job.root_dir.replace(job.base_dir).split("/")[0]
-    permissions_dir = '/'.join([job.base_dir, first_dir]).replace("//", "/")
+    permissions_dir = "/".join([job.base_dir, first_dir]).replace("//", "/")
     permission_str = job.root_permission
     try:
         permission_octal = int(permission_str, 8)
