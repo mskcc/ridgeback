@@ -275,15 +275,16 @@ def terminate_job(job):
 
 
 def set_permission(job):
-    root_dir = job.base_dir
+    first_dir = job.root_dir.replace(job.base_dir).split("/")[0]
+    permissions_dir = '/'.join([job.base_dir, first_dir]).replace("//", "/")
     permission_str = job.root_permission
     try:
         permission_octal = int(permission_str, 8)
     except Exception:
         raise TypeError("Could not convert %s to permission octal" % str(permission_str))
     try:
-        os.chmod(root_dir, permission_octal)
-        for root, dirs, files in os.walk(root_dir):
+        os.chmod(permissions_dir, permission_octal)
+        for root, dirs, files in os.walk(permissions_dir):
             for single_dir in dirs:
                 if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
                     logger.info(f"Setting permissions for {os.path.join(root, single_dir)}")
@@ -293,7 +294,7 @@ def set_permission(job):
                     logger.info(f"Setting permissions for {os.path.join(root, single_file)}")
                     os.chmod(os.path.join(root, single_file), permission_octal)
     except Exception:
-        raise RuntimeError("Failed to change permission of directory %s" % root_dir)
+        raise RuntimeError("Failed to change permission of directory %s" % permissions_dir)
 
 
 # Cleaning jobs
