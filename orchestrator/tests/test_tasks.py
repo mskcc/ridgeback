@@ -405,7 +405,7 @@ class TasksTest(TestCase):
                     }
                 },
                 root_dir=temp_path,
-                base_dir=temp_path,
+                base_dir="/".join(temp_path.split("/")[:-1]) + "/",
                 root_permission=expected_permission,
                 external_id="ext_id",
                 status=Status.COMPLETED,
@@ -428,6 +428,7 @@ class TasksTest(TestCase):
                         }
                     },
                     root_dir=temp_path,
+                    base_dir="/".join(temp_path.split("/")[:-1]) + "/",
                     root_permission=expected_permission,
                     external_id="ext_id",
                     status=Status.COMPLETED,
