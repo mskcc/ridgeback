@@ -2,7 +2,7 @@
 Tests for commandline status handling
 """
 import os
-from shutil import unpack_archive, copytree
+from shutil import unpack_archive, copytree, copy
 import tempfile
 import requests
 from django.test import TestCase, override_settings
@@ -16,24 +16,19 @@ class TestToil(TestCase):
     Test toil track functions
     """
 
-    def download_toil_mock(self, toil_version):
+    def get_toil_mock(self, toil_version):
         """
         Download TOIL mock data from s3
         """
-        download_url = "https://toilmock.s3.amazonaws.com/toil_%s.tar.gz" % toil_version
-        download_path = "toil_%s.tar.gz" % toil_version
+        resource_name = "toil_%s.tar.gz" % toil_version
+        resource_path = os.path.join(os.path.dirname(__file__), "data", resource_name)
         folder_path = "toil_%s" % toil_version
-        download_full_path = os.path.join(self.mock_dir.name, download_path)
         self.mock_full_path = os.path.join(self.mock_dir.name, folder_path)
-        if not os.path.exists(download_full_path):
-            response = requests.get(download_url, stream=True)
-            if response.status_code == 200:
-                with open(download_full_path, "wb") as download:
-                    download.write(response.raw.read())
-            else:
-                raise Exception("Could not download TOIL mock data from: %s" % download_url)
+        if not os.path.exists(resource_path):
+            raise Exception("Could not find TOIL mock data from: %s" % resource_path)
         if not os.path.exists(self.mock_full_path):
-            unpack_archive(download_full_path, self.mock_dir.name)
+            copy(resource_path, self.mock_dir.name)
+            unpack_archive(resource_path, self.mock_dir.name)
 
     def setUp(self):
         Job.objects.all().delete()
@@ -50,7 +45,7 @@ class TestToil(TestCase):
             status=Status.RUNNING,
         )
         self.job.save()
-        self.download_toil_mock(self.toil_version)
+        self.get_toil_mock(self.toil_version)
 
     def tearDown(self):
         self.mock_dir.cleanup()
