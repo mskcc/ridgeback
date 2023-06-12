@@ -4,7 +4,6 @@ Tests for commandline status handling
 import os
 from shutil import unpack_archive, copytree, copy
 import tempfile
-import requests
 from django.test import TestCase, override_settings
 import toil
 from orchestrator.models import Job, Status, PipelineType, CommandLineToolJob
