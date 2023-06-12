@@ -164,7 +164,7 @@ class ToilJobSubmitter(JobSubmitter):
     def _command_line(self):
         bypass_access_workflows = ["nucleo", "access_qc_generation"]
         should_bypass_access_env = any([w in self.app.github.lower() for w in bypass_access_workflows])
-        single_machine_mode_workflows = ["nucleo_qc", "generate-qc-sv"]
+        single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
         single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
         if "access" in self.app.github.lower() and not should_bypass_access_env:
             """
@@ -212,7 +212,7 @@ class ToilJobSubmitter(JobSubmitter):
             """
             End ACCESS-specific code
             """
-        if single_machine:
+        elif single_machine:
             command_line = [
                 settings.CWLTOIL,
                 "--singularity",
