@@ -114,7 +114,7 @@ class ToilJobSubmitter(JobSubmitter):
         if self.log_dir:
             output_log_location = os.path.join(self.log_dir, "output.json")
             with open(output_log_location, "w") as f:
-                json.dump(self.inputs, f)
+                json.dump(result_json, f)
 
         return result_json, error_message
 
