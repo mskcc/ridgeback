@@ -3,7 +3,7 @@ pipeline {
   stages {
       stage('Deploy to Stage') {
         steps {
-        build job: 'ridgeback-deploy/develop_mock', parameters: [[$class: 'StringParameterValue', name: 'SERVER', value: 'STAGE']],  propagate: true, wait: true
+        build job: 'ridgeback-deploy/develop', parameters: [[$class: 'StringParameterValue', name: 'SERVER', value: 'STAGE']],  propagate: true, wait: true
         }
       }
       stage('Run integration tests') {
