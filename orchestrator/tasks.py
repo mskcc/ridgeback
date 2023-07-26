@@ -275,25 +275,36 @@ def terminate_job(job):
 
 
 def set_permission(job):
-    first_dir = job.root_dir.replace(job.base_dir, "").split("/")[0]
-    permissions_dir = "/".join([job.base_dir, first_dir]).replace("//", "/")
+    failed_to_set = None
+    dirs = job.root_dir.replace(job.base_dir, "").split("/")
     permission_str = job.root_permission
-    try:
-        permission_octal = int(permission_str, 8)
-    except Exception:
-        raise TypeError("Could not convert %s to permission octal" % str(permission_str))
-    try:
-        os.chmod(permissions_dir, permission_octal)
-        for root, dirs, files in os.walk(permissions_dir):
-            for single_dir in dirs:
-                if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
-                    logger.info(f"Setting permissions for {os.path.join(root, single_dir)}")
-                    os.chmod(os.path.join(root, single_dir), permission_octal)
-            for single_file in files:
-                if oct(os.lstat(os.path.join(root, single_file)).st_mode)[-3:] != permission_octal:
-                    logger.info(f"Setting permissions for {os.path.join(root, single_file)}")
-                    os.chmod(os.path.join(root, single_file), permission_octal)
-    except Exception:
+    permissions_dir = job.base_dir
+    for d in dirs:
+        failed_to_set = False
+        permissions_dir = "/".join([permissions_dir, d]).replace("//", "/")
+        try:
+            permission_octal = int(permission_str, 8)
+        except Exception:
+            raise TypeError("Could not convert %s to permission octal" % str(permission_str))
+        try:
+            os.chmod(permissions_dir, permission_octal)
+            for root, dirs, files in os.walk(permissions_dir):
+                for single_dir in dirs:
+                    if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
+                        logger.info(f"Setting permissions for {os.path.join(root, single_dir)}")
+                        os.chmod(os.path.join(root, single_dir), permission_octal)
+                for single_file in files:
+                    if oct(os.lstat(os.path.join(root, single_file)).st_mode)[-3:] != permission_octal:
+                        logger.info(f"Setting permissions for {os.path.join(root, single_file)}")
+                        os.chmod(os.path.join(root, single_file), permission_octal)
+        except Exception:
+            logger.error(f"Failed to set permissions for directory {permissions_dir}")
+            failed_to_set = True
+            continue
+        else:
+            logger.info(f"Permissions set for directory {permissions_dir}")
+            break
+    if failed_to_set:
         raise RuntimeError("Failed to change permission of directory %s" % permissions_dir)
 
 
