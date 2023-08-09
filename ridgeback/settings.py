@@ -257,6 +257,7 @@ NEXTFLOW_WORK_DIR_ROOT = os.environ["RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT"]
 NEXTFLOW_TMP_DIR_ROOT = os.environ["RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT"]
 
 NEXTFLOW = os.environ.get("RIDGEBACK_NEXTFLOW", "nextflow")
+NEXTFLOW_JAVA_HOME = os.environ.get("RIDGEBACK_NEXTFLOW_JAVA_HOME", "/opt/common/CentOS_7/java/jdk-11.0.11/")
 
 # Cleanup periods
 
