@@ -155,7 +155,7 @@ class Job(BaseModel):
     external_id = models.CharField(max_length=50, null=True, blank=True)
     base_dir = models.CharField(max_length=1000)
     root_dir = models.CharField(max_length=1000)
-    root_permission = models.CharField(default=settings.OUTPUT_DEFAULT_PERMISSION, max_length=3)
+    root_permission = models.CharField(max_length=3, null=True, blank=True)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
