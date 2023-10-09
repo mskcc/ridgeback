@@ -202,6 +202,8 @@ class NextflowJobSubmitter(JobSubmitter):
                 elif isinstance(v, bool) and v:
                     command_line.extend([f"--{k}"])
                 elif k.startswith('params.'):
+                    print(k)
+                    print(v)
                     command_line.extend(f"-{k}={v}")
                 else:
                     command_line.extend([f"--{k}", v])
