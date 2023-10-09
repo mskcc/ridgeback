@@ -204,7 +204,7 @@ class NextflowJobSubmitter(JobSubmitter):
                 elif k.startswith('params.'):
                     print(k)
                     print(v)
-                    command_line.extend(f"-{k}={v}")
+                    command_line.append(f"-{k}={v}")
                 else:
                     command_line.extend([f"--{k}", v])
         if self.resume_jobstore:
