@@ -42,7 +42,10 @@ class LSFClient(object):
         Returns:
             int: lsf job id
         """
-        bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
+        if settings.LSF_SLA:
+            bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
+        else:
+            bsub_command = ["bsub", "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
 
         bsub_command.extend(command)
         current_env = os.environ.copy()
