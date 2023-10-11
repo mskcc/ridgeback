@@ -42,7 +42,11 @@ class ToilJobSubmitter(JobSubmitter):
         log_path = os.path.join(self.job_work_dir, "lsf.log")
         env = dict()
         if settings.LSF_SLA:
-            toil_lsf_args = "-sla %s %s %s" % (settings.LSF_SLA, " ".join(self._job_group()), " ".join(self._job_args()))
+            toil_lsf_args = "-sla %s %s %s" % (
+                settings.LSF_SLA,
+                " ".join(self._job_group()),
+                " ".join(self._job_args()),
+            )
         else:
             toil_lsf_args = "%s %s" % (" ".join(self._job_group()), " ".join(self._job_args()))
         env["JAVA_HOME"] = None
