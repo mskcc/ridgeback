@@ -140,11 +140,11 @@ def command_processor(self, command_dict):
                 self.retry()
     except RetryException as e:
         logger.info(
-            "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e))
+            "Command %s failed. Retrying in %s. Exception %s" % (command_dict, self.request.retries * 5, str(e))
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
-        logger.error("Command %s failed. Not retrying. Excaption %s" % (command_dict, str(e)))
+        logger.error("Command %s failed. Not retrying. Exception %s" % (command_dict, str(e)))
 
 
 def submit_job_to_lsf(job):
