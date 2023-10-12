@@ -411,17 +411,18 @@ def update_command_line_jobs(command_line_jobs, root):
 
 
 def check_status_of_command_line_jobs(job):
-    submiter = JobSubmitterFactory.factory(
-        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
-    )
-    track_cache_str = job.track_cache
-    command_line_status = submiter.get_commandline_status(track_cache_str)
-    command_line_jobs = {}
-    if command_line_status:
-        command_line_jobs_str, new_track_cache_str = command_line_status
-        new_track_cache = json.loads(new_track_cache_str)
-        command_line_jobs = json.loads(command_line_jobs_str)
-        job.track_cache = new_track_cache
-        job.save()
-    if command_line_jobs:
-        update_command_line_jobs(command_line_jobs, job)
+    if job.status != Status.COMPLETED:
+        submiter = JobSubmitterFactory.factory(
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
+        )
+        track_cache_str = job.track_cache
+        command_line_status = submiter.get_commandline_status(track_cache_str)
+        command_line_jobs = {}
+        if command_line_status:
+            command_line_jobs_str, new_track_cache_str = command_line_status
+            new_track_cache = json.loads(new_track_cache_str)
+            command_line_jobs = json.loads(command_line_jobs_str)
+            job.track_cache = new_track_cache
+            job.save()
+        if command_line_jobs:
+            update_command_line_jobs(command_line_jobs, job)
