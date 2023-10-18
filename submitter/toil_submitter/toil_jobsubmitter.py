@@ -169,11 +169,9 @@ class ToilJobSubmitter(JobSubmitter):
         return ["-g", format_lsf_job_id(self.job_id)]
 
     def _command_line(self):
-        bypass_access_workflows = ["nucleo", "access_qc_generation"]
-        should_bypass_access_env = any([w in self.app.github.lower() for w in bypass_access_workflows])
         single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
         single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
-        if "access" in self.app.github.lower() and not should_bypass_access_env:
+        if "git@github.com:mskcc/access-pipeline" in self.app.github.lower():
             """
             Start ACCESS-specific code
             """
