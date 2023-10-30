@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0012_job_base_dir'),
+        ("orchestrator", "0012_job_base_dir"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='job',
-            name='root_permission',
+            model_name="job",
+            name="root_permission",
             field=models.CharField(blank=True, max_length=3, null=True),
         ),
     ]
