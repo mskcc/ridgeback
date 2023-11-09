@@ -15,6 +15,7 @@ def message_default():
         "log": "",
         "failed_jobs": {},
         "unknown_jobs": {},
+        "alerts": [],
         "info": "",
     }
     return message_default_dict
