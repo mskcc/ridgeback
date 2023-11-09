@@ -140,11 +140,11 @@ def command_processor(self, command_dict):
                 self.retry()
     except RetryException as e:
         logger.info(
-            "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e))
+            "Command %s failed. Retrying in %s. Exception %s" % (command_dict, self.request.retries * 5, str(e))
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
-        logger.error("Command %s failed. Not retrying. Excaption %s" % (command_dict, str(e)))
+        logger.error("Command %s failed. Not retrying. Exception %s" % (command_dict, str(e)))
 
 
 def submit_job_to_lsf(job):
@@ -411,17 +411,18 @@ def update_command_line_jobs(command_line_jobs, root):
 
 
 def check_status_of_command_line_jobs(job):
-    submiter = JobSubmitterFactory.factory(
-        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
-    )
-    track_cache_str = job.track_cache
-    command_line_status = submiter.get_commandline_status(track_cache_str)
-    command_line_jobs = {}
-    if command_line_status:
-        command_line_jobs_str, new_track_cache_str = command_line_status
-        new_track_cache = json.loads(new_track_cache_str)
-        command_line_jobs = json.loads(command_line_jobs_str)
-        job.track_cache = new_track_cache
-        job.save()
-    if command_line_jobs:
-        update_command_line_jobs(command_line_jobs, job)
+    if job.status != Status.COMPLETED:
+        submiter = JobSubmitterFactory.factory(
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
+        )
+        track_cache_str = job.track_cache
+        command_line_status = submiter.get_commandline_status(track_cache_str)
+        command_line_jobs = {}
+        if command_line_status:
+            command_line_jobs_str, new_track_cache_str = command_line_status
+            new_track_cache = json.loads(new_track_cache_str)
+            command_line_jobs = json.loads(command_line_jobs_str)
+            job.track_cache = new_track_cache
+            job.save()
+        if command_line_jobs:
+            update_command_line_jobs(command_line_jobs, job)
