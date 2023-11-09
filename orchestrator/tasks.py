@@ -134,6 +134,9 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
                     logger.info("Setting output permission for job %s" % command.job_id)
                     set_permission(job)
+                elif command.command_type == CommandType.CHECK_HANGING:
+                    logger.info("Checking if the job %s has any hanging tasks" % command.job_id)
+                    check_job_hanging(job)
 
             else:
                 logger.info("Job lock not acquired for job: %s" % command.job_id)
