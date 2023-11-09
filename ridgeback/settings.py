@@ -274,3 +274,5 @@ STATIC_URL = "/static/"
 # App Cache Configuration
 
 APP_CACHE = os.environ.get("RIDGEBACK_APP_CACHE", "/tmp")
+
+MAX_HANGING_HOURS = os.environ.get("RIDGEBACK_MAX_HANGING_HOURS", "5")
