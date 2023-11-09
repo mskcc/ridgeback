@@ -488,6 +488,7 @@ class ToilTrack:
                     "started": datetime.now(),
                     "submitted": datetime.now(),
                     "last_modified": datetime.now(),
+                    "log_path": None,
                     "finished": datetime.now(),
                 }
                 job_dict[job_id] = new_job
@@ -593,6 +594,7 @@ class ToilTrack:
                         "mem_usage": [],
                         "started": None,
                         "submitted": datetime.now(),
+                        "log_path": None,
                         "last_modified": None,
                         "finished": None,
                     }
@@ -627,6 +629,7 @@ class ToilTrack:
                 job_obj["started"] = datetime.now()
             if last_modified:
                 job_obj["last_modified"] = last_modified
+                job_obj["log_path"] = worker_log
             if worker_log not in worker_log_to_job_dict:
                 worker_log_to_job_dict[worker_log] = single_job_id
 
