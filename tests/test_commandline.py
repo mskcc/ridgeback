@@ -9,6 +9,7 @@ import toil
 from orchestrator.models import Job, Status, PipelineType, CommandLineToolJob
 from orchestrator.tasks import check_status_of_command_line_jobs, check_job_hanging, check_leader_not_running
 
+
 class TestToil(TestCase):
     """
     Test toil track functions
@@ -103,7 +104,7 @@ class TestToil(TestCase):
         mock_num_failed = 2
         num_failed = CommandLineToolJob.objects.filter(status=(Status.FAILED)).count()
         self.assertEqual(num_failed, mock_num_failed)
-    
+
     def test_details_set(self):
         """
         Test if the metadata is being set for commandLineJObs
@@ -119,7 +120,7 @@ class TestToil(TestCase):
         self.assertIsNotNone(details["log_path"])
         self.assertIsNotNone(details["mem_usage"])
         self.assertIsNotNone(details["memory_req"])
-    
+
     def test_hanging_toil_leader_not_running(self):
         """
         Test detection of a hanging toil leader job before its running
@@ -131,7 +132,7 @@ class TestToil(TestCase):
             check_leader_not_running()
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message)
-        self.assertIsNotNone(self.job.message['alerts'][0])
+        self.assertIsNotNone(self.job.message["alerts"][0])
 
     def test_hanging_no_duplicated_alerts(self):
         """
@@ -147,7 +148,7 @@ class TestToil(TestCase):
             check_leader_not_running()
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message)
-        self.assertTrue(len(self.job.message['alerts']) == 1)
+        self.assertTrue(len(self.job.message["alerts"]) == 1)
 
     def test_hanging_toil_leader_running(self):
         """
@@ -161,7 +162,7 @@ class TestToil(TestCase):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message)
-        self.assertIsNotNone(self.job.message['alerts'][0])
+        self.assertIsNotNone(self.job.message["alerts"][0])
 
     def test_hanging_toil_commandline_not_running(self):
         """
@@ -177,8 +178,8 @@ class TestToil(TestCase):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message)
-        self.assertIsNotNone(self.job.message['alerts'][0])
-        self.assertTrue(len(self.job.message['alerts']) == count)
+        self.assertIsNotNone(self.job.message["alerts"][0])
+        self.assertTrue(len(self.job.message["alerts"]) == count)
 
     def test_hanging_toil_commandline_running(self):
         """
@@ -194,8 +195,8 @@ class TestToil(TestCase):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message)
-        self.assertIsNotNone(self.job.message['alerts'][0])
-        self.assertTrue(len(self.job.message['alerts']) == count)
+        self.assertIsNotNone(self.job.message["alerts"][0])
+        self.assertTrue(len(self.job.message["alerts"]) == count)
 
     def test_hanging_toil_commandline_mix(self):
         """
@@ -212,8 +213,8 @@ class TestToil(TestCase):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message)
-        self.assertIsNotNone(self.job.message['alerts'][0])
-    
+        self.assertIsNotNone(self.job.message["alerts"][0])
+
     def test_hanging_message_for_toil_leader_running(self):
         """
         Test alert sent of a hanging toil leader job while its running
@@ -223,14 +224,14 @@ class TestToil(TestCase):
         for single_job in CommandLineToolJob.objects.all():
             single_job.status = Status.COMPLETED
             single_job.save()
-        self.job.message['log'] = MOCK_LOG_PATH
+        self.job.message["log"] = MOCK_LOG_PATH
         self.job.save()
         with override_settings(MAX_HANGING_HOURS=0):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
-        self.assertEqual(self.job.message['log'],MOCK_LOG_PATH)
-        self.assertIsNotNone(self.job.message['alerts'][0])
-        self.assertTrue(MOCK_LOG_PATH in self.job.message['alerts'][0]['message'])
+        self.assertEqual(self.job.message["log"], MOCK_LOG_PATH)
+        self.assertIsNotNone(self.job.message["alerts"][0])
+        self.assertTrue(MOCK_LOG_PATH in self.job.message["alerts"][0]["message"])
 
     def test_hanging_message_for_toil_leader_running(self):
         """
@@ -240,9 +241,9 @@ class TestToil(TestCase):
         first_command = CommandLineToolJob.objects.first()
         first_command.status = Status.RUNNING
         first_command.save()
-        command_log_path = first_command.details['log_path']
+        command_log_path = first_command.details["log_path"]
         with override_settings(MAX_HANGING_HOURS=0):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
-        self.assertIsNotNone(self.job.message['alerts'][0])
-        self.assertTrue(command_log_path in self.job.message['alerts'][0]['message'])
+        self.assertIsNotNone(self.job.message["alerts"][0])
+        self.assertTrue(command_log_path in self.job.message["alerts"][0]["message"])
