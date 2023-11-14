@@ -25,7 +25,9 @@ def translate_toil_to_model_status(status):
 
 
 class ToilJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit, log_dir=None):
+    def __init__(
+        self, job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit, log_dir=None
+    ):
         JobSubmitter.__init__(self, job_id, app, inputs, leader_walltime, tool_walltime, memlimit, log_dir)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
@@ -162,9 +164,9 @@ class ToilJobSubmitter(JobSubmitter):
     def _tool_args(self):
         args = []
         if self.tool_walltime:
-            expected_limit = max(1, int(self.tool_walltime/4))
-            hard_limit = self.tool_walltime 
-            args = ["-We",str(expected_limit),"-W",str(hard_limit)]
+            expected_limit = max(1, int(self.tool_walltime / 4))
+            hard_limit = self.tool_walltime
+            args = ["-We", str(expected_limit), "-W", str(hard_limit)]
         args.extend(self._memlimit())
         return args
 
