@@ -12,7 +12,7 @@ class SchedulerTest(TestCase):
                 root_dir="root_dir",
                 job_store_location="job_store_location",
                 status=status,
-                walltime=walltime,
+                leader_walltime=walltime,
             )
 
     def test_full_cluster(self):

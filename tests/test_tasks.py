@@ -78,24 +78,26 @@ class TestTasks(TestCase):
         app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
-        walltime = None
+        leader_walltime = None
+        tool_walltime = None
         memlimit = None
         inputs = {}
         expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
+        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime,tool_walltime,memlimit)
         job_group = " ".join(jobsubmitterObject._job_group())
         self.assertEqual(job_group, expected_job_group)
 
-    def test_job_args_walltime(self):
+    def test_job_args_leader_walltime(self):
         job_id = str(uuid.uuid4())
         app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
-        walltime = 7200
+        leader_walltime = 7200
+        tool_walltime = 24
         memlimit = None
         inputs = {}
-        expected_job_args = "-W {}".format(walltime)
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
+        expected_job_args = "-W {}".format(leader_walltime)
+        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime,tool_walltime, memlimit)
         job_args_list = jobsubmitterObject._job_args()
         job_args = " ".join([str(single_arg) for single_arg in job_args_list])
         self.assertEqual(job_args, expected_job_args)
@@ -105,11 +107,12 @@ class TestTasks(TestCase):
         app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
-        walltime = None
+        leader_walltime = None
+        tool_walltime = None
         memlimit = 10
         inputs = {}
         expected_job_args = "-M {}".format(memlimit)
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
+        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit)
         job_args_list = jobsubmitterObject._job_args()
         job_args = " ".join([str(single_arg) for single_arg in job_args_list])
         self.assertEqual(job_args, expected_job_args)
