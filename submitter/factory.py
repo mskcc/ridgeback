@@ -12,11 +12,12 @@ class JobSubmitterFactory(object):
         inputs,
         root_dir,
         resume_jobstore=None,
-        walltime=settings.LSF_WALLTIME,
+        leader_walltime=None,
+        tool_walltime=None,
         memlimit=None,
         log_dir=None,
     ):
         if type == PipelineType.CWL:
-            return ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, log_dir)
+            return ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit, log_dir)
         elif type == PipelineType.NEXTFLOW:
-            return NextflowJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, log_dir)
+            return NextflowJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit, log_dir)
