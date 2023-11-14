@@ -48,7 +48,6 @@ Cleaning up {cleaning} job(s) [{partial_cleaning} partial]
 Already cleaned up {cleaned_up}
         """
         for job in queryset:
-
             if all([job.job_store_clean_up, job.working_dir_clean_up]):
                 already_cleaned_up_projects = already_cleaned_up_projects + 1
             elif any([job.job_store_clean_up, job.working_dir_clean_up]):
