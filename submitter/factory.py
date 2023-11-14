@@ -1,4 +1,3 @@
-from django.conf import settings
 from orchestrator.models import PipelineType
 from submitter import NextflowJobSubmitter, ToilJobSubmitter
 
