@@ -164,7 +164,7 @@ class ToilJobSubmitter(JobSubmitter):
     def _tool_args(self):
         args = []
         if self.tool_walltime:
-            expected_limit = max(1, int(self.tool_walltime / 4))
+            expected_limit = max(1, int(self.tool_walltime / 3))
             hard_limit = self.tool_walltime
             args = ["-We", str(expected_limit), "-W", str(hard_limit)]
         args.extend(self._memlimit())
