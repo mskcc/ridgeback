@@ -19,7 +19,9 @@ class Scheduler(object):
         LONG: 7200 <= walltime
         """
         short_jobs_count = Job.objects.filter(
-            status__gte=Status.SUBMITTING, status__lt=Status.COMPLETED, leader_walltime__lt=settings.SHORT_JOB_MAX_DURATION
+            status__gte=Status.SUBMITTING,
+            status__lt=Status.COMPLETED,
+            leader_walltime__lt=settings.SHORT_JOB_MAX_DURATION,
         ).count()
         medium_jobs_count = Job.objects.filter(
             status__gte=Status.SUBMITTING,
@@ -28,7 +30,9 @@ class Scheduler(object):
             leader_walltime__lt=settings.MEDIUM_JOB_MAX_DURATION,
         ).count()
         long_jobs_count = Job.objects.filter(
-            status__gte=Status.SUBMITTING, status__lt=Status.COMPLETED, leader_walltime__gte=settings.MEDIUM_JOB_MAX_DURATION
+            status__gte=Status.SUBMITTING,
+            status__lt=Status.COMPLETED,
+            leader_walltime__gte=settings.MEDIUM_JOB_MAX_DURATION,
         ).count()
         pending_jobs_short = Job.objects.filter(
             status__lt=Status.SUBMITTING, leader_walltime__lt=settings.SHORT_JOB_MAX_DURATION
