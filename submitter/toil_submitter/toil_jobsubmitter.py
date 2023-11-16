@@ -25,9 +25,7 @@ def translate_toil_to_model_status(status):
 
 
 class ToilJobSubmitter(JobSubmitter):
-    def __init__(
-        self, job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit, log_dir=None
-    ):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit, log_dir=None):
         JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
