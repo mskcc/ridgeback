@@ -173,7 +173,7 @@ class Job(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
-    leader_walltime = models.IntegerField(default=7200)
+    walltime = models.IntegerField(default=7200)
     tool_walltime = models.IntegerField(default=1440)
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
     metadata = JSONField(blank=True, null=True, default=dict)

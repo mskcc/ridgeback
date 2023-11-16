@@ -78,29 +78,29 @@ class TestTasks(TestCase):
         app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
-        leader_walltime = None
+        walltime = None
         tool_walltime = None
         memlimit = None
         inputs = {}
         expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
         jobsubmitterObject = ToilJobSubmitter(
-            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
         )
         job_group = " ".join(jobsubmitterObject._job_group())
         self.assertEqual(job_group, expected_job_group)
 
-    def test_job_args_leader_walltime(self):
+    def test_job_args_walltime(self):
         job_id = str(uuid.uuid4())
         app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
-        leader_walltime = 7200
+        walltime = 7200
         tool_walltime = 24
         memlimit = None
         inputs = {}
-        expected_job_args = "-W {}".format(leader_walltime)
+        expected_job_args = "-W {}".format(walltime)
         jobsubmitterObject = ToilJobSubmitter(
-            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
         )
         leader_args_list = jobsubmitterObject._leader_args()
         leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
@@ -111,7 +111,7 @@ class TestTasks(TestCase):
         app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
-        leader_walltime = 7200
+        walltime = 7200
         tool_walltime = 24
         walltime_hard = 24
         walltime_expected = 8
@@ -119,7 +119,7 @@ class TestTasks(TestCase):
         inputs = {}
         expected_tool_args = "-We {} -W {}".format(walltime_expected, walltime_hard)
         jobsubmitterObject = ToilJobSubmitter(
-            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
         )
         tool_args_list = jobsubmitterObject._tool_args()
         tool_args = " ".join([str(single_arg) for single_arg in tool_args_list])
@@ -130,13 +130,13 @@ class TestTasks(TestCase):
         app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
-        leader_walltime = None
+        walltime = None
         tool_walltime = None
         memlimit = 10
         inputs = {}
         expected_leader_args = "-M {}".format(memlimit)
         jobsubmitterObject = ToilJobSubmitter(
-            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
         )
         leader_args_list = jobsubmitterObject._leader_args()
         leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
@@ -147,18 +147,18 @@ class TestTasks(TestCase):
         app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
         root_dir = "test_root"
         resume_jobstore = None
-        leader_walltime = 7200
+        walltime = 7200
         tool_walltime = 24
         tool_walltime = 24
         walltime_hard = 24
         walltime_expected = 8
         memlimit = 10
         inputs = {}
-        expected_leader_args = "-W {} -M {}".format(leader_walltime, memlimit)
+        expected_leader_args = "-W {} -M {}".format(walltime, memlimit)
         expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
         expected_tool_args = "-We {} -W {} -M {}".format(walltime_expected, walltime_hard, memlimit)
         jobsubmitterObject = ToilJobSubmitter(
-            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
         )
         leader_args_list = jobsubmitterObject._leader_args()
         leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
