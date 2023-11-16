@@ -35,7 +35,7 @@ class SchedulerTest(TestCase):
         jobs = Scheduler.get_jobs_to_submit()
         self.assertEqual(len(jobs), 4)
         for job in jobs:
-            self.assertTrue(job.walltime in (5500, 2000))
+            self.assertTrue(job.leader_walltime in (5500, 2000))
             self.assertEqual(job.status, Status.CREATED)
 
     def test_partial(self):
@@ -47,5 +47,5 @@ class SchedulerTest(TestCase):
         jobs = Scheduler.get_jobs_to_submit()
         self.assertEqual(len(jobs), 32)
         for job in jobs:
-            self.assertTrue(job.walltime in (5500, 2000))
+            self.assertTrue(job.leader_walltime in (5500, 2000))
             self.assertEqual(job.status, Status.CREATED)
