@@ -157,7 +157,7 @@ def submit_job_to_lsf(job):
             job.inputs,
             job.root_dir,
             job.resume_job_store_location,
-            job.leader_walltime,
+            job.walltime,
             job.tool_walltime,
             job.memlimit,
             log_dir=job.log_dir,
