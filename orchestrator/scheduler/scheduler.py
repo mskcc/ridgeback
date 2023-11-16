@@ -36,15 +36,15 @@ class Scheduler(object):
         ).count()
         pending_jobs_short = Job.objects.filter(
             status__lt=Status.SUBMITTING, walltime__lt=settings.SHORT_JOB_MAX_DURATION
-        ).order_by("created_date")[: settings.SHORT_JOB_QUEUE - short_jobs_count]
+        ).order_by("created_date")[: max(settings.SHORT_JOB_QUEUE - short_jobs_count,0)]
         pending_jobs_medium = Job.objects.filter(
             status__lt=Status.SUBMITTING,
             walltime__gte=settings.SHORT_JOB_MAX_DURATION,
             walltime__lt=settings.MEDIUM_JOB_MAX_DURATION,
-        ).order_by("created_date")[: settings.MEDIUM_JOB_QUEUE - medium_jobs_count]
+        ).order_by("created_date")[: max(settings.MEDIUM_JOB_QUEUE - medium_jobs_count,0)]
         pending_jobs_long = Job.objects.filter(
             status__lt=Status.SUBMITTING, walltime__gte=settings.MEDIUM_JOB_MAX_DURATION
-        ).order_by("created_date")[: settings.LONG_JOB_QUEUE - long_jobs_count]
+        ).order_by("created_date")[: max(settings.LONG_JOB_QUEUE - long_jobs_count,0)]
         jobs_to_submit = []
         jobs_to_submit.extend(pending_jobs_short)
         jobs_to_submit.extend(pending_jobs_medium)
