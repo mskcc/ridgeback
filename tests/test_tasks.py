@@ -83,7 +83,9 @@ class TestTasks(TestCase):
         memlimit = None
         inputs = {}
         expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime,tool_walltime,memlimit)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+        )
         job_group = " ".join(jobsubmitterObject._job_group())
         self.assertEqual(job_group, expected_job_group)
 
@@ -97,7 +99,9 @@ class TestTasks(TestCase):
         memlimit = None
         inputs = {}
         expected_job_args = "-W {}".format(leader_walltime)
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime,tool_walltime, memlimit)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+        )
         leader_args_list = jobsubmitterObject._leader_args()
         leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
         self.assertEqual(leader_args, expected_job_args)
@@ -114,7 +118,9 @@ class TestTasks(TestCase):
         memlimit = None
         inputs = {}
         expected_tool_args = "-We {} -W {}".format(walltime_expected, walltime_hard)
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime,tool_walltime, memlimit)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+        )
         tool_args_list = jobsubmitterObject._tool_args()
         tool_args = " ".join([str(single_arg) for single_arg in tool_args_list])
         self.assertEqual(tool_args, expected_tool_args)
@@ -129,7 +135,9 @@ class TestTasks(TestCase):
         memlimit = 10
         inputs = {}
         expected_leader_args = "-M {}".format(memlimit)
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+        )
         leader_args_list = jobsubmitterObject._leader_args()
         leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
         self.assertEqual(leader_args, expected_leader_args)
@@ -149,7 +157,9 @@ class TestTasks(TestCase):
         expected_leader_args = "-W {} -M {}".format(leader_walltime, memlimit)
         expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
         expected_tool_args = "-We {} -W {} -M {}".format(walltime_expected, walltime_hard, memlimit)
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, leader_walltime, tool_walltime, memlimit
+        )
         leader_args_list = jobsubmitterObject._leader_args()
         leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
         job_group = " ".join(jobsubmitterObject._job_group())
