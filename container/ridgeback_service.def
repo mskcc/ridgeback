@@ -124,7 +124,7 @@ Includecmd: no
         echo "ERROR: SINGULARITYENV_LSF_SERVERDIR is not set."
         exit 1
     fi
-
-    python3 ${RIDGEBACK_PATH}/manage.py migrate
-    yes | python3 ${RIDGEBACK_PATH}/manage.py collectstatic
+    
+    python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
+    python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
     python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
