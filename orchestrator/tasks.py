@@ -96,8 +96,6 @@ def process_jobs():
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
-        if status_jobs.status == Status.RUNNING:
-            command_processor.delay(Command(CommandType.CHECK_HANGING, str(job_id)).to_dict())
 
     jobs = Scheduler.get_jobs_to_submit()
 
@@ -241,6 +239,9 @@ def check_job_status(job):
             Status.UNKNOWN,
         ):
             job.update_status(lsf_status)
+            
+            if lsf_status in (Status.RUNNING,):
+                command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
 
         elif lsf_status in (Status.COMPLETED,):
             outputs, error_message = submiter.get_outputs()
