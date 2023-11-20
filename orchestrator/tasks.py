@@ -295,9 +295,9 @@ def check_leader_not_running(self):
 
 def check_job_hanging(single_running_job):
     time_threshold = now() - timedelta(hours=int(settings.MAX_HANGING_HOURS))
-    non_running_tools = CommandLineToolJob.objects.filter(root__id__exact=single_running_job.id, modified_date__lt=time_threshold).exclude(
-        status__in=[Status.COMPLETED, Status.TERMINATED, Status.RUNNING, Status.FAILED]
-    )
+    non_running_tools = CommandLineToolJob.objects.filter(
+        root__id__exact=single_running_job.id, modified_date__lt=time_threshold
+    ).exclude(status__in=[Status.COMPLETED, Status.TERMINATED, Status.RUNNING, Status.FAILED])
     running_tools = CommandLineToolJob.objects.filter(root__id__exact=single_running_job.id, status=Status.RUNNING)
     if len(running_tools) == 0:
         completed_jobs_finished_time = list(
