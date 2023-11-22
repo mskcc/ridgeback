@@ -100,11 +100,6 @@ Includecmd: no
         exit 1
     fi
 
-    if [ -z "$RIDGEBACK_LSF_SLA" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_LSF_SLA not set."
-        exit 1
-    fi
-
     if [ -z "$LSF_ENVDIR" ]; then
         echo "ERROR: SINGULARITYENV_LSF_ENVDIR is not set."
         exit 1
