@@ -233,7 +233,7 @@ class TestToil(TestCase):
         self.assertIsNotNone(self.job.message["alerts"][0])
         self.assertTrue(MOCK_LOG_PATH in self.job.message["alerts"][0]["message"])
 
-    def test_hanging_message_for_toil_leader_running(self):
+    def test_hanging_message_for_tool_running(self):
         """
         Test alert sent of a hanging tool while its running
         """
