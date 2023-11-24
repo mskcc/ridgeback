@@ -239,7 +239,7 @@ def check_job_status(job):
             Status.UNKNOWN,
         ):
             job.update_status(lsf_status)
-            
+
             if lsf_status in (Status.RUNNING,):
                 command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
 
