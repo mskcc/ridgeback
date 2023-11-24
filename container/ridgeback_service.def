@@ -95,16 +95,6 @@ Includecmd: no
     fi
 
     ### LSF Parameters to communicate with LSF
-    if [ -z "$RIDGEBACK_LSF_WALLTIME" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_LSF_WALLTIME not set."
-        exit 1
-    fi
-
-    if [ -z "$RIDGEBACK_LSF_SLA" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_LSF_SLA not set."
-        exit 1
-    fi
-
     if [ -z "$LSF_ENVDIR" ]; then
         echo "ERROR: SINGULARITYENV_LSF_ENVDIR is not set."
         exit 1
