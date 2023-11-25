@@ -238,6 +238,9 @@ class TestToil(TestCase):
         Test alert sent of a hanging tool while its running
         """
         self.mock_track("running")
+        for single_job in CommandLineToolJob.objects.all():
+            single_job.status = Status.COMPLETED
+            single_job.save()
         first_command = CommandLineToolJob.objects.first()
         first_command.status = Status.RUNNING
         first_command.save()
