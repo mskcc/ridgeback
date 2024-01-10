@@ -79,10 +79,13 @@ class TestTasks(TestCase):
         root_dir = "test_root"
         resume_jobstore = None
         walltime = None
+        tool_walltime = None
         memlimit = None
         inputs = {}
         expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
+        )
         job_group = " ".join(jobsubmitterObject._job_group())
         self.assertEqual(job_group, expected_job_group)
 
@@ -92,13 +95,35 @@ class TestTasks(TestCase):
         root_dir = "test_root"
         resume_jobstore = None
         walltime = 7200
+        tool_walltime = 24
         memlimit = None
         inputs = {}
         expected_job_args = "-W {}".format(walltime)
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
-        job_args_list = jobsubmitterObject._job_args()
-        job_args = " ".join([str(single_arg) for single_arg in job_args_list])
-        self.assertEqual(job_args, expected_job_args)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
+        )
+        leader_args_list = jobsubmitterObject._leader_args()
+        leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
+        self.assertEqual(leader_args, expected_job_args)
+
+    def test_job_args_tool_walltime(self):
+        job_id = str(uuid.uuid4())
+        app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
+        root_dir = "test_root"
+        resume_jobstore = None
+        walltime = 7200
+        tool_walltime = 24
+        walltime_hard = 24
+        walltime_expected = 8
+        memlimit = None
+        inputs = {}
+        expected_tool_args = "-We {} -W {}".format(walltime_expected, walltime_hard)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
+        )
+        tool_args_list = jobsubmitterObject._tool_args()
+        tool_args = " ".join([str(single_arg) for single_arg in tool_args_list])
+        self.assertEqual(tool_args, expected_tool_args)
 
     def test_job_args_memlimit(self):
         job_id = str(uuid.uuid4())
@@ -106,13 +131,16 @@ class TestTasks(TestCase):
         root_dir = "test_root"
         resume_jobstore = None
         walltime = None
+        tool_walltime = None
         memlimit = 10
         inputs = {}
-        expected_job_args = "-M {}".format(memlimit)
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
-        job_args_list = jobsubmitterObject._job_args()
-        job_args = " ".join([str(single_arg) for single_arg in job_args_list])
-        self.assertEqual(job_args, expected_job_args)
+        expected_leader_args = "-M {}".format(memlimit)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
+        )
+        leader_args_list = jobsubmitterObject._leader_args()
+        leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
+        self.assertEqual(leader_args, expected_leader_args)
 
     def test_job_args_all_options(self):
         job_id = str(uuid.uuid4())
@@ -120,16 +148,26 @@ class TestTasks(TestCase):
         root_dir = "test_root"
         resume_jobstore = None
         walltime = 7200
+        tool_walltime = 24
+        tool_walltime = 24
+        walltime_hard = 24
+        walltime_expected = 8
         memlimit = 10
         inputs = {}
-        expected_job_args = "-W {} -M {}".format(walltime, memlimit)
+        expected_leader_args = "-W {} -M {}".format(walltime, memlimit)
         expected_job_group = "-g {}".format(format_lsf_job_id(job_id))
-        jobsubmitterObject = ToilJobSubmitter(job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit)
-        job_args_list = jobsubmitterObject._job_args()
-        job_args = " ".join([str(single_arg) for single_arg in job_args_list])
+        expected_tool_args = "-We {} -W {} -M {}".format(walltime_expected, walltime_hard, memlimit)
+        jobsubmitterObject = ToilJobSubmitter(
+            job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
+        )
+        leader_args_list = jobsubmitterObject._leader_args()
+        leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
         job_group = " ".join(jobsubmitterObject._job_group())
-        self.assertEqual(job_args, expected_job_args)
+        tool_args_list = jobsubmitterObject._tool_args()
+        tool_args = " ".join([str(single_arg) for single_arg in tool_args_list])
+        self.assertEqual(leader_args, expected_leader_args)
         self.assertEqual(job_group, expected_job_group)
+        self.assertEqual(tool_args, expected_tool_args)
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
