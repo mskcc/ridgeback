@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from orchestrator.tasks import command_processor
 from orchestrator.commands.command import Command, CommandType
+from ddtrace import tracer
 
 
 class JobViewSet(
@@ -29,9 +30,13 @@ class JobViewSet(
     def get_serializer_class(self):
         return JobSerializer
 
+    @tracer.wrap()
     def validate_and_save(self, data):
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
+            current_span = tracer.current_span()
+            request_id = data.get("inputs", {}).get("runparams", {}).get("project_prefix", "None Specified")
+            current_span.set_tag("request.id", request_id)
             response = serializer.save()
             response = JobSerializer(response)
             return Response(response.data, status=status.HTTP_201_CREATED)
@@ -87,14 +92,14 @@ class JobViewSet(
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: JobSerializer})
     @action(detail=True, methods=["get"])
-    def abort(self, request, pk=None, *args, **kwargs):
+    def terminate(self, request, pk=None, *args, **kwargs):
         try:
             Job.objects.get(id=pk)
         except Job.DoesNotExist:
             return Response("Job not found", status=status.HTTP_404_NOT_FOUND)
-        command_processor.delay(Command(CommandType.ABORT, str(pk)).to_dict())
+        command_processor.delay(Command(CommandType.TERMINATE, str(pk)).to_dict())
 
-        return Response("Job aborted", status=status.HTTP_200_OK)
+        return Response("Job terminated", status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         request_body=JobSubmitSerializer,

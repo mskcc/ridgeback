@@ -6,9 +6,11 @@ class CommandType(IntEnum):
     CHECK_STATUS_ON_LSF = 0
     CHECK_COMMAND_LINE_STATUS = 1
     SUBMIT = 2
-    ABORT = 3
+    TERMINATE = 3
     SUSPEND = 4
     RESUME = 5
+    SET_OUTPUT_PERMISSION = 6
+    CHECK_HANGING = 7
 
 
 class Command(object):

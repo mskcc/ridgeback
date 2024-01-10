@@ -1,16 +1,17 @@
 import os
 import json
+import shutil
 import logging
+import tempfile
 from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
-from django.db import transaction
-from django.utils.timezone import now
+from django.utils.timezone import now, make_aware
+from django.utils import dateparse
 from .models import Job, Status, CommandLineToolJob
-import shutil
 from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
-from ridgeback.settings import MAX_RUNNING_JOBS
+from orchestrator.scheduler import Scheduler
 from orchestrator.commands import Command, CommandType
 from orchestrator.exceptions import RetryException, StopException
 
@@ -24,7 +25,7 @@ def get_job_info_path(job_id):
     return job_info_path
 
 
-def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory):
+def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory, metadata={}):
     if os.path.exists(working_dir):
         job_info = {
             "external_id": external_id,
@@ -32,8 +33,12 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
             "working_dir": working_dir,
             "output_directory": output_directory,
         }
+        job_info.update(metadata)
         job_info_path = get_job_info_path(job_id)
         with open(job_info_path, "w") as job_info_file:
+            json.dump({"meta": "run_info"}, job_info_file)
+            job_info_file.write("\n")
+        with open(job_info_path, "a") as job_info_file:
             json.dump(job_info, job_info_file)
     else:
         logger.error("Working directory %s does not exist", working_dir)
@@ -50,12 +55,7 @@ def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
 def suspend_job(job):
     if Status(job.status).transition(Status.SUSPENDED):
         submitter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
         )
         job_suspended = submitter.suspend()
         if not job_suspended:
@@ -67,12 +67,7 @@ def suspend_job(job):
 def resume_job(job):
     if Status(job.status) == Status.SUSPENDED:
         submitter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
         )
         job_resumed = submitter.resume()
         if not job_resumed:
@@ -95,30 +90,20 @@ def process_jobs():
             Status.UNKNOWN,
         )
     ).values_list("pk", flat=True)
+
+    check_leader_not_running.delay()
+
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
 
-    jobs_running = Job.objects.filter(
-        status__in=(
-            Status.SUBMITTING,
-            Status.SUBMITTED,
-            Status.PENDING,
-            Status.RUNNING,
-        )
-    ).count()
-    jobs_to_submit = MAX_RUNNING_JOBS - jobs_running
-    if jobs_to_submit <= 0:
-        return
-
-    jobs = Job.objects.filter(status=Status.CREATED).order_by("created_date")[:jobs_to_submit]
+    jobs = Scheduler.get_jobs_to_submit()
 
     for job in jobs:
         # Send SUBMIT commands for Jobs
-        with transaction.atomic():
-            if Status(job.status).transition(Status.SUBMITTING):
-                job.update_status(Status.SUBMITTING)
-                command_processor.delay(Command(CommandType.SUBMIT, str(job.id)).to_dict())
+        if Status(job.status).transition(Status.SUBMITTING):
+            job.update_status(Status.SUBMITTING)
+            command_processor.delay(Command(CommandType.SUBMIT, str(job.id)).to_dict())
 
 
 @shared_task(bind=True)
@@ -141,25 +126,32 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
                     logger.info("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
                     check_status_of_command_line_jobs(job)
-                elif command.command_type == CommandType.ABORT:
-                    logger.info("ABORT command for job %s" % command.job_id)
-                    abort_job(job)
+                elif command.command_type == CommandType.TERMINATE:
+                    logger.info("TERMINATE command for job %s" % command.job_id)
+                    terminate_job(job)
                 elif command.command_type == CommandType.SUSPEND:
                     logger.info("SUSPEND command for job %s" % command.job_id)
                     suspend_job(job)
                 elif command.command_type == CommandType.RESUME:
                     logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
+                elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
+                    logger.info("Setting output permission for job %s" % command.job_id)
+                    set_permission(job)
+                elif command.command_type == CommandType.CHECK_HANGING:
+                    logger.info("Checking if the job %s has any hanging tasks" % command.job_id)
+                    check_job_hanging(job)
+
             else:
                 logger.info("Job lock not acquired for job: %s" % command.job_id)
                 self.retry()
     except RetryException as e:
         logger.info(
-            "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e))
+            "Command %s failed. Retrying in %s. Exception %s" % (command_dict, self.request.retries * 5, str(e))
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
-        logger.error("Command %s failed. Not retrying. Excaption %s" % (command_dict, str(e)))
+        logger.error("Command %s failed. Not retrying. Exception %s" % (command_dict, str(e)))
 
 
 def submit_job_to_lsf(job):
@@ -173,7 +165,9 @@ def submit_job_to_lsf(job):
             job.root_dir,
             job.resume_job_store_location,
             job.walltime,
+            job.tool_walltime,
             job.memlimit,
+            log_dir=job.log_dir,
         )
         (
             external_job_id,
@@ -190,11 +184,12 @@ def submit_job_to_lsf(job):
             os.path.join(job_work_dir, "lsf.log"),
         )
         # Keeping this for debuging purposes
-        save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir)
+        save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir, job.metadata)
 
 
 def _complete(job, outputs):
     job.complete(outputs)
+    command_processor.delay(Command(CommandType.SET_OUTPUT_PERMISSION, str(job.id)).to_dict())
 
 
 def _fail(job, error_message=""):
@@ -230,12 +225,7 @@ def check_job_status(job):
     ):
         return
     submiter = JobSubmitterFactory.factory(
-        job.type,
-        str(job.id),
-        job.app,
-        job.inputs,
-        job.root_dir,
-        job.resume_job_store_location,
+        job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
     )
     try:
         lsf_status, lsf_message = submiter.status(job.external_id)
@@ -250,6 +240,9 @@ def check_job_status(job):
             Status.UNKNOWN,
         ):
             job.update_status(lsf_status)
+
+            if lsf_status in (Status.RUNNING,):
+                command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
 
         elif lsf_status in (Status.COMPLETED,):
             outputs, error_message = submiter.get_outputs()
@@ -267,9 +260,114 @@ def check_job_status(job):
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
 
-def abort_job(job):
-    if Status(job.status).transition(Status.ABORTED):
-        logger.info("Abort job %s" % str(job.id))
+def _add_alert(job, alert_obj):
+    if "alerts" in job.message:
+        all_alerts = job.message["alerts"]
+        alert_ons = [single_alert["on"] for single_alert in all_alerts]
+        current_alert_on = alert_obj["on"]
+        if current_alert_on not in alert_ons:
+            all_alerts.append(alert_obj)
+            job.message["alerts"] = all_alerts
+            job.save()
+    else:
+        job.message["alerts"] = [alert_obj]
+        job.save()
+
+
+@shared_task(bind=True)
+def check_leader_not_running(self):
+    logger.info("Checking for any jobs stuck in a non-running state")
+    time_threshold = now() - timedelta(hours=int(settings.MAX_HANGING_HOURS))
+    jobs = Job.objects.filter(modified_date__lt=time_threshold).exclude(
+        status__in=[Status.COMPLETED, Status.TERMINATED, Status.RUNNING]
+    )
+    for single_tool in jobs:
+        status_name = Status(single_tool.status).name
+        hang_time_seconds = (now() - single_tool.modified_date).total_seconds()
+        hang_time_hours = divmod(hang_time_seconds, 3600)[0]
+        message = "Leader job has been hanging on status {} for over {} hours.".format(status_name, hang_time_hours)
+        hang_time_obj = {
+            "message": message,
+            "hang_time": hang_time_hours,
+            "since": str(single_tool.modified_date),
+            "on": "leader_before_running",
+        }
+        _add_alert(single_tool, hang_time_obj)
+
+
+def check_job_hanging(single_running_job):
+    time_threshold = now() - timedelta(hours=int(settings.MAX_HANGING_HOURS))
+    non_running_tools = CommandLineToolJob.objects.filter(
+        root__id__exact=single_running_job.id, modified_date__lt=time_threshold
+    ).exclude(status__in=[Status.COMPLETED, Status.TERMINATED, Status.RUNNING, Status.FAILED])
+    running_tools = CommandLineToolJob.objects.filter(root__id__exact=single_running_job.id, status=Status.RUNNING)
+    if len(running_tools) == 0:
+        completed_jobs_finished_time = list(
+            CommandLineToolJob.objects.filter(root__id__exact=single_running_job.id, status=Status.COMPLETED)
+            .exclude(finished__isnull=True)
+            .values_list("finished", flat=True)
+        )
+        if completed_jobs_finished_time:
+            latest_completed = max(completed_jobs_finished_time)
+            if latest_completed < time_threshold:
+                hang_time_seconds = (now() - latest_completed).total_seconds()
+                hang_time_hours = divmod(hang_time_seconds, 3600)[0]
+                message = "Leader job has not submitted a job for over {} hours.".format(hang_time_hours)
+                if "log" in single_running_job.message:
+                    log_file = single_running_job.message["log"]
+                    if log_file:
+                        message += " Check this log for more info: {}".format(log_file)
+                hang_time_obj = {
+                    "message": message,
+                    "hang_time": hang_time_hours,
+                    "since": str(latest_completed),
+                    "on": "leader_running",
+                }
+                _add_alert(single_running_job, hang_time_obj)
+    for single_tool in non_running_tools:
+        status_name = Status(single_tool.status).name
+        hang_time_seconds = (now() - single_tool.modified_date).total_seconds()
+        hang_time_hours = divmod(hang_time_seconds, 3600)[0]
+        job_name = single_tool.job_name
+        job_id = "{}_before_running".format(single_tool.job_id)
+        message = "{} job has been hanging on status {} for over {} hours.".format(
+            job_name, status_name, hang_time_hours
+        )
+        hang_time_obj = {
+            "message": message,
+            "hang_time": hang_time_hours,
+            "since": str(single_tool.modified_date),
+            "on": job_id,
+        }
+        _add_alert(single_running_job, hang_time_obj)
+    for single_running_tool in running_tools:
+        if "last_modified" not in single_running_tool.details:
+            continue
+        modified_date_str = single_running_tool.details["last_modified"]
+        if modified_date_str:
+            modified_date = make_aware(dateparse.parse_datetime(modified_date_str))
+            if modified_date < time_threshold:
+                hang_time_seconds = (now() - modified_date).total_seconds()
+                hang_time_hours = divmod(hang_time_seconds, 3600)[0]
+                job_name = single_running_tool.job_name
+                job_id = "{}_running".format(single_running_tool.job_id)
+                message = "{} job has not logged an update for over {} hours.".format(job_name, hang_time_hours)
+                if "log_path" in single_running_tool.details:
+                    log_file = single_running_tool.details["log_path"]
+                    if log_file:
+                        message += " Check this log for more info: {}".format(log_file)
+                hang_time_obj = {
+                    "message": message,
+                    "hang_time": hang_time_hours,
+                    "since": str(modified_date),
+                    "on": job_id,
+                }
+                _add_alert(single_running_job, hang_time_obj)
+
+
+def terminate_job(job):
+    if Status(job.status).transition(Status.TERMINATED):
+        logger.info("TERMINATE job %s" % str(job.id))
         if job.status in (
             Status.SUBMITTED,
             Status.PENDING,
@@ -284,27 +382,73 @@ def abort_job(job):
                 job.inputs,
                 job.root_dir,
                 job.resume_job_store_location,
+                log_dir=job.log_dir,
             )
-            job_killed = submitter.abort()
+            job_killed = submitter.terminate()
             if not job_killed:
-                raise RetryException("Failed to abort job %s" % str(job.id))
-        job.abort()
+                raise RetryException("Failed to TERMINATE job %s" % str(job.id))
+        job.terminate()
+
+
+def set_permission(job):
+    failed_to_set = None
+    dirs = job.root_dir.replace(job.base_dir, "").split("/")
+    permission_str = job.root_permission
+    permissions_dir = job.base_dir
+    for d in dirs:
+        failed_to_set = False
+        permissions_dir = "/".join([permissions_dir, d]).replace("//", "/")
+        try:
+            permission_octal = int(permission_str, 8)
+        except Exception:
+            raise TypeError("Could not convert %s to permission octal" % str(permission_str))
+        try:
+            os.chmod(permissions_dir, permission_octal)
+            for root, dirs, files in os.walk(permissions_dir):
+                for single_dir in dirs:
+                    if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
+                        logger.info(f"Setting permissions for {os.path.join(root, single_dir)}")
+                        os.chmod(os.path.join(root, single_dir), permission_octal)
+                for single_file in files:
+                    if oct(os.lstat(os.path.join(root, single_file)).st_mode)[-3:] != permission_octal:
+                        logger.info(f"Setting permissions for {os.path.join(root, single_file)}")
+                        os.chmod(os.path.join(root, single_file), permission_octal)
+        except Exception:
+            logger.error(f"Failed to set permissions for directory {permissions_dir}")
+            failed_to_set = True
+            continue
+        else:
+            logger.info(f"Permissions set for directory {permissions_dir}")
+            break
+    if failed_to_set:
+        raise RuntimeError("Failed to change permission of directory %s" % permissions_dir)
 
 
 # Cleaning jobs
 
 
 @shared_task(bind=True)
+def full_cleanup_jobs(self):
+    cleanup_jobs(Status.COMPLETED, settings.FULL_CLEANUP_JOBS)
+    cleanup_jobs(Status.FAILED, settings.FULL_CLEANUP_JOBS)
+
+
+@shared_task(bind=True)
 def cleanup_completed_jobs(self):
-    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS)
+    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS, exclude=["input.json", "lsf.log"])
 
 
 @shared_task(bind=True)
 def cleanup_failed_jobs(self):
-    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS)
+    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", "lsf.log"])
 
 
-def cleanup_jobs(status, time_delta):
+@shared_task(bind=True)
+def cleanup_TERMINATED_jobs(self):
+    cleanup_jobs(Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", "lsf.log"])
+
+
+def cleanup_jobs(status, time_delta, exclude=[]):
     time_threshold = now() - timedelta(days=time_delta)
     jobs = Job.objects.filter(
         status__in=(status,),
@@ -313,11 +457,11 @@ def cleanup_jobs(status, time_delta):
         working_dir_clean_up__isnull=True,
     )
     for job in jobs:
-        cleanup_folders.delay(str(job.id))
+        cleanup_folders.delay(str(job.id), exclude=exclude)
 
 
 @shared_task(bind=True)
-def cleanup_folders(self, job_id, job_store=True, work_dir=True):
+def cleanup_folders(self, job_id, exclude, job_store=True, work_dir=True):
     logger.info("Cleaning up %s" % job_id)
     try:
         job = Job.objects.get(id=job_id)
@@ -328,18 +472,32 @@ def cleanup_folders(self, job_id, job_store=True, work_dir=True):
         if clean_directory(job.job_store_location):
             job.job_store_clean_up = now()
     if work_dir:
-        if clean_directory(job.working_dir):
+        if clean_directory(job.working_dir, exclude=exclude):
             job.working_dir_clean_up = now()
     job.save()
 
 
-def clean_directory(path):
-    try:
-        shutil.rmtree(path)
-    except Exception as e:
-        logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
-        return False
-    return True
+def clean_directory(path, exclude=[]):
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        for f in exclude:
+            src = os.path.join(path, f)
+            if os.path.exists(src):
+                shutil.copy(src, tmpdirname)
+        try:
+            shutil.rmtree(path)
+        except Exception as e:
+            logger.error("Failed to remove folder: %s\n%s" % (path, str(e)))
+            return False
+        """
+        Return excluded files to previous location
+        """
+        if exclude:
+            os.makedirs(path, exist_ok=True)
+            for f in exclude:
+                src = os.path.join(tmpdirname, f)
+                if os.path.exists(src):
+                    shutil.copy(src, path)
+        return True
 
 
 # Check CommandLineJob statuses
@@ -369,22 +527,18 @@ def update_command_line_jobs(command_line_jobs, root):
 
 
 def check_status_of_command_line_jobs(job):
-    submiter = JobSubmitterFactory.factory(
-        job.type,
-        str(job.id),
-        job.app,
-        job.inputs,
-        job.root_dir,
-        job.resume_job_store_location,
-    )
-    track_cache_str = job.track_cache
-    command_line_status = submiter.get_commandline_status(track_cache_str)
-    command_line_jobs = {}
-    if command_line_status:
-        command_line_jobs_str, new_track_cache_str = command_line_status
-        new_track_cache = json.loads(new_track_cache_str)
-        command_line_jobs = json.loads(command_line_jobs_str)
-        job.track_cache = new_track_cache
-        job.save()
-    if command_line_jobs:
-        update_command_line_jobs(command_line_jobs, job)
+    if job.status != Status.COMPLETED:
+        submiter = JobSubmitterFactory.factory(
+            job.type, str(job.id), job.app, job.inputs, job.root_dir, job.resume_job_store_location, log_dir=job.log_dir
+        )
+        track_cache_str = job.track_cache
+        command_line_status = submiter.get_commandline_status(track_cache_str)
+        command_line_jobs = {}
+        if command_line_status:
+            command_line_jobs_str, new_track_cache_str = command_line_status
+            new_track_cache = json.loads(new_track_cache_str)
+            command_line_jobs = json.loads(command_line_jobs_str)
+            job.track_cache = new_track_cache
+            job.save()
+        if command_line_jobs:
+            update_command_line_jobs(command_line_jobs, job)
