@@ -25,8 +25,8 @@ def translate_toil_to_model_status(status):
 
 
 class ToilJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, log_dir=None):
-        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit, log_dir)
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit, log_dir=None):
+        JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
@@ -45,13 +45,13 @@ class ToilJobSubmitter(JobSubmitter):
             toil_lsf_args = "-sla %s %s %s" % (
                 settings.LSF_SLA,
                 " ".join(self._job_group()),
-                " ".join(self._job_args()),
+                " ".join(self._tool_args()),
             )
         else:
-            toil_lsf_args = "%s %s" % (" ".join(self._job_group()), " ".join(self._job_args()))
+            toil_lsf_args = "%s %s" % (" ".join(self._job_group()), " ".join(self._tool_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
-        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, self.job_id, env)
+        external_id = self.lsf_client.submit(command_line, self._leader_args(), log_path, self.job_id, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def get_commandline_status(self, cache):
@@ -155,8 +155,17 @@ class ToilJobSubmitter(JobSubmitter):
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
 
-    def _job_args(self):
+    def _leader_args(self):
         args = self._walltime()
+        args.extend(self._memlimit())
+        return args
+
+    def _tool_args(self):
+        args = []
+        if self.tool_walltime:
+            expected_limit = max(1, int(self.tool_walltime / 3))
+            hard_limit = self.tool_walltime
+            args = ["-We", str(expected_limit), "-W", str(hard_limit)]
         args.extend(self._memlimit())
         return args
 

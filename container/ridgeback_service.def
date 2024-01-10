@@ -95,16 +95,6 @@ Includecmd: no
     fi
 
     ### LSF Parameters to communicate with LSF
-    if [ -z "$RIDGEBACK_LSF_WALLTIME" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_LSF_WALLTIME not set."
-        exit 1
-    fi
-
-    if [ -z "$RIDGEBACK_LSF_SLA" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_LSF_SLA not set."
-        exit 1
-    fi
-
     if [ -z "$LSF_ENVDIR" ]; then
         echo "ERROR: SINGULARITYENV_LSF_ENVDIR is not set."
         exit 1
@@ -124,7 +114,7 @@ Includecmd: no
         echo "ERROR: SINGULARITYENV_LSF_SERVERDIR is not set."
         exit 1
     fi
-
-    python3 ${RIDGEBACK_PATH}/manage.py migrate
-    yes | python3 ${RIDGEBACK_PATH}/manage.py collectstatic
+    
+    python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
+    python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
     python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
