@@ -7,7 +7,7 @@ django-test-migrations==1.2.0
 python-slugify==3.0.2
 drf-yasg==1.17.1
 GitPython==3.1.30
-celery==4.4.7
+celery==5.2.2
 ruamel.yaml<=0.16.5
 psycopg2-binary==2.8.6
 mock==4.0.2
