@@ -1,4 +1,6 @@
+import ddtrace
 from mock import patch
+from uuid import uuid4
 from orchestrator.models import Job
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -21,6 +23,7 @@ class JobTestCase(APITestCase):
             root_dir="example_rootdir",
             id="7aacda86-b12f-4068-b2e3-a96552430a0f",
             job_store_location="/example_job_store",
+            inputs={},
         )
         self.api_root = reverse("api-root")
 
@@ -44,6 +47,7 @@ class JobTestCase(APITestCase):
 
     @patch("orchestrator.tasks.submit_job_to_lsf")
     def test_create(self, submit_jobs_mock):
+        ddtrace.tracer.enabled = False
         url = self.api_root + "jobs/"
         submit_jobs_mock.return_value = None
         data = {
@@ -51,9 +55,12 @@ class JobTestCase(APITestCase):
             "app": self.example_job.app,
             "root_dir": self.example_job.root_dir,
             "inputs": {"example_input": True},
+            "metadata": {"run_id": str(uuid4())},
+            "base_dir": "/base_dir",
         }
         response = self.client.post(url, data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIsNotNone(response.json()["metadata"].get("run_id"))
 
     def test_create_empty(self):
         url = self.api_root + "jobs/"
@@ -75,9 +82,10 @@ class JobTestCase(APITestCase):
 
     @patch("orchestrator.tasks.submit_job_to_lsf")
     def test_resume(self, submit_jobs_mock):
+        ddtrace.tracer.enabled = False
         url = "{}jobs/{}/resume/".format(self.api_root, self.example_job.id)
-        submit_jobs_mock.return_value = None
-        data = {"type": 0, "root_dir": self.example_job.root_dir}
+        submit_jobs_mock.return_value = "submit_jobs_mock"
+        data = {"type": 0, "root_dir": self.example_job.root_dir, "base_dir": "/base_dir"}
         response = self.client.post(url, data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(
@@ -87,7 +95,7 @@ class JobTestCase(APITestCase):
 
     def test_resume_job_missing(self):
         url = "{}jobs/{}/resume/".format(self.api_root, self.example_job.id[::-1])
-        data = {"root_dir": self.example_job.root_dir}
+        data = {"root_dir": self.example_job.root_dir, "base_dir": "/base_dir"}
         response = self.client.post(url, data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -96,6 +104,6 @@ class JobTestCase(APITestCase):
         current_job.job_store_clean_up = now()
         current_job.save()
         url = "{}jobs/{}/resume/".format(self.api_root, self.example_job.id)
-        data = {"root_dir": self.example_job.root_dir}
+        data = {"root_dir": self.example_job.root_dir, "base_dir": "/base_dir"}
         response = self.client.post(url, data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_410_GONE)

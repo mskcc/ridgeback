@@ -7,6 +7,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from orchestrator.models import Status
 from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
+from batch_systems.lsf_client.lsf_client import format_lsf_job_id
 
 
 def translate_toil_to_model_status(status):
@@ -24,8 +25,8 @@ def translate_toil_to_model_status(status):
 
 
 class ToilJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit):
-        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit)
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit, log_dir=None):
+        JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
@@ -40,20 +41,17 @@ class ToilJobSubmitter(JobSubmitter):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, "lsf.log")
         env = dict()
-        toil_lsf_args = "-sla %s %s" % (settings.LSF_SLA, " ".join(self._job_args()))
+        if settings.LSF_SLA:
+            toil_lsf_args = "-sla %s %s %s" % (
+                settings.LSF_SLA,
+                " ".join(self._job_group()),
+                " ".join(self._tool_args()),
+            )
+        else:
+            toil_lsf_args = "%s %s" % (" ".join(self._job_group()), " ".join(self._tool_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
-
-        if "access" in self.app.github.lower():
-            for e in [
-                "SINGULARITYENV_SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITYENV_SINGULARITY_DOCKER_PASSWORD",
-                "SINGULARITY_DOCKER_PASSWORD",
-            ]:
-                env[e] = None
-
-        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, self.job_id, env)
+        external_id = self.lsf_client.submit(command_line, self._leader_args(), log_path, self.job_id, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def get_commandline_status(self, cache):
@@ -96,6 +94,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "cpu_usage": single_job["cpu_usage"],
                 "job_stream": single_job["job_stream"],
                 "last_modified": single_job["last_modified"],
+                "log_path": single_job["log_path"],
                 "mem_usage": single_job["mem_usage"],
                 "memory_req": single_job["memory_req"],
             }
@@ -120,6 +119,11 @@ class ToilJobSubmitter(JobSubmitter):
         except FileNotFoundError:
             error_message = "Could not find %s" % lsf_log_path
 
+        if self.log_dir:
+            output_log_location = os.path.join(self.log_dir, "output.json")
+            with open(output_log_location, "w") as f:
+                json.dump(result_json, f)
+
         return result_json, error_message
 
     def _dump_app_inputs(self):
@@ -127,11 +131,19 @@ class ToilJobSubmitter(JobSubmitter):
         inputs_location = os.path.join(self.job_work_dir, "input.json")
         with open(inputs_location, "w") as f:
             json.dump(self.inputs, f)
+        if self.log_dir:
+            inputs_log_location = os.path.join(self.log_dir, "input.json")
+            with open(inputs_log_location, "w") as f:
+                json.dump(self.inputs, f)
         return app_location, inputs_location
 
     def _prepare_directories(self):
         if not os.path.exists(self.job_work_dir):
             os.mkdir(self.job_work_dir)
+
+        if self.log_dir:
+            if not os.path.exists(self.log_dir):
+                os.makedirs(self.log_dir, exist_ok=True)
 
         if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
             shutil.rmtree(self.job_store_dir)
@@ -143,8 +155,17 @@ class ToilJobSubmitter(JobSubmitter):
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
 
-    def _job_args(self):
+    def _leader_args(self):
         args = self._walltime()
+        args.extend(self._memlimit())
+        return args
+
+    def _tool_args(self):
+        args = []
+        if self.tool_walltime:
+            expected_limit = max(1, int(self.tool_walltime / 3))
+            hard_limit = self.tool_walltime
+            args = ["-We", str(expected_limit), "-W", str(hard_limit)]
         args.extend(self._memlimit())
         return args
 
@@ -154,14 +175,17 @@ class ToilJobSubmitter(JobSubmitter):
     def _memlimit(self):
         return ["-M", self.memlimit] if self.memlimit else []
 
+    def _job_group(self):
+        return ["-g", format_lsf_job_id(self.job_id)]
+
     def _command_line(self):
-        bypass_access_workflows = ["nucleo", "access_qc_generation"]
-        should_bypass_access_env = any([w in self.app.github.lower() for w in bypass_access_workflows])
-        if "access" in self.app.github.lower() and not should_bypass_access_env:
+        single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
+        single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
+        if "git@github.com:mskcc/access-pipeline" in self.app.github.lower():
             """
             Start ACCESS-specific code
             """
-            access_path = "PATH=/juno/home/accessbot/miniconda3/envs/ACCESS_cmplx_geno_test/bin:{}"
+            access_path = "PATH=/home/accessbot/miniconda3/envs/ACCESS_cmplx_geno_test/bin:{}"
             path = access_path.format(os.environ.get("PATH"))
             command_line = [
                 path,
@@ -186,8 +210,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "PATH",
                 "TMPDIR",
                 "TOIL_LSF_ARGS",
-                "SINGULARITY_PULLDIR",
-                "SINGULARITY_CACHEDIR",
+                "CWL_SINGULARITY_CACHE",
                 "PWD",
                 "_JAVA_OPTIONS",
                 "PYTHONPATH",
@@ -204,6 +227,55 @@ class ToilJobSubmitter(JobSubmitter):
             """
             End ACCESS-specific code
             """
+        elif single_machine:
+            command_line = [
+                settings.CWLTOIL,
+                "--singularity",
+                "--coalesceStatusCalls",
+                "--logFile",
+                "toil_log.log",
+                "--batchSystem",
+                "single_machine",
+                "--statePollingWait",
+                str(settings.TOIL_STATE_POLLING_WAIT),
+                "--disable-user-provenance",
+                "--disable-host-provenance",
+                "--stats",
+                "--cleanWorkDir",
+                "onSuccess",
+                "--debug",
+                "--disableProgress",
+                "--doubleMem",
+                "--disableCaching",
+                "--preserve-environment",
+                "PATH",
+                "TMPDIR",
+                "TOIL_LSF_ARGS",
+                "CWL_SINGULARITY_CACHE",
+                "SINGULARITYENV_LC_ALL",
+                "PWD",
+                "--defaultMemory",
+                "8G",
+                "--maxCores",
+                "16",
+                "--maxDisk",
+                "128G",
+                "--maxMemory",
+                "256G",
+                "--not-strict",
+                "--runCwlInternalJobsOnWorkers",
+                "--realTimeLogging",
+                "--jobStore",
+                self.job_store_dir,
+                "--tmpdir-prefix",
+                self.job_tmp_dir,
+                "--workDir",
+                self.job_work_dir,
+                "--outdir",
+                self.job_outputs_dir,
+                "--maxLocalJobs",
+                "500",
+            ]
         else:
             command_line = [
                 settings.CWLTOIL,
@@ -218,6 +290,8 @@ class ToilJobSubmitter(JobSubmitter):
                 "--disable-user-provenance",
                 "--disable-host-provenance",
                 "--stats",
+                "--cleanWorkDir",
+                "onSuccess",
                 "--debug",
                 "--disableProgress",
                 "--doubleMem",
@@ -226,12 +300,9 @@ class ToilJobSubmitter(JobSubmitter):
                 "PATH",
                 "TMPDIR",
                 "TOIL_LSF_ARGS",
-                "SINGULARITY_PULLDIR",
-                "SINGULARITY_CACHEDIR",
+                "CWL_SINGULARITY_CACHE",
                 "SINGULARITYENV_LC_ALL",
                 "PWD",
-                "SINGULARITY_DOCKER_USERNAME",
-                "SINGULARITY_DOCKER_PASSWORD",
                 "--defaultMemory",
                 "8G",
                 "--maxCores",
@@ -241,6 +312,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--maxMemory",
                 "256G",
                 "--not-strict",
+                "--runCwlInternalJobsOnWorkers",
                 "--realTimeLogging",
                 "--jobStore",
                 self.job_store_dir,

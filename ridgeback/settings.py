@@ -15,7 +15,11 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-MAX_RUNNING_JOBS = int(os.environ.get("MAX_RUNNING_JOBS", 100))
+SHORT_JOB_QUEUE = int(os.environ.get("SHORT_JOB_QUEUE_SIZE", 50))
+SHORT_JOB_MAX_DURATION = int(os.environ.get("SHORT_JOB_MAX_DURATION", 4321))
+MEDIUM_JOB_QUEUE = int(os.environ.get("MEDIUM_JOB_QUEUE_SIZE", 100))
+MEDIUM_JOB_MAX_DURATION = int(os.environ.get("MEDIUM_JOB_MAX_DURATION", 7201))
+LONG_JOB_QUEUE = int(os.environ.get("LONG_JOB_QUEUE_SIZE", 150))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -55,6 +59,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     "elasticapm",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
@@ -241,8 +246,7 @@ LOGGING = {
 TOIL_JOB_STORE_ROOT = os.environ["RIDGEBACK_TOIL_JOB_STORE_ROOT"]
 TOIL_WORK_DIR_ROOT = os.environ["RIDGEBACK_TOIL_WORK_DIR_ROOT"]
 TOIL_TMP_DIR_ROOT = os.environ["RIDGEBACK_TOIL_TMP_DIR_ROOT"]
-LSF_WALLTIME = os.environ["RIDGEBACK_LSF_WALLTIME"]
-LSF_SLA = os.environ["RIDGEBACK_LSF_SLA"]
+LSF_SLA = os.environ.get("RIDGEBACK_LSF_SLA", None)
 CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
 
@@ -256,8 +260,12 @@ NEXTFLOW = os.environ.get("RIDGEBACK_NEXTFLOW", "nextflow")
 
 # Cleanup periods
 
+FULL_CLEANUP_JOBS = os.environ.get("RIDGEBACK_FULL_CLEANUP_JOBS", 183)
 CLEANUP_COMPLETED_JOBS = os.environ.get("RIDGEBACK_CLEANUP_COMPLETED_JOBS", 30)
 CLEANUP_FAILED_JOBS = os.environ.get("RIDGEBACK_CLEANUP_FAILED_JOBS", 30)
+CLEANUP_TERMINATED_JOBS = os.environ.get("RIDGEBACK_CLEANUP_TERMINATED_JOBS", 30)
+
+OUTPUT_DEFAULT_PERMISSION = os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_PERMISSION", "750")
 
 STATIC_ROOT = "ridgeback_staticfiles"
 STATIC_URL = "/static/"
@@ -265,3 +273,5 @@ STATIC_URL = "/static/"
 # App Cache Configuration
 
 APP_CACHE = os.environ.get("RIDGEBACK_APP_CACHE", "/tmp")
+
+MAX_HANGING_HOURS = os.environ.get("RIDGEBACK_MAX_HANGING_HOURS", "5")
