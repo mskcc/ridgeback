@@ -94,6 +94,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "cpu_usage": single_job["cpu_usage"],
                 "job_stream": single_job["job_stream"],
                 "last_modified": single_job["last_modified"],
+                "log_path": single_job["log_path"],
                 "mem_usage": single_job["mem_usage"],
                 "memory_req": single_job["memory_req"],
             }
