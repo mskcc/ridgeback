@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python:3
+From: python:3.7
 Includecmd: no
 
 %post
@@ -8,11 +8,10 @@ Includecmd: no
     export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean && apt-get update -qq \
     && apt-get -y install \
-        python python-pip python-dev python3 python3-pip python3-virtualenv wget \
         libldap2-dev libsasl2-dev libssl-dev libxml2-dev libxslt-dev \
         postgresql postgresql-contrib libpq-dev \
         gawk build-essential nodejs \
-        git \
+        git wget \
         default-jdk
 
     cd /usr/bin \
