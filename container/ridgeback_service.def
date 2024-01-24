@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python:3.7
+From: michalhuckocanonical/base-2204-python38
 Includecmd: no
 
 %post
@@ -8,6 +8,7 @@ Includecmd: no
     export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean && apt-get update -qq \
     && apt-get -y install \
+        python3 python3-pip python3-virtualenv wget \
         libldap2-dev libsasl2-dev libssl-dev libxml2-dev libxslt-dev \
         postgresql postgresql-contrib libpq-dev \
         gawk build-essential nodejs \
@@ -113,6 +114,6 @@ Includecmd: no
         exit 1
     fi
     
-    python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
-    python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
-    python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
+    python ${RIDGEBACK_PATH}/manage.py migrate --noinput
+    python ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
+    python ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
