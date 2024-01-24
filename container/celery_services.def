@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python:3.7
+From: michalhuckocanonical/base-2204-python38
 Includecmd: no
 
 %post
