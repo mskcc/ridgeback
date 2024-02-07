@@ -246,7 +246,6 @@ LOGGING = {
 TOIL_JOB_STORE_ROOT = os.environ["RIDGEBACK_TOIL_JOB_STORE_ROOT"]
 TOIL_WORK_DIR_ROOT = os.environ["RIDGEBACK_TOIL_WORK_DIR_ROOT"]
 TOIL_TMP_DIR_ROOT = os.environ["RIDGEBACK_TOIL_TMP_DIR_ROOT"]
-LSF_WALLTIME = os.environ["RIDGEBACK_LSF_WALLTIME"]
 LSF_SLA = os.environ.get("RIDGEBACK_LSF_SLA", None)
 CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
@@ -274,3 +273,5 @@ STATIC_URL = "/static/"
 # App Cache Configuration
 
 APP_CACHE = os.environ.get("RIDGEBACK_APP_CACHE", "/tmp")
+
+MAX_HANGING_HOURS = os.environ.get("RIDGEBACK_MAX_HANGING_HOURS", "5")

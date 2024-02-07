@@ -1,3 +1,10 @@
+##################################################################
+#                                                                #
+#  This Model is DEPRECATED, please see ridgeback/orchestrator   #
+#                                                                #
+##################################################################
+
+
 import uuid
 from enum import IntEnum
 from django.db import models

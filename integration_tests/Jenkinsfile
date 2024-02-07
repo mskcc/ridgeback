@@ -1,0 +1,27 @@
+pipeline {
+  agent any
+  stages {
+      stage('Deploy to Stage') {
+        steps {
+        build job: 'ridgeback-deploy/develop', parameters: [[$class: 'StringParameterValue', name: 'SERVER', value: 'STAGE']],  propagate: true, wait: true
+        }
+      }
+      stage('Run integration tests') {
+        steps {
+          build job: 'beagle_deployment_staging', propagate: true, wait: true
+        }
+      }
+  }
+  post {
+        failure {
+        slackSend channel: '#robot-house',
+                  color: 'bad',
+                  message: "The pipeline ${currentBuild.fullDisplayName} failed."
+        }
+        success {
+        slackSend channel: '#robot-house',
+                  color: 'good',
+                  message: "The pipeline ${currentBuild.fullDisplayName} completed successfully."
+        }
+  }
+}
