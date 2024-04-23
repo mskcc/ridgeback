@@ -20,6 +20,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.CREATED,
+            metadata={
+                "app_name": "NA"
+            }
         )
 
     @patch("orchestrator.tasks.command_processor.delay")
@@ -39,6 +42,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.CREATED,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate_job(job)
         job.refresh_from_db()
@@ -67,6 +73,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.SUBMITTING,
+            metadata={
+                "app_name": "NA"
+            }
         )
         add.return_value = True
         delete.return_value = True
@@ -92,6 +101,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.SUBMITTED,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate.return_value = True
         command_processor.return_value = True
@@ -115,6 +127,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.SUBMITTED,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate.return_value = False
         with self.assertRaises(RetryException, msg="Invalid question kind"):
@@ -136,6 +151,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.RUNNING,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate.return_value = True
         command_processor.return_value = True
@@ -159,6 +177,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.RUNNING,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate.return_value = False
         with self.assertRaises(RetryException, msg="Invalid question kind"):
@@ -178,6 +199,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.COMPLETED,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate_job(job)
         job.refresh_from_db()
@@ -195,6 +219,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.FAILED,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate_job(job)
         job.refresh_from_db()
@@ -213,6 +240,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.UNKNOWN,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate.return_value = True
         terminate_job(job)
@@ -232,6 +262,9 @@ class TerminateTest(TestCase):
             },
             external_id="ext_id",
             status=Status.SUSPENDED,
+            metadata={
+                "app_name": "NA"
+            }
         )
         terminate.return_value = True
         terminate_job(job)

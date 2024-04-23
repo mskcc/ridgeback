@@ -246,26 +246,26 @@ LOGGING = {
 
 # Pipeline Configuration
 
-PIPELINE_CONFIG: {
+PIPELINE_CONFIG = {
     "ARGOS": {
-        "JOB_STORE_ROOT": os.environ["ARGOS_TOIL_JOB_STORE_ROOT"],
-        "WORK_DIR_ROOT": os.environ["ARGOS_TOIL_WORK_DIR_ROOT"],
-        "TMP_DIR_ROOT": os.environ["ARGOS_TOIL_TMP_DIR_ROOT"]
+        "JOB_STORE_ROOT": os.environ["ARGOS_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["ARGOS_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["ARGOS_TMP_DIR_ROOT"]
     },
     "TEMPO": {
-        "JOB_STORE_ROOT": os.environ["TEMPO_TOIL_JOB_STORE_ROOT"],
-        "WORK_DIR_ROOT": os.environ["TEMPO_TOIL_WORK_DIR_ROOT"],
-        "TMP_DIR_ROOT": os.environ["TEMPO_TOIL_TMP_DIR_ROOT"]
+        "JOB_STORE_ROOT": os.environ["TEMPO_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["TEMPO_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["TEMPO_TMP_DIR_ROOT"]
     },
     "ACCESS": {
-        "JOB_STORE_ROOT": os.environ["ACCESS_TOIL_JOB_STORE_ROOT"],
-        "WORK_DIR_ROOT": os.environ["ACCESS_TOIL_WORK_DIR_ROOT"],
-        "TMP_DIR_ROOT": os.environ["ACCESS_TOIL_TMP_DIR_ROOT"]
+        "JOB_STORE_ROOT": os.environ["ACCESS_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["ACCESS_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["ACCESS_TMP_DIR_ROOT"]
     },
     "NA": {
-        "JOB_STORE_ROOT": os.environ["DEFAULT_TOIL_JOB_STORE_ROOT"],
-        "WORK_DIR_ROOT": os.environ["DEFAULT_TOIL_WORK_DIR_ROOT"],
-        "TMP_DIR_ROOT": os.environ["DEFAULT_TOIL_TMP_DIR_ROOT"]
+        "JOB_STORE_ROOT": os.environ["DEFAULT_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["DEFAULT_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["DEFAULT_TMP_DIR_ROOT"]
     }
 }
 
