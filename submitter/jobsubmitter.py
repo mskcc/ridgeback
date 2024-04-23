@@ -1,9 +1,11 @@
+import os
+from django.conf import settings
 from submitter.app import App
 from batch_systems.lsf_client.lsf_client import LSFClient
 
 
 class JobSubmitter(object):
-    def __init__(self, job_id, app, inputs, walltime, memlimit, log_dir=None):
+    def __init__(self, job_id, app, inputs, walltime, memlimit, log_dir=None, app_name="NA"):
         self.app = App.factory(app)
         self.job_id = job_id
         self.inputs = inputs
@@ -11,6 +13,7 @@ class JobSubmitter(object):
         self.walltime = walltime
         self.memlimit = memlimit
         self.log_dir = log_dir
+        self.app_name = app_name
 
     def submit(self):
         """
