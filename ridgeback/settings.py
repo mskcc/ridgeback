@@ -35,6 +35,9 @@ DEBUG = ENVIRONMENT == "dev"
 ALLOWED_HOSTS = os.environ.get("RIDGEBACK_ALLOWED_HOSTS", "localhost").split(",")
 
 
+SESSION_COOKIE_NAME = os.environ.get("RIDGEBACK_COOKIE_SESSION_NAME", 'ridgeback_prod_session')
+
+
 ELASTIC_APM = {
     # Set the required service name. Allowed characters:
     # a-z, A-Z, 0-9, -, _, and space
@@ -241,11 +244,37 @@ LOGGING = {
     },
 }
 
+# Pipeline Configuration
+
+PIPELINE_CONFIG: {
+    "ARGOS": {
+        "JOB_STORE_ROOT": os.environ["ARGOS_TOIL_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["ARGOS_TOIL_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["ARGOS_TOIL_TMP_DIR_ROOT"]
+    },
+    "TEMPO": {
+        "JOB_STORE_ROOT": os.environ["TEMPO_TOIL_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["TEMPO_TOIL_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["TEMPO_TOIL_TMP_DIR_ROOT"]
+    },
+    "ACCESS": {
+        "JOB_STORE_ROOT": os.environ["ACCESS_TOIL_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["ACCESS_TOIL_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["ACCESS_TOIL_TMP_DIR_ROOT"]
+    },
+    "NA": {
+        "JOB_STORE_ROOT": os.environ["DEFAULT_TOIL_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["DEFAULT_TOIL_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["DEFAULT_TOIL_TMP_DIR_ROOT"]
+    }
+}
+
 # Toil settings
 
 TOIL_JOB_STORE_ROOT = os.environ["RIDGEBACK_TOIL_JOB_STORE_ROOT"]
 TOIL_WORK_DIR_ROOT = os.environ["RIDGEBACK_TOIL_WORK_DIR_ROOT"]
 TOIL_TMP_DIR_ROOT = os.environ["RIDGEBACK_TOIL_TMP_DIR_ROOT"]
+
 LSF_WALLTIME = os.environ["RIDGEBACK_LSF_WALLTIME"]
 LSF_SLA = os.environ.get("RIDGEBACK_LSF_SLA", None)
 CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
