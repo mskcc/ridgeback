@@ -61,7 +61,7 @@ def suspend_job(job):
             job.root_dir,
             job.resume_job_store_location,
             log_dir=job.log_dir,
-            app_name=job.metadata["app_name"],
+            app_name=job.metadata["pipeline_name"],
         )
         job_suspended = submitter.suspend()
         if not job_suspended:
@@ -80,7 +80,7 @@ def resume_job(job):
             job.root_dir,
             job.resume_job_store_location,
             log_dir=job.log_dir,
-            app_name=job.metadata["app_name"],
+            app_name=job.metadata["pipeline_name"],
         )
         job_resumed = submitter.resume()
         if not job_resumed:
@@ -174,7 +174,7 @@ def submit_job_to_lsf(job):
             job.walltime,
             job.memlimit,
             log_dir=job.log_dir,
-            app_name=job.metadata["app_name"],
+            app_name=job.metadata["pipeline_name"],
         )
         (
             external_job_id,
@@ -239,7 +239,7 @@ def check_job_status(job):
         job.root_dir,
         job.resume_job_store_location,
         log_dir=job.log_dir,
-        app_name=job.metadata["app_name"],
+        app_name=job.metadata["pipeline_name"],
     )
     try:
         lsf_status, lsf_message = submiter.status(job.external_id)
@@ -289,7 +289,7 @@ def terminate_job(job):
                 job.root_dir,
                 job.resume_job_store_location,
                 log_dir=job.log_dir,
-                app_name=job.metadata["app_name"],
+                app_name=job.metadata["pipeline_name"],
             )
             job_killed = submitter.terminate()
             if not job_killed:
@@ -442,7 +442,7 @@ def check_status_of_command_line_jobs(job):
         job.root_dir,
         job.resume_job_store_location,
         log_dir=job.log_dir,
-        app_name=job.metadata["app_name"],
+        app_name=job.metadata["pipeline_name"],
     )
     track_cache_str = job.track_cache
     command_line_status = submiter.get_commandline_status(track_cache_str)

@@ -42,7 +42,7 @@ class TestToil(TestCase):
             job_store_location=None,
             working_dir=None,
             status=Status.RUNNING,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         self.job.save()
         self.get_toil_mock(self.toil_version)
