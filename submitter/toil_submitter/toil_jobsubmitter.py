@@ -31,10 +31,10 @@ class ToilJobSubmitter(JobSubmitter):
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
         else:
-            self.job_store_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]['JOB_STORE_ROOT'], self.job_id)
-        self.job_work_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]['WORK_DIR_ROOT'], self.job_id)
+            self.job_store_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["JOB_STORE_ROOT"], self.job_id)
+        self.job_work_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["WORK_DIR_ROOT"], self.job_id)
         self.job_outputs_dir = root_dir
-        self.job_tmp_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]['TMP_DIR_ROOT'], self.job_id)
+        self.job_tmp_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["TMP_DIR_ROOT"], self.job_id)
 
     def submit(self):
         self._prepare_directories()

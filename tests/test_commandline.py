@@ -42,9 +42,7 @@ class TestToil(TestCase):
             job_store_location=None,
             working_dir=None,
             status=Status.RUNNING,
-            metadata={
-                "app_name": "NA"
-            }
+            metadata={"app_name": "NA"},
         )
         self.job.save()
         self.get_toil_mock(self.toil_version)
@@ -77,7 +75,11 @@ class TestToil(TestCase):
         new_jobstore = os.path.join(tmp_jobstore, job_id)
         copytree(jobstore, new_jobstore)
         copytree(work_dir, new_work_dir)
-        with override_settings(TOIL_JOB_STORE_ROOT=tmp_jobstore, TOIL_WORK_DIR_ROOT=tmp_work_dir):
+        with override_settings(
+            PIPELINE_CONFIG={
+                "NA": {"JOB_STORE_ROOT": tmp_jobstore, "WORK_DIR_ROOT": tmp_work_dir, "TMP_DIR_ROOT": "/tmp"}
+            }
+        ):
             check_status_of_command_line_jobs(self.job)
 
     def test_running(self):

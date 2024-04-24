@@ -35,7 +35,7 @@ DEBUG = ENVIRONMENT == "dev"
 ALLOWED_HOSTS = os.environ.get("RIDGEBACK_ALLOWED_HOSTS", "localhost").split(",")
 
 
-SESSION_COOKIE_NAME = os.environ.get("RIDGEBACK_COOKIE_SESSION_NAME", 'ridgeback_prod_session')
+SESSION_COOKIE_NAME = os.environ.get("RIDGEBACK_COOKIE_SESSION_NAME", "ridgeback_prod_session")
 
 
 ELASTIC_APM = {
@@ -250,23 +250,23 @@ PIPELINE_CONFIG = {
     "ARGOS": {
         "JOB_STORE_ROOT": os.environ["ARGOS_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["ARGOS_WORK_DIR_ROOT"],
-        "TMP_DIR_ROOT": os.environ["ARGOS_TMP_DIR_ROOT"]
+        "TMP_DIR_ROOT": os.environ["ARGOS_TMP_DIR_ROOT"],
     },
     "TEMPO": {
         "JOB_STORE_ROOT": os.environ["TEMPO_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["TEMPO_WORK_DIR_ROOT"],
-        "TMP_DIR_ROOT": os.environ["TEMPO_TMP_DIR_ROOT"]
+        "TMP_DIR_ROOT": os.environ["TEMPO_TMP_DIR_ROOT"],
     },
     "ACCESS": {
         "JOB_STORE_ROOT": os.environ["ACCESS_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["ACCESS_WORK_DIR_ROOT"],
-        "TMP_DIR_ROOT": os.environ["ACCESS_TMP_DIR_ROOT"]
+        "TMP_DIR_ROOT": os.environ["ACCESS_TMP_DIR_ROOT"],
     },
     "NA": {
         "JOB_STORE_ROOT": os.environ["DEFAULT_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["DEFAULT_WORK_DIR_ROOT"],
-        "TMP_DIR_ROOT": os.environ["DEFAULT_TMP_DIR_ROOT"]
-    }
+        "TMP_DIR_ROOT": os.environ["DEFAULT_TMP_DIR_ROOT"],
+    },
 }
 
 # Toil settings
