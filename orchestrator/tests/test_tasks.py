@@ -158,7 +158,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.SUBMITTED,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         status.return_value = Status.PENDING, ""
         command_processor.return_value = True
@@ -180,7 +180,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.PENDING,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         status.return_value = Status.RUNNING, ""
         command_processor.return_value = True
@@ -204,7 +204,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.RUNNING,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         permission.return_value = None
         status.return_value = Status.COMPLETED, ""
@@ -230,7 +230,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.RUNNING,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         status.return_value = Status.FAILED, ""
         command_processor.return_value = True
@@ -253,7 +253,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.PENDING,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         job_created_1 = Job.objects.create(
             type=PipelineType.CWL,
@@ -266,7 +266,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.CREATED,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -297,7 +297,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.PENDING,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -320,7 +320,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.PENDING,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -344,7 +344,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.RUNNING,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -368,7 +368,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.SUSPENDED,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -390,7 +390,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.FAILED,
-            metadata={"app_name": "NA"},
+            metadata={"pipeline_name": "NA"},
         )
         clean_directory.return_value = True
         cleanup_folders(str(cleanup_job.id), exclude=[])
@@ -420,7 +420,7 @@ class TasksTest(TestCase):
                 root_permission=expected_permission,
                 external_id="ext_id",
                 status=Status.COMPLETED,
-                metadata={"app_name": "NA"},
+                metadata={"pipeline_name": "NA"},
             )
             set_permission(job_completed)
             current_permission = oct(os.stat(temp_path).st_mode)[-3:]
@@ -444,7 +444,7 @@ class TasksTest(TestCase):
                     root_permission=expected_permission,
                     external_id="ext_id",
                     status=Status.COMPLETED,
-                    metadata={"app_name": "NA"},
+                    metadata={"pipeline_name": "NA"},
                 )
                 set_permission(job_completed)
 
@@ -464,6 +464,6 @@ class TasksTest(TestCase):
                 root_permission=expected_permission,
                 external_id="ext_id",
                 status=Status.COMPLETED,
-                metadata={"app_name": "NA"},
+                metadata={"pipeline_name": "NA"},
             )
             set_permission(job_completed)
