@@ -199,8 +199,11 @@ class NextflowJobSubmitter(JobSubmitter):
             for k, v in params.items():
                 if v is None:
                     continue
-                elif isinstance(v, bool) and v:
-                    command_line.extend([f"--{k}"])
+                elif isinstance(v, bool):
+                    if v:
+                        command_line.extend([f"--{k}"])
+                    else:
+                        continue
                 else:
                     command_line.extend([f"--{k}", v])
         if self.resume_jobstore:
