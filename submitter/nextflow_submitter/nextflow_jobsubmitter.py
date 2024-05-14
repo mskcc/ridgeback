@@ -48,7 +48,7 @@ class NextflowJobSubmitter(JobSubmitter):
         log_path = os.path.join(self.job_work_dir, "lsf.log")
         env = dict()
         env["NXF_OPTS"] = "-Xms8g -Xmx16g"
-        env["JAVA_HOME"] = "/opt/common/CentOS_7/java/jdk-11.0.11/"
+        env["JAVA_HOME"] = settings.NEXTFLOW_JAVA_HOME
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
         external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, self.job_id, env)
@@ -178,6 +178,8 @@ class NextflowJobSubmitter(JobSubmitter):
     def _command_line(self):
         app_location, input_map, config, profile, params = self._dump_app_inputs()
 
+        workdir = self.resume_jobstore if self.resume_jobstore else self.job_store_dir
+
         command_line = [
             settings.NEXTFLOW,
             "-log",
@@ -190,6 +192,8 @@ class NextflowJobSubmitter(JobSubmitter):
             self.job_store_dir,
             "--outDir",
             self.job_outputs_dir,
+            "--workflow.launchDir",
+            workdir
         ]
         for k, v in input_map.items():
             command_line.extend(["--%s" % k, v])
