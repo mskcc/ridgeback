@@ -284,6 +284,7 @@ TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
 # Nextflow settings
 
 NEXTFLOW = os.environ.get("RIDGEBACK_NEXTFLOW", "nextflow")
+NEXTFLOW_JAVA_HOME = os.environ.get("RIDGEBACK_JAVA_HOME", "/opt/common/CentOS_7/java/jdk-11.0.11/")
 
 # Cleanup periods
 
