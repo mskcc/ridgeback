@@ -1,4 +1,4 @@
-import ddtrace
+# import ddtrace
 from mock import patch
 from uuid import uuid4
 from orchestrator.models import Job
@@ -47,7 +47,7 @@ class JobTestCase(APITestCase):
 
     @patch("orchestrator.tasks.submit_job_to_lsf")
     def test_create(self, submit_jobs_mock):
-        ddtrace.tracer.enabled = False
+        # ddtrace.tracer.enabled = False
         url = self.api_root + "jobs/"
         submit_jobs_mock.return_value = None
         data = {
@@ -82,7 +82,7 @@ class JobTestCase(APITestCase):
 
     @patch("orchestrator.tasks.submit_job_to_lsf")
     def test_resume(self, submit_jobs_mock):
-        ddtrace.tracer.enabled = False
+        # ddtrace.tracer.enabled = False
         url = "{}jobs/{}/resume/".format(self.api_root, self.example_job.id)
         submit_jobs_mock.return_value = "submit_jobs_mock"
         data = {"type": 0, "root_dir": self.example_job.root_dir, "base_dir": "/base_dir"}
