@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from orchestrator.tasks import command_processor
 from orchestrator.commands.command import Command, CommandType
-from ddtrace import tracer
+# from ddtrace import tracer
 
 
 class JobViewSet(
@@ -30,13 +30,13 @@ class JobViewSet(
     def get_serializer_class(self):
         return JobSerializer
 
-    @tracer.wrap()
+    # @tracer.wrap()
     def validate_and_save(self, data):
         serializer = JobSerializer(data=data)
         if serializer.is_valid():
-            current_span = tracer.current_span()
+            # current_span = tracer.current_span()
             request_id = data.get("inputs", {}).get("runparams", {}).get("project_prefix", "None Specified")
-            current_span.set_tag("request.id", request_id)
+            # current_span.set_tag("request.id", request_id)
             response = serializer.save()
             response = JobSerializer(response)
             return Response(response.data, status=status.HTTP_201_CREATED)
