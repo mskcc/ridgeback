@@ -1,5 +1,3 @@
-import os
-from django.conf import settings
 from submitter.app import App
 from batch_systems.lsf_client.lsf_client import LSFClient
 
