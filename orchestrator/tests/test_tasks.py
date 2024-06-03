@@ -399,9 +399,29 @@ class TasksTest(TestCase):
         self.assertIsNotNone(cleanup_job.job_store_clean_up)
 
     def test_get_job_info_path(self):
-        with self.settings(TOIL_WORK_DIR_ROOT="/toil/work/dir/root"):
-            res = get_job_info_path("job_id")
-            self.assertEqual(res, "/toil/work/dir/root/job_id/.run.info")
+        PIPELINE_CONFIG = {
+            "TEST": {
+                "JOB_STORE_ROOT": "/toil/work/dir/root",
+                "WORK_DIR_ROOT": "/toil/work/dir/root",
+                "TMP_DIR_ROOT": "/toil/work/dir/root",
+            },
+        }
+        job = Job.objects.create(
+            type=PipelineType.CWL,
+            app={
+                "github": {
+                    "version": "1.0.0",
+                    "entrypoint": "test.cwl",
+                    "repository": "",
+                }
+            },
+            external_id="ext_id",
+            status=Status.SUBMITTED,
+            metadata={"pipeline_name": "TEST"},
+        )
+        with self.settings(PIPELINE_CONFIG=PIPELINE_CONFIG):
+            res = get_job_info_path(str(job.id))
+            self.assertEqual(res, f"/toil/work/dir/root/{str(job.id)}/.run.info")
 
     def test_permission(self):
         with tempfile.TemporaryDirectory() as temp_path:
