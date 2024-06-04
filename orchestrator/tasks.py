@@ -560,7 +560,7 @@ def check_status_of_command_line_jobs(job):
             job.root_dir,
             job.resume_job_store_location,
             log_dir=job.log_dir,
-            app_name=job.metadata["pipeline_name"]
+            app_name=job.metadata["pipeline_name"],
         )
         track_cache_str = job.track_cache
         command_line_status = submiter.get_commandline_status(track_cache_str)
