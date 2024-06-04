@@ -158,6 +158,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.SUBMITTED,
+            metadata={"pipeline_name": "NA"},
         )
         status.return_value = Status.PENDING, ""
         command_processor.return_value = True
@@ -179,6 +180,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.PENDING,
+            metadata={"pipeline_name": "NA"},
         )
         status.return_value = Status.RUNNING, ""
         command_processor.return_value = True
@@ -202,6 +204,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.RUNNING,
+            metadata={"pipeline_name": "NA"},
         )
         permission.return_value = None
         status.return_value = Status.COMPLETED, ""
@@ -227,6 +230,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.RUNNING,
+            metadata={"pipeline_name": "NA"},
         )
         status.return_value = Status.FAILED, ""
         command_processor.return_value = True
@@ -249,6 +253,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.PENDING,
+            metadata={"pipeline_name": "NA"},
         )
         job_created_1 = Job.objects.create(
             type=PipelineType.CWL,
@@ -261,6 +266,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.CREATED,
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -291,6 +297,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.PENDING,
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -313,6 +320,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.PENDING,
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -336,6 +344,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.RUNNING,
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -359,6 +368,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.SUSPENDED,
+            metadata={"pipeline_name": "NA"},
         )
         add.return_value = True
         delete.return_value = True
@@ -380,6 +390,7 @@ class TasksTest(TestCase):
             },
             external_id="ext_id",
             status=Status.FAILED,
+            metadata={"pipeline_name": "NA"},
         )
         clean_directory.return_value = True
         cleanup_folders(str(cleanup_job.id), exclude=[])
@@ -388,9 +399,29 @@ class TasksTest(TestCase):
         self.assertIsNotNone(cleanup_job.job_store_clean_up)
 
     def test_get_job_info_path(self):
-        with self.settings(TOIL_WORK_DIR_ROOT="/toil/work/dir/root"):
-            res = get_job_info_path("job_id")
-            self.assertEqual(res, "/toil/work/dir/root/job_id/.run.info")
+        PIPELINE_CONFIG = {
+            "TEST": {
+                "JOB_STORE_ROOT": "/toil/work/dir/root",
+                "WORK_DIR_ROOT": "/toil/work/dir/root",
+                "TMP_DIR_ROOT": "/toil/work/dir/root",
+            },
+        }
+        job = Job.objects.create(
+            type=PipelineType.CWL,
+            app={
+                "github": {
+                    "version": "1.0.0",
+                    "entrypoint": "test.cwl",
+                    "repository": "",
+                }
+            },
+            external_id="ext_id",
+            status=Status.SUBMITTED,
+            metadata={"pipeline_name": "TEST"},
+        )
+        with self.settings(PIPELINE_CONFIG=PIPELINE_CONFIG):
+            res = get_job_info_path(str(job.id))
+            self.assertEqual(res, f"/toil/work/dir/root/{str(job.id)}/.run.info")
 
     def test_permission(self):
         with tempfile.TemporaryDirectory() as temp_path:
@@ -409,6 +440,7 @@ class TasksTest(TestCase):
                 root_permission=expected_permission,
                 external_id="ext_id",
                 status=Status.COMPLETED,
+                metadata={"pipeline_name": "NA"},
             )
             set_permission(job_completed)
             current_permission = oct(os.stat(temp_path).st_mode)[-3:]
@@ -432,6 +464,7 @@ class TasksTest(TestCase):
                     root_permission=expected_permission,
                     external_id="ext_id",
                     status=Status.COMPLETED,
+                    metadata={"pipeline_name": "NA"},
                 )
                 set_permission(job_completed)
 
@@ -451,5 +484,6 @@ class TasksTest(TestCase):
                 root_permission=expected_permission,
                 external_id="ext_id",
                 status=Status.COMPLETED,
+                metadata={"pipeline_name": "NA"},
             )
             set_permission(job_completed)
