@@ -6,7 +6,7 @@ from submitter import JobSubmitter
 
 
 class NextflowJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit, log_dir=None):
+    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit, log_dir=None, app_name="NA"):
         """
         :param job_id:
         :param app: github.url
@@ -32,15 +32,15 @@ class NextflowJobSubmitter(JobSubmitter):
         :param root_dir:
         :param resume_jobstore:
         """
-        JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir)
+        JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, app_name)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
         else:
-            self.job_store_dir = os.path.join(settings.NEXTFLOW_JOB_STORE_ROOT, self.job_id)
-        self.job_work_dir = os.path.join(settings.NEXTFLOW_WORK_DIR_ROOT, self.job_id)
+            self.job_store_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["JOB_STORE_ROOT"], self.job_id)
+        self.job_work_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["WORK_DIR_ROOT"], self.job_id)
         self.job_outputs_dir = root_dir
-        self.job_tmp_dir = os.path.join(settings.NEXTFLOW_TMP_DIR_ROOT, self.job_id)
+        self.job_tmp_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["TMP_DIR_ROOT"], self.job_id)
 
     def submit(self):
         self._prepare_directories()
@@ -48,7 +48,7 @@ class NextflowJobSubmitter(JobSubmitter):
         log_path = os.path.join(self.job_work_dir, "lsf.log")
         env = dict()
         env["NXF_OPTS"] = "-Xms8g -Xmx16g"
-        env["JAVA_HOME"] = "/opt/common/CentOS_7/java/jdk1.8.0_202/"
+        env["JAVA_HOME"] = "/opt/common/CentOS_7/java/jdk-11.0.11/"
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
         external_id = self.lsf_client.submit(command_line, self._leader_args(), log_path, self.job_id, env)
@@ -201,6 +201,11 @@ class NextflowJobSubmitter(JobSubmitter):
                     continue
                 elif isinstance(v, bool) and v:
                     command_line.extend([f"--{k}"])
+                elif isinstance(v, bool):
+                    if v:
+                        command_line.extend([f"--{k}"])
+                    else:
+                        continue
                 else:
                     command_line.extend([f"--{k}", v])
         if self.resume_jobstore:
