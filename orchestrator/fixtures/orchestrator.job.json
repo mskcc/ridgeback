@@ -130,7 +130,8 @@
         "started": "2020-06-23T18:56:18.067Z",
         "submitted": "2020-06-23T18:56:18.067Z",
         "finished": null,
-        "track_cache": null
+        "track_cache": null,
+        "metadata": {"pipeline_name": "NA"}
     }
 },
 
@@ -164,7 +165,8 @@
         "started": "2020-06-23T18:56:18.067Z",
         "submitted": "2020-06-23T18:56:18.067Z",
         "finished": null,
-        "track_cache": null
+        "track_cache": null,
+        "metadata": {"pipeline_name": "NA"}
     }
 },
 {
@@ -197,7 +199,8 @@
         "started": null,
         "submitted": null,
         "finished": null,
-        "track_cache": null
+        "track_cache": null,
+        "metadata": {"pipeline_name": "NA"}
     }
 },
 {
