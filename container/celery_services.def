@@ -148,17 +148,17 @@ Includecmd: no
     export PATH=$LSF_BINDIR:$SINGULARITY_BIN_PATH:$PATH
 
     echo "Running orchestrator beat..."
-    nohup celery -A orchestrator beat \
+    nohup celery --workdir ${RIDGEBACK_PATH} \
+    -A orchestrator beat \
     -l info \
-    --workdir ${RIDGEBACK_PATH} \
     -f ${RIDGEBACK_CELERY_LOG_PATH}/ridgeback_beat.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid \
     -s ${RIDGEBACK_CELERY_BEAT_SCHEDULE_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.celerybeat-schedule >/dev/null 2>&1 < /dev/null &
 
     echo "Running command queue worker..."
-    nohup celery -A orchestrator worker \
+    nohup celery --workdir ${RIDGEBACK_PATH} \
+    -A orchestrator worker \
     -l info \
-    --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_COMMAND_QUEUE} \
     -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_COMMAND_QUEUE}.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_COMMAND_QUEUE}.pid \
@@ -166,9 +166,9 @@ Includecmd: no
     -n ${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_COMMAND_QUEUE} >/dev/null 2>&1 < /dev/null &
 
     echo "Running action queue worker..."
-    nohup celery -A orchestrator worker \
+    nohup celery --workdir ${RIDGEBACK_PATH} \
+    -A orchestrator worker \
     -l info \
-    --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_ACTION_QUEUE} \
     -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_ACTION_QUEUE}.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid \
@@ -176,27 +176,27 @@ Includecmd: no
     -n ${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE} >/dev/null 2>&1 < /dev/null &
 
     echo "Running check status queue worker..."
-    nohup celery -A orchestrator worker \
+    nohup celery --workdir ${RIDGEBACK_PATH} \
+    -A orchestrator worker \
     -l info \
-    --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
     -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
     echo "Running check status queue worker..."
-    nohup celery -A orchestrator worker \
+    nohup celery --workdir ${RIDGEBACK_PATH} \
+    -A orchestrator worker \
     -l info \
-    --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
     -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
     echo "Running cleanup queue worker..."
-    nohup celery -A orchestrator worker \
+    nohup celery --workdir ${RIDGEBACK_PATH} \
+    -A orchestrator worker \
     -l info \
-    --workdir ${RIDGEBACK_PATH} \
     -Q ${RIDGEBACK_CLEANUP_QUEUE} \
     -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_CLEANUP_QUEUE}.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid \
