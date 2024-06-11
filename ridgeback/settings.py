@@ -34,6 +34,8 @@ DEBUG = ENVIRONMENT == "dev"
 
 ALLOWED_HOSTS = os.environ.get("RIDGEBACK_ALLOWED_HOSTS", "localhost").split(",")
 
+STATIC_URL = "/static/"
+STATIC_ROOT = "ridgeback_staticfiles"
 
 SESSION_COOKIE_NAME = os.environ.get("RIDGEBACK_COOKIE_SESSION_NAME", "ridgeback_prod_session")
 
@@ -182,7 +184,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -293,9 +295,8 @@ CLEANUP_FAILED_JOBS = os.environ.get("RIDGEBACK_CLEANUP_FAILED_JOBS", 30)
 CLEANUP_TERMINATED_JOBS = os.environ.get("RIDGEBACK_CLEANUP_TERMINATED_JOBS", 30)
 
 OUTPUT_DEFAULT_PERMISSION = os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_PERMISSION", "750")
-
-STATIC_ROOT = "ridgeback_staticfiles"
-STATIC_URL = "/static/"
+OUTPUT_DEFAULT_UID = int(os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_UID", 1741))
+OUTPUT_DEFAULT_GID = int(os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_GID", 6146))
 
 # App Cache Configuration
 

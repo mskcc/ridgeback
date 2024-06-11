@@ -302,6 +302,8 @@ def set_permission(job):
     failed_to_set = None
     dirs = job.root_dir.replace(job.base_dir, "").split("/")
     permission_str = job.root_permission
+    uid = job.output_uid
+    gid = job.output_gid
     permissions_dir = job.base_dir
     for d in dirs:
         failed_to_set = False
@@ -316,11 +318,15 @@ def set_permission(job):
                 for single_dir in dirs:
                     if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
                         logger.info(f"Setting permissions for {os.path.join(root, single_dir)}")
-                        os.chmod(os.path.join(root, single_dir), permission_octal)
+                        path = os.path.join(root, single_dir)
+                        os.chmod(path, permission_octal)
+                        os.chown(path, uid=uid, gid=gid)
                 for single_file in files:
                     if oct(os.lstat(os.path.join(root, single_file)).st_mode)[-3:] != permission_octal:
-                        logger.info(f"Setting permissions for {os.path.join(root, single_file)}")
-                        os.chmod(os.path.join(root, single_file), permission_octal)
+                        path = os.path.join(root, single_file)
+                        logger.info(f"Setting permissions for {path}")
+                        os.chmod(path, permission_octal)
+                        os.chown(path, uid=uid, gid=gid)
         except Exception:
             logger.error(f"Failed to set permissions for directory {permissions_dir}")
             failed_to_set = True
