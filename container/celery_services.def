@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: From: ubuntu:22.04
+From: ubuntu:22.04
 Includecmd: no
 
 %post
