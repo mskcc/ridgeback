@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0012_job_base_dir'),
+        ("orchestrator", "0012_job_base_dir"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='job',
-            name='output_gid',
+            model_name="job",
+            name="output_gid",
             field=models.IntegerField(default=6146),
         ),
         migrations.AddField(
-            model_name='job',
-            name='output_uid',
+            model_name="job",
+            name="output_uid",
             field=models.IntegerField(default=1741),
         ),
     ]
