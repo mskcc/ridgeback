@@ -301,3 +301,5 @@ OUTPUT_DEFAULT_GID = int(os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_GID", 6146))
 # App Cache Configuration
 
 APP_CACHE = os.environ.get("RIDGEBACK_APP_CACHE", "/tmp")
+
+MAX_HANGING_HOURS = os.environ.get("RIDGEBACK_MAX_HANGING_HOURS", "5")

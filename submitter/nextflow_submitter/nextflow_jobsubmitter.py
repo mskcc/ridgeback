@@ -6,7 +6,19 @@ from submitter import JobSubmitter
 
 
 class NextflowJobSubmitter(JobSubmitter):
-    def __init__(self, job_id, app, inputs, root_dir, resume_jobstore, walltime, memlimit, log_dir=None, app_name="NA"):
+    def __init__(
+        self,
+        job_id,
+        app,
+        inputs,
+        root_dir,
+        resume_jobstore,
+        walltime,
+        tool_walltime,
+        memlimit,
+        log_dir=None,
+        app_name="NA",
+    ):
         """
         :param job_id:
         :param app: github.url
@@ -32,7 +44,7 @@ class NextflowJobSubmitter(JobSubmitter):
         :param root_dir:
         :param resume_jobstore:
         """
-        JobSubmitter.__init__(self, job_id, app, inputs, walltime, memlimit, log_dir, app_name)
+        JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, app_name)
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
@@ -51,10 +63,10 @@ class NextflowJobSubmitter(JobSubmitter):
         env["JAVA_HOME"] = "/opt/common/CentOS_7/java/jdk-11.0.11/"
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
-        external_id = self.lsf_client.submit(command_line, self._job_args(), log_path, self.job_id, env)
+        external_id = self.lsf_client.submit(command_line, self._leader_args(), log_path, self.job_id, env)
         return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
-    def _job_args(self):
+    def _leader_args(self):
         args = self._walltime()
         args.extend(self._memlimit())
         return args

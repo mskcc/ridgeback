@@ -6,7 +6,8 @@ import tempfile
 from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
-from django.utils.timezone import now
+from django.utils.timezone import now, make_aware
+from django.utils import dateparse
 from .models import Job, Status, CommandLineToolJob
 from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
@@ -104,6 +105,9 @@ def process_jobs():
             Status.UNKNOWN,
         )
     ).values_list("pk", flat=True)
+
+    check_leader_not_running.delay()
+
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
@@ -149,17 +153,20 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
                     logger.info("Setting output permission for job %s" % command.job_id)
                     set_permission(job)
+                elif command.command_type == CommandType.CHECK_HANGING:
+                    logger.info("Checking if the job %s has any hanging tasks" % command.job_id)
+                    check_job_hanging(job)
 
             else:
                 logger.info("Job lock not acquired for job: %s" % command.job_id)
                 self.retry()
     except RetryException as e:
         logger.info(
-            "Command %s failed. Retrying in %s. Excaption %s" % (command_dict, self.request.retries * 5, str(e))
+            "Command %s failed. Retrying in %s. Exception %s" % (command_dict, self.request.retries * 5, str(e))
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
-        logger.error("Command %s failed. Not retrying. Excaption %s" % (command_dict, str(e)))
+        logger.error("Command %s failed. Not retrying. Exception %s" % (command_dict, str(e)))
 
 
 def submit_job_to_lsf(job):
@@ -173,6 +180,7 @@ def submit_job_to_lsf(job):
             job.root_dir,
             job.resume_job_store_location,
             job.walltime,
+            job.tool_walltime,
             job.memlimit,
             log_dir=job.log_dir,
             app_name=job.metadata["pipeline_name"],
@@ -256,6 +264,9 @@ def check_job_status(job):
         ):
             job.update_status(lsf_status)
 
+            if lsf_status in (Status.RUNNING,):
+                command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
+
         elif lsf_status in (Status.COMPLETED,):
             outputs, error_message = submiter.get_outputs()
             if outputs:
@@ -270,6 +281,111 @@ def check_job_status(job):
 
     else:
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
+
+
+def _add_alert(job, alert_obj):
+    if "alerts" in job.message:
+        all_alerts = job.message["alerts"]
+        alert_ons = [single_alert["on"] for single_alert in all_alerts]
+        current_alert_on = alert_obj["on"]
+        if current_alert_on not in alert_ons:
+            all_alerts.append(alert_obj)
+            job.message["alerts"] = all_alerts
+            job.save()
+    else:
+        job.message["alerts"] = [alert_obj]
+        job.save()
+
+
+@shared_task(bind=True)
+def check_leader_not_running(self):
+    logger.info("Checking for any jobs stuck in a non-running state")
+    time_threshold = now() - timedelta(hours=int(settings.MAX_HANGING_HOURS))
+    jobs = Job.objects.filter(modified_date__lt=time_threshold).exclude(
+        status__in=[Status.COMPLETED, Status.TERMINATED, Status.RUNNING]
+    )
+    for single_tool in jobs:
+        status_name = Status(single_tool.status).name
+        hang_time_seconds = (now() - single_tool.modified_date).total_seconds()
+        hang_time_hours = divmod(hang_time_seconds, 3600)[0]
+        message = "Leader job has been hanging on status {} for over {} hours.".format(status_name, hang_time_hours)
+        hang_time_obj = {
+            "message": message,
+            "hang_time": hang_time_hours,
+            "since": str(single_tool.modified_date),
+            "on": "leader_before_running",
+        }
+        _add_alert(single_tool, hang_time_obj)
+
+
+def check_job_hanging(single_running_job):
+    time_threshold = now() - timedelta(hours=int(settings.MAX_HANGING_HOURS))
+    non_running_tools = CommandLineToolJob.objects.filter(
+        root__id__exact=single_running_job.id, modified_date__lt=time_threshold
+    ).exclude(status__in=[Status.COMPLETED, Status.TERMINATED, Status.RUNNING, Status.FAILED])
+    running_tools = CommandLineToolJob.objects.filter(root__id__exact=single_running_job.id, status=Status.RUNNING)
+    if len(running_tools) == 0:
+        completed_jobs_finished_time = list(
+            CommandLineToolJob.objects.filter(root__id__exact=single_running_job.id, status=Status.COMPLETED)
+            .exclude(finished__isnull=True)
+            .values_list("finished", flat=True)
+        )
+        if completed_jobs_finished_time:
+            latest_completed = max(completed_jobs_finished_time)
+            if latest_completed < time_threshold:
+                hang_time_seconds = (now() - latest_completed).total_seconds()
+                hang_time_hours = divmod(hang_time_seconds, 3600)[0]
+                message = "Leader job has not submitted a job for over {} hours.".format(hang_time_hours)
+                if "log" in single_running_job.message:
+                    log_file = single_running_job.message["log"]
+                    if log_file:
+                        message += " Check this log for more info: {}".format(log_file)
+                hang_time_obj = {
+                    "message": message,
+                    "hang_time": hang_time_hours,
+                    "since": str(latest_completed),
+                    "on": "leader_running",
+                }
+                _add_alert(single_running_job, hang_time_obj)
+    for single_tool in non_running_tools:
+        status_name = Status(single_tool.status).name
+        hang_time_seconds = (now() - single_tool.modified_date).total_seconds()
+        hang_time_hours = divmod(hang_time_seconds, 3600)[0]
+        job_name = single_tool.job_name
+        job_id = "{}_before_running".format(single_tool.job_id)
+        message = "{} job has been hanging on status {} for over {} hours.".format(
+            job_name, status_name, hang_time_hours
+        )
+        hang_time_obj = {
+            "message": message,
+            "hang_time": hang_time_hours,
+            "since": str(single_tool.modified_date),
+            "on": job_id,
+        }
+        _add_alert(single_running_job, hang_time_obj)
+    for single_running_tool in running_tools:
+        if "last_modified" not in single_running_tool.details:
+            continue
+        modified_date_str = single_running_tool.details["last_modified"]
+        if modified_date_str:
+            modified_date = make_aware(dateparse.parse_datetime(modified_date_str))
+            if modified_date < time_threshold:
+                hang_time_seconds = (now() - modified_date).total_seconds()
+                hang_time_hours = divmod(hang_time_seconds, 3600)[0]
+                job_name = single_running_tool.job_name
+                job_id = "{}_running".format(single_running_tool.job_id)
+                message = "{} job has not logged an update for over {} hours.".format(job_name, hang_time_hours)
+                if "log_path" in single_running_tool.details:
+                    log_file = single_running_tool.details["log_path"]
+                    if log_file:
+                        message += " Check this log for more info: {}".format(log_file)
+                hang_time_obj = {
+                    "message": message,
+                    "hang_time": hang_time_hours,
+                    "since": str(modified_date),
+                    "on": job_id,
+                }
+                _add_alert(single_running_job, hang_time_obj)
 
 
 def terminate_job(job):
@@ -441,24 +557,25 @@ def update_command_line_jobs(command_line_jobs, root):
 
 
 def check_status_of_command_line_jobs(job):
-    submiter = JobSubmitterFactory.factory(
-        job.type,
-        str(job.id),
-        job.app,
-        job.inputs,
-        job.root_dir,
-        job.resume_job_store_location,
-        log_dir=job.log_dir,
-        app_name=job.metadata["pipeline_name"],
-    )
-    track_cache_str = job.track_cache
-    command_line_status = submiter.get_commandline_status(track_cache_str)
-    command_line_jobs = {}
-    if command_line_status:
-        command_line_jobs_str, new_track_cache_str = command_line_status
-        new_track_cache = json.loads(new_track_cache_str)
-        command_line_jobs = json.loads(command_line_jobs_str)
-        job.track_cache = new_track_cache
-        job.save()
-    if command_line_jobs:
-        update_command_line_jobs(command_line_jobs, job)
+    if job.status != Status.COMPLETED:
+        submiter = JobSubmitterFactory.factory(
+            job.type,
+            str(job.id),
+            job.app,
+            job.inputs,
+            job.root_dir,
+            job.resume_job_store_location,
+            log_dir=job.log_dir,
+            app_name=job.metadata["pipeline_name"],
+        )
+        track_cache_str = job.track_cache
+        command_line_status = submiter.get_commandline_status(track_cache_str)
+        command_line_jobs = {}
+        if command_line_status:
+            command_line_jobs_str, new_track_cache_str = command_line_status
+            new_track_cache = json.loads(new_track_cache_str)
+            command_line_jobs = json.loads(command_line_jobs_str)
+            job.track_cache = new_track_cache
+            job.save()
+        if command_line_jobs:
+            update_command_line_jobs(command_line_jobs, job)
