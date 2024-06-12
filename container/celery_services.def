@@ -23,7 +23,7 @@ Includecmd: no
     && pip3 install setuptools==57.5.0 \
     && pip install "cython<3.0.0" wheel \
     && pip install "pyyaml==5.4.1" --no-build-isolation \
-    && pip3 install -r requirements.txt
+    && pip3 install -r requirements.txt \
     && pip3 install -r requirements-toil.txt
 
 ##############################
