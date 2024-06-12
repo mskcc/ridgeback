@@ -10,6 +10,7 @@ class CommandType(IntEnum):
     SUSPEND = 4
     RESUME = 5
     SET_OUTPUT_PERMISSION = 6
+    CHECK_HANGING = 7
 
 
 class Command(object):

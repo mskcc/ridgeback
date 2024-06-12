@@ -77,5 +77,6 @@ class TestNextflowSubmitter(TestCase):
             log_dir=self.job.log_dir,
             memlimit=None,
             walltime=None,
+            tool_walltime=None,
         )
         submitter.get_outputs()
