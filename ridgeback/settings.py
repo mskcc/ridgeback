@@ -35,6 +35,9 @@ DEBUG = ENVIRONMENT == "dev"
 ALLOWED_HOSTS = os.environ.get("RIDGEBACK_ALLOWED_HOSTS", "localhost").split(",")
 
 
+SESSION_COOKIE_NAME = os.environ.get("RIDGEBACK_COOKIE_SESSION_NAME", "ridgeback_prod_session")
+
+
 ELASTIC_APM = {
     # Set the required service name. Allowed characters:
     # a-z, A-Z, 0-9, -, _, and space
@@ -241,22 +244,46 @@ LOGGING = {
     },
 }
 
+# Pipeline Configuration
+
+PIPELINE_CONFIG = {
+    "ARGOS": {
+        "JOB_STORE_ROOT": os.environ["ARGOS_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["ARGOS_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["ARGOS_TMP_DIR_ROOT"],
+    },
+    "TEMPO": {
+        "JOB_STORE_ROOT": os.environ["TEMPO_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["TEMPO_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["TEMPO_TMP_DIR_ROOT"],
+    },
+    "ACCESS": {
+        "JOB_STORE_ROOT": os.environ["ACCESS_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["ACCESS_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["ACCESS_TMP_DIR_ROOT"],
+    },
+    "CMO-CH": {
+        "JOB_STORE_ROOT": os.environ["CMO_CH_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["CMO_CH_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["CMO_CH_TMP_DIR_ROOT"],
+    },
+    "NA": {
+        "JOB_STORE_ROOT": os.environ["DEFAULT_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["DEFAULT_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["DEFAULT_TMP_DIR_ROOT"],
+    },
+}
+
 # Toil settings
 
-TOIL_JOB_STORE_ROOT = os.environ["RIDGEBACK_TOIL_JOB_STORE_ROOT"]
-TOIL_WORK_DIR_ROOT = os.environ["RIDGEBACK_TOIL_WORK_DIR_ROOT"]
-TOIL_TMP_DIR_ROOT = os.environ["RIDGEBACK_TOIL_TMP_DIR_ROOT"]
+LSF_WALLTIME = os.environ["RIDGEBACK_LSF_WALLTIME"]
 LSF_SLA = os.environ.get("RIDGEBACK_LSF_SLA", None)
 CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
 
-
-NEXTFLOW_JOB_STORE_ROOT = os.environ["RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT"]
-NEXTFLOW_WORK_DIR_ROOT = os.environ["RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT"]
-NEXTFLOW_TMP_DIR_ROOT = os.environ["RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT"]
+# Nextflow settings
 
 NEXTFLOW = os.environ.get("RIDGEBACK_NEXTFLOW", "nextflow")
-
 
 # Cleanup periods
 
