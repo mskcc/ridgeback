@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 def get_job_info_path(job_id):
     job = Job.objects.get(id=job_id)
-    work_dir = os.path.join(settings.PIPELINE_CONFIG[job.metadata["pipeline_name"]]["WORK_DIR_ROOT"], str(job_id))
+    work_dir = os.path.join(
+        settings.PIPELINE_CONFIG.get(job.metadata["pipeline_name"], "NA")["WORK_DIR_ROOT"], str(job_id)
+    )
     job_info_path = os.path.join(work_dir, ".run.info")
     return job_info_path
 
