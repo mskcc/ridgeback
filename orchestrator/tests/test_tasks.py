@@ -241,7 +241,8 @@ class TasksTest(TestCase):
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
     @patch("orchestrator.tasks.command_processor.delay")
-    def test_process_jobs(self, command_processor, add, delete):
+    @patch("orchestrator.tasks.check_leader_not_running.delay")
+    def test_process_jobs(self, check_leader_not_running, command_processor, add, delete):
         job_pending_1 = Job.objects.create(
             type=PipelineType.CWL,
             app={
@@ -278,6 +279,7 @@ class TasksTest(TestCase):
         ]
 
         command_processor.assert_has_calls(calls, any_order=True)
+        check_leader_not_running.assert_called_once()
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")

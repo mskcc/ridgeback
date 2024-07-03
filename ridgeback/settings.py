@@ -34,6 +34,8 @@ DEBUG = ENVIRONMENT == "dev"
 
 ALLOWED_HOSTS = os.environ.get("RIDGEBACK_ALLOWED_HOSTS", "localhost").split(",")
 
+STATIC_URL = "/static/"
+STATIC_ROOT = "ridgeback_staticfiles"
 
 SESSION_COOKIE_NAME = os.environ.get("RIDGEBACK_COOKIE_SESSION_NAME", "ridgeback_prod_session")
 
@@ -267,6 +269,11 @@ PIPELINE_CONFIG = {
         "WORK_DIR_ROOT": os.environ["CMO_CH_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["CMO_CH_TMP_DIR_ROOT"],
     },
+    "ACCESS_HEME": {
+        "JOB_STORE_ROOT": os.environ["ACCESS_HEME_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["ACCESS_HEME_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["ACCESS_HEME_TMP_DIR_ROOT"],
+    },
     "NA": {
         "JOB_STORE_ROOT": os.environ["DEFAULT_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["DEFAULT_WORK_DIR_ROOT"],
@@ -293,10 +300,11 @@ CLEANUP_FAILED_JOBS = os.environ.get("RIDGEBACK_CLEANUP_FAILED_JOBS", 30)
 CLEANUP_TERMINATED_JOBS = os.environ.get("RIDGEBACK_CLEANUP_TERMINATED_JOBS", 30)
 
 OUTPUT_DEFAULT_PERMISSION = os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_PERMISSION", "750")
-
-STATIC_ROOT = "ridgeback_staticfiles"
-STATIC_URL = "/static/"
+OUTPUT_DEFAULT_UID = int(os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_UID", 1741))
+OUTPUT_DEFAULT_GID = int(os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_GID", 6146))
 
 # App Cache Configuration
 
 APP_CACHE = os.environ.get("RIDGEBACK_APP_CACHE", "/tmp")
+
+MAX_HANGING_HOURS = os.environ.get("RIDGEBACK_MAX_HANGING_HOURS", "5")

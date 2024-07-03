@@ -15,6 +15,7 @@ def message_default():
         "log": "",
         "failed_jobs": {},
         "unknown_jobs": {},
+        "alerts": [],
         "info": "",
     }
     return message_default_dict
@@ -156,6 +157,8 @@ class Job(BaseModel):
     base_dir = models.CharField(max_length=1000)
     root_dir = models.CharField(max_length=1000)
     root_permission = models.CharField(default=settings.OUTPUT_DEFAULT_PERMISSION, max_length=3)
+    output_uid = models.IntegerField(default=settings.OUTPUT_DEFAULT_UID, editable=True)
+    output_gid = models.IntegerField(default=settings.OUTPUT_DEFAULT_GID, editable=True)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
@@ -173,7 +176,8 @@ class Job(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     track_cache = JSONField(blank=True, null=True)
-    walltime = models.IntegerField(default=4320)
+    walltime = models.IntegerField(default=7200)
+    tool_walltime = models.IntegerField(default=1440)
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
     metadata = JSONField(blank=True, null=True, default=dict)
 
