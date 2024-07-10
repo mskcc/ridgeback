@@ -200,6 +200,8 @@ class NextflowJobSubmitter(JobSubmitter):
             "%s/nextflow.log" % self.job_work_dir,
             "run",
             app_location,
+            "-Dworkflow.launchDir",
+            os.path.join(self.job_store_dir),
             "-profile",
             profile,
             "-w",
