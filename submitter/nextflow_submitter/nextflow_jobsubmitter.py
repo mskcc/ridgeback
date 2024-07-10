@@ -62,8 +62,8 @@ class NextflowJobSubmitter(JobSubmitter):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, "lsf.log")
         env = dict()
-        env["NXF_OPTS"] = "-Xms8g -Xmx16g"
-        env["JAVA_HOME"] = "/opt/common/CentOS_7/java/jdk-11.0.11/"
+        env["NXF_OPTS"] = settings.NEXTFLOW_NXF_OPTS
+        env["JAVA_HOME"] = settings.NEXTFLOW_JAVA_HOME
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
         env["NXF_CACHE_DIR"] = self.job_store_dir
@@ -200,8 +200,6 @@ class NextflowJobSubmitter(JobSubmitter):
             "%s/nextflow.log" % self.job_work_dir,
             "run",
             app_location,
-            "-Dworkflow.launchDir",
-            os.path.join(self.job_store_dir),
             "-profile",
             profile,
             "-w",
