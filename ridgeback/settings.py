@@ -287,6 +287,8 @@ LSF_WALLTIME = os.environ["RIDGEBACK_LSF_WALLTIME"]
 LSF_SLA = os.environ.get("RIDGEBACK_LSF_SLA", None)
 CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
+TOIL_MAX_CORES = os.environ.get("RIDGEBACK_TOIL_MAX_CORES", "24")
+TOIL_DEFAULT_MEMORY = os.environ.get("RIDGEBACK_TOIL_DEFAULT_MEMORY", "8G")
 
 # Nextflow settings
 
