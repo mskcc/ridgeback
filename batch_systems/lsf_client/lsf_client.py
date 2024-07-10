@@ -77,7 +77,7 @@ class LSFClient(object):
         self.logger.debug("Terminating LSF jobs for job %s", job_id)
         bkill_command = ["bkill", "-g", format_lsf_job_id(job_id), "0"]
         process = subprocess.run(bkill_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
-        if process.returncode == 0:
+        if process.returncode in (0, 255):
             return True
         return False
 

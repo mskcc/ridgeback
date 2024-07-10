@@ -39,14 +39,17 @@ class ToilJobSubmitter(JobSubmitter):
         app_name="NA",
     ):
         JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, app_name)
+        dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
+        if not dir_config:
+            dir_config = settings.PIPELINE_CONFIG["NA"]
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
         else:
-            self.job_store_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["JOB_STORE_ROOT"], self.job_id)
-        self.job_work_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["WORK_DIR_ROOT"], self.job_id)
+            self.job_store_dir = os.path.join(dir_config["JOB_STORE_ROOT"], self.job_id)
+        self.job_work_dir = os.path.join(dir_config["WORK_DIR_ROOT"], self.job_id)
         self.job_outputs_dir = root_dir
-        self.job_tmp_dir = os.path.join(settings.PIPELINE_CONFIG[self.app_name]["TMP_DIR_ROOT"], self.job_id)
+        self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
 
     def submit(self):
         self._prepare_directories()
