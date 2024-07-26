@@ -35,15 +35,11 @@ class Scheduler(object):
             walltime__gte=settings.SHORT_JOB_MAX_DURATION,
             walltime__lt=settings.MEDIUM_JOB_MAX_DURATION,
         ).count()
-        long_jobs_count = (
-            Job.objects.filter(
-                status__gte=Status.SUBMITTING,
-                status__lt=Status.COMPLETED,
-                walltime__gte=settings.MEDIUM_JOB_MAX_DURATION,
-            )
-            .exclude(metadata__pipeline_name__in=settings.SKIP_THE_QUEUE_JOBS)
-            .count()
-        )
+        long_jobs_count = Job.objects.filter(
+            status__gte=Status.SUBMITTING,
+            status__lt=Status.COMPLETED,
+            walltime__gte=settings.MEDIUM_JOB_MAX_DURATION,
+        ).exclude(metadata__pipeline_name__in=settings.SKIP_THE_QUEUE_JOBS).count()
         pending_jobs_short = Job.objects.filter(
             status__lt=Status.SUBMITTING, walltime__lt=settings.SHORT_JOB_MAX_DURATION
         ).order_by("created_date")[: max(settings.SHORT_JOB_QUEUE - short_jobs_count, 0)]
