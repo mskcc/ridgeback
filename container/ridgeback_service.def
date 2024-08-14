@@ -119,4 +119,4 @@ Includecmd: no
     
     python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
     python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
-    python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT > /dev/null 2>&1 < /dev/null &
+    python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT >> ${RIDGEBACK_PATH}/server.log 2>&1 &
