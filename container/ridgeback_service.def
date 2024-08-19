@@ -34,89 +34,58 @@ Includecmd: no
 %startscript
 
     if [ -z "$RIDGEBACK_PATH" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_PATH is not set."
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_PATH is not set." >> logs/boot.log
         exit 1
     fi
 
     if [ -z "$RIDGEBACK_PORT" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_PORT is not set."
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_PORT is not set." >> logs/boot.log
         exit 1
     fi
 
     ### Required envs to connect with postgres db
     if [ -z "$RIDGEBACK_DB_NAME" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_NAME is not set."
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_NAME is not set." >> logs/boot.log
         exit 1
     fi
 
     if [ -z "$RIDGEBACK_DB_USERNAME" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_USERNAME is not set."
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_USERNAME is not set." >> logs/boot.log
         exit 1
     fi
 
     if [ -z "$RIDGEBACK_DB_PASSWORD" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_PASSWORD is not set."
-        exit 1
-    fi
-
-    ### Required envs to establish toil
-    if [ -z "$RIDGEBACK_TOIL_JOB_STORE_ROOT" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_TOIL_JOB_STORE_ROOT is not setr."
-        exit 1
-    fi
-
-    if [ -z "$RIDGEBACK_TOIL_WORK_DIR_ROOT" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_TOIL_WORK_DIR_ROOT is not setr."
-        exit 1
-    fi
-
-    if [ -z "$RIDGEBACK_TOIL_TMP_DIR_ROOT" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_TOIL_TMP_DIR_ROOT is not set."
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_DB_PASSWORD is not set." >> logs/boot.log
         exit 1
     fi
 
     if [ -z "$RIDGEBACK_TOIL" ]; then
         export RIDGEBACK_TOIL=`python3 -c "import os; print(os.path.join('$RIDGEBACK_VENV','bin/cwltoil'))"`
-        echo "RIDGEBACK_TOIL set to $RIDGEBACK_TOIL"
-    fi
-
-    ### Required envs to establish nextflow
-    if [ -z "$RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_NEXTFLOW_JOB_STORE_ROOT is not setr."
-        exit 1
-    fi
-
-    if [ -z "$RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_NEXTFLOW_WORK_DIR_ROOT is not setr."
-        exit 1
-    fi
-
-    if [ -z "$RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_NEXTFLOW_TMP_DIR_ROOT is not set."
-        exit 1
+        echo "RIDGEBACK_TOIL set to $RIDGEBACK_TOIL" >> logs/boot.log
     fi
 
     ### LSF Parameters to communicate with LSF
     if [ -z "$LSF_ENVDIR" ]; then
-        echo "ERROR: SINGULARITYENV_LSF_ENVDIR is not set."
+        echo "ERROR: SINGULARITYENV_LSF_ENVDIR is not set." >> logs/boot.log
         exit 1
     fi
 
     if [ -z "$LSF_BINDIR" ]; then
-        echo "ERROR: SINGULARITYENV_LSF_BINDIR is not set."
+        echo "ERROR: SINGULARITYENV_LSF_BINDIR is not set." >> logs/boot.log
         exit 1
     fi
 
     if [ -z "$LSF_LIBDIR" ]; then
-        echo "ERROR: SINGULARITYENV_LSF_LIBDIR is not set."
+        echo "ERROR: SINGULARITYENV_LSF_LIBDIR is not set." >> logs/boot.log
         exit 1
     fi
 
     if [ -z "$LSF_SERVERDIR" ]; then
-        echo "ERROR: SINGULARITYENV_LSF_SERVERDIR is not set."
+        echo "ERROR: SINGULARITYENV_LSF_SERVERDIR is not set." >> logs/boot.log
         exit 1
     fi
     
     python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
     python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
-    python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT >> ${RIDGEBACK_PATH}/server.log 2>&1 &
+    python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:$RIDGEBACK_PORT >> logs/boot.log 2>&1 &
+
