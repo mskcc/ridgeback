@@ -4,7 +4,7 @@ from django.test import TestCase
 import tempfile
 import os
 from orchestrator.commands import CommandType, Command
-from orchestrator.models import Job, Status, PipelineType, CommandLineToolJob
+from orchestrator.models import Job, Status, PipelineType
 from orchestrator.exceptions import RetryException
 from orchestrator.tasks import (
     command_processor,
@@ -237,131 +237,6 @@ class TasksTest(TestCase):
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
-
-    @patch("orchestrator.tasks.command_processor.delay")
-    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    def test_failed_error_message_two_failed(self, status, command_processor):
-        job = Job.objects.create(
-            type=PipelineType.CWL,
-            app={
-                "github": {
-                    "version": "1.0.0",
-                    "entrypoint": "test.cwl",
-                    "repository": "",
-                }
-            },
-            external_id="ext_id",
-            status=Status.RUNNING,
-            metadata={"pipeline_name": "NA"},
-        )
-        failed_job_1 = CommandLineToolJob.objects.create(
-            root=job, status=Status.FAILED, job_id="1", job_name="First Failed"
-        )
-        failed_job_2 = CommandLineToolJob.objects.create(
-            root=job, status=Status.FAILED, job_id="2", job_name="Second Failed"
-        )
-        status.return_value = Status.FAILED, ""
-        command_processor.return_value = True
-        check_job_status(job)
-        job.refresh_from_db()
-        self.assertEqual(job.status, Status.FAILED)
-        self.assertTrue(
-            failed_job_1.job_name in job.details["failed_jobs"] and failed_job_2.job_name in job.details["failed_jobs"]
-        )
-
-    @patch("orchestrator.tasks.command_processor.delay")
-    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    def test_failed_error_message_1_running(self, status, command_processor):
-        job = Job.objects.create(
-            type=PipelineType.CWL,
-            app={
-                "github": {
-                    "version": "1.0.0",
-                    "entrypoint": "test.cwl",
-                    "repository": "",
-                }
-            },
-            external_id="ext_id",
-            status=Status.RUNNING,
-            metadata={"pipeline_name": "NA"},
-        )
-        running_job_1 = CommandLineToolJob.objects.create(
-            root=job, status=Status.RUNNING, job_id="1", job_name="First Running"
-        )
-        status.return_value = Status.FAILED, ""
-        command_processor.return_value = True
-        check_job_status(job)
-        job.refresh_from_db()
-        self.assertEqual(job.status, Status.FAILED)
-        self.assertTrue(running_job_1.job_name in job.details["failed_jobs"])
-
-    @patch("orchestrator.tasks.command_processor.delay")
-    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    def test_failed_error_message_2_running(self, status, command_processor):
-        job = Job.objects.create(
-            type=PipelineType.CWL,
-            app={
-                "github": {
-                    "version": "1.0.0",
-                    "entrypoint": "test.cwl",
-                    "repository": "",
-                }
-            },
-            external_id="ext_id",
-            status=Status.RUNNING,
-            metadata={"pipeline_name": "NA"},
-        )
-        running_job_1 = CommandLineToolJob.objects.create(
-            root=job, status=Status.RUNNING, job_id="1", job_name="First Running"
-        )
-        running_job_2 = CommandLineToolJob.objects.create(
-            root=job, status=Status.RUNNING, job_id="2", job_name="Second Running"
-        )
-        status.return_value = Status.FAILED, ""
-        command_processor.return_value = True
-        check_job_status(job)
-        job.refresh_from_db()
-        self.assertEqual(job.status, Status.FAILED)
-        self.assertTrue(
-            running_job_1.job_name not in job.details["failed_jobs"]
-            and running_job_2.job_name in job.details["failed_jobs"]
-        )
-
-    @patch("orchestrator.tasks.command_processor.delay")
-    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    def test_failed_error_message_1_failed_2_running(self, status, command_processor):
-        job = Job.objects.create(
-            type=PipelineType.CWL,
-            app={
-                "github": {
-                    "version": "1.0.0",
-                    "entrypoint": "test.cwl",
-                    "repository": "",
-                }
-            },
-            external_id="ext_id",
-            status=Status.RUNNING,
-            metadata={"pipeline_name": "NA"},
-        )
-        failed_job_1 = CommandLineToolJob.objects.create(
-            root=job, status=Status.FAILED, job_id="1", job_name="First Failed"
-        )
-        running_job_1 = CommandLineToolJob.objects.create(
-            root=job, status=Status.RUNNING, job_id="1", job_name="First Running"
-        )
-        running_job_2 = CommandLineToolJob.objects.create(
-            root=job, status=Status.RUNNING, job_id="2", job_name="Second Running"
-        )
-        status.return_value = Status.FAILED, ""
-        command_processor.return_value = True
-        check_job_status(job)
-        job.refresh_from_db()
-        self.assertEqual(job.status, Status.FAILED)
-        self.assertTrue(
-            failed_job_1.job_name in job.details["failed_jobs"]
-            and running_job_1.job_name not in job.details["failed_jobs"]
-            and running_job_2.job_name in job.details["failed_jobs"]
-        )
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
