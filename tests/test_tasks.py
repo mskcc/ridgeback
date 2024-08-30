@@ -210,6 +210,7 @@ class TestTasks(TestCase):
         expected_failed_jobs = {
             "failed_job_1": ["failed_job_1_id"],
             "failed_job_2": ["failed_job_2_id"],
+            "running_job": ["running_job_id"],
         }
         expected_unknown_jobs = {"unknown_job": ["unknown_job_id_1", "unknown_job_id_2"]}
         self.assertEqual(info_message, "submitter reason")
