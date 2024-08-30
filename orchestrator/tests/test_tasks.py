@@ -266,7 +266,7 @@ class TasksTest(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
         self.assertTrue(
-            failed_job_1.job_name in job.details["failed_jobs"] and failed_job_2.job_name in job.details["failed_jobs"]
+            failed_job_1.job_name in job.message["failed_jobs"] and failed_job_2.job_name in job.message["failed_jobs"]
         )
 
     @patch("orchestrator.tasks.command_processor.delay")
@@ -293,7 +293,7 @@ class TasksTest(TestCase):
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
-        self.assertTrue(running_job_1.job_name in job.details["failed_jobs"])
+        self.assertTrue(running_job_1.job_name in job.message["failed_jobs"])
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
@@ -322,10 +322,8 @@ class TasksTest(TestCase):
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
-        self.assertTrue(
-            running_job_1.job_name not in job.details["failed_jobs"]
-            and running_job_2.job_name in job.details["failed_jobs"]
-        )
+        failed_jobs = job.message["failed_jobs"]
+        self.assertTrue(running_job_1.job_name not in failed_jobs and running_job_2.job_name in failed_jobs)
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
@@ -357,11 +355,9 @@ class TasksTest(TestCase):
         check_job_status(job)
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
-        self.assertTrue(
-            failed_job_1.job_name in job.details["failed_jobs"]
-            and running_job_1.job_name not in job.details["failed_jobs"]
-            and running_job_2.job_name in job.details["failed_jobs"]
-        )
+        failed_jobs = job.message["failed_jobs"]
+        self.assertTrue(failed_job_1.job_name in failed_jobs and running_job_1.job_name not in failed_jobs)
+        self.assertTrue(running_job_2.job_name in failed_jobs)
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
