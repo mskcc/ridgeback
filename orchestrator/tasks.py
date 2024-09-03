@@ -213,11 +213,24 @@ def _complete(job, outputs):
 def _fail(job, error_message=""):
     failed_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.FAILED)
     unknown_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.UNKNOWN)
+    latest_running_job = (
+        CommandLineToolJob.objects.order_by("-created_date")
+        .filter(root__id__exact=job.id, status=Status.RUNNING)
+        .first()
+    )
     failed_jobs = {}
     unknown_jobs = {}
     for single_tool_job in failed_command_line_tool_jobs:
         job_name = single_tool_job.job_name
         job_id = single_tool_job.job_id
+        if job_name not in failed_jobs:
+            failed_jobs[job_name] = [job_id]
+        else:
+            failed_jobs[job_name].append(job_id)
+            failed_jobs[job_name].sort()
+    if latest_running_job:
+        job_name = latest_running_job.job_name
+        job_id = latest_running_job.job_id
         if job_name not in failed_jobs:
             failed_jobs[job_name] = [job_id]
         else:
