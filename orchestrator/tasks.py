@@ -124,6 +124,12 @@ def process_jobs():
 
 
 @shared_task(bind=True)
+def run_short_job(self, job_function, log_message, job):
+    logger.info(log_message)
+    job_function(job)
+
+
+@shared_task(bind=True)
 def command_processor(self, command_dict):
     try:
         command = Command.from_dict(command_dict)
@@ -153,12 +159,11 @@ def command_processor(self, command_dict):
                     logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
                 elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
-                    logger.info("Setting output permission for job %s" % command.job_id)
-                    set_permission(job)
+                    message = "Setting output permission for job %s"
+                    run_short_job.delay(set_permission, message, job)
                 elif command.command_type == CommandType.CHECK_HANGING:
-                    logger.info("Checking if the job %s has any hanging tasks" % command.job_id)
-                    check_job_hanging(job)
-
+                    message = "Checking if the job %s has any hanging tasks" % command.job_id
+                    run_short_job.delay(check_job_hanging, message, job)
             else:
                 logger.info("Job lock not acquired for job: %s" % command.job_id)
                 self.retry()
