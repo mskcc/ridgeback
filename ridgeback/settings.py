@@ -214,6 +214,7 @@ RIDGEBACK_ACTION_QUEUE = os.environ.get("RIDGEBACK_ACTION_QUEUE", "ridgeback_act
 RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get("RIDGEBACK_SUBMIT_JOB_LSF_QUEUE", "ridgeback_submit_job_lsf_queue")
 RIDGEBACK_CLEANUP_QUEUE = os.environ.get("RIDGEBACK_CLEANUP_QUEUE", "ridgeback_cleanup_queue")
 RIDGEBACK_COMMAND_QUEUE = os.environ.get("RIDGEBACK_COMMAND_QUEUE", "ridgeback_command_queue")
+RIDGEBACK_SHORT_QUEUE = os.environ.get("RIDGEBACK_SHORT_QUEUE", "ridgeback_short_queue")
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
