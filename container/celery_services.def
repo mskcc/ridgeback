@@ -190,7 +190,7 @@ Includecmd: no
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
-    echo "Running check status queue worker..."
+    echo "Running submit job queue worker..."
     nohup celery --workdir ${RIDGEBACK_PATH} \
     -A orchestrator worker \
     -l info \
