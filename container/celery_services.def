@@ -206,7 +206,7 @@ Includecmd: no
     -Q ${RIDGEBACK_SHORT_QUEUE} \
     -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_SHORT_QUEUE}.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SHORT_QUEUE}.pid \
-    --concurrency=5 >/dev/null 2>&1 < /dev/null &
+    --concurrency=10 >/dev/null 2>&1 < /dev/null &
 
     echo "Running cleanup queue worker..."
     nohup celery --workdir ${RIDGEBACK_PATH} \
