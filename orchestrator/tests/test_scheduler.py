@@ -19,9 +19,9 @@ class SchedulerTest(TestCase):
         self.create_jobs(Status.RUNNING, 150, 10000)  # Long Jobs
         self.create_jobs(Status.RUNNING, 100, 6000)  # Medium Jobs
         self.create_jobs(Status.RUNNING, 50, 3000)  # Short Jobs
-        self.create_jobs(Status.CREATED, 2, 10200)  # Long Jobs Pending
-        self.create_jobs(Status.CREATED, 2, 5500)  # Medium Jobs Pending
-        self.create_jobs(Status.CREATED, 2, 2000)  # Short Jobs Pending
+        self.create_jobs(Status.PREPARED, 2, 10200)  # Long Jobs Pending
+        self.create_jobs(Status.PREPARED, 2, 5500)  # Medium Jobs Pending
+        self.create_jobs(Status.PREPARED, 2, 2000)  # Short Jobs Pending
         jobs = Scheduler.get_jobs_to_submit()
         self.assertEqual(len(jobs), 0)
 
@@ -29,23 +29,23 @@ class SchedulerTest(TestCase):
         self.create_jobs(Status.RUNNING, 150, 10000)  # Long Jobs
         self.create_jobs(Status.RUNNING, 80, 6000)  # Medium Jobs
         self.create_jobs(Status.RUNNING, 20, 3000)  # Short Jobs
-        self.create_jobs(Status.CREATED, 2, 10200)  # Long Jobs Pending
-        self.create_jobs(Status.CREATED, 2, 5500)  # Medium Jobs Pending
-        self.create_jobs(Status.CREATED, 2, 2000)  # Short Jobs Pending
+        self.create_jobs(Status.PREPARED, 2, 10200)  # Long Jobs Pending
+        self.create_jobs(Status.PREPARED, 2, 5500)  # Medium Jobs Pending
+        self.create_jobs(Status.PREPARED, 2, 2000)  # Short Jobs Pending
         jobs = Scheduler.get_jobs_to_submit()
         self.assertEqual(len(jobs), 4)
         for job in jobs:
             self.assertTrue(job.walltime in (5500, 2000))
-            self.assertEqual(job.status, Status.CREATED)
+            self.assertEqual(job.status, Status.PREPARED)
 
     def test_partial(self):
         self.create_jobs(Status.RUNNING, 150, 10000)  # Long Jobs
         self.create_jobs(Status.RUNNING, 80, 6000)  # Medium Jobs
         self.create_jobs(Status.RUNNING, 20, 3000)  # Short Jobs
-        self.create_jobs(Status.CREATED, 2, 5500)  # Medium Jobs Pending
-        self.create_jobs(Status.CREATED, 40, 2000)  # Short Jobs Pending
+        self.create_jobs(Status.PREPARED, 2, 5500)  # Medium Jobs Pending
+        self.create_jobs(Status.PREPARED, 40, 2000)  # Short Jobs Pending
         jobs = Scheduler.get_jobs_to_submit()
         self.assertEqual(len(jobs), 32)
         for job in jobs:
             self.assertTrue(job.walltime in (5500, 2000))
-            self.assertEqual(job.status, Status.CREATED)
+            self.assertEqual(job.status, Status.PREPARED)
