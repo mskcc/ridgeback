@@ -205,7 +205,7 @@ def prepare_job(job):
             # This needs to be done through LSFClient
             job_log_path = os.path.join(job_work_dir, "lsf.log")
         except Exception as e:
-            raise RetryException("Failed to fetch status for job %s" % (str(job.id)))
+            raise RetryException(f"Failed to fetch status for job {str(job.id)} {e}")
         else:
             job.job_prepared(job_store_dir, job_work_dir, job_output_dir, job_log_path)
 
@@ -303,6 +303,7 @@ def check_job_status(job):
         lsf_status, lsf_message = lsf_client.status(str(job.external_id))
     except FetchStatusException as e:
         # If failed to check status on LSF retry
+        logger.exception(e)
         raise RetryException("Failed to fetch status for job %s" % (str(job.id)))
     if Status(job.status).transition(lsf_status):
         if lsf_status in (
