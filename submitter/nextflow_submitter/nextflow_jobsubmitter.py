@@ -57,8 +57,12 @@ class NextflowJobSubmitter(JobSubmitter):
         self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
 
-    def submit(self):
+    def prepare_to_submit(self):
         self._prepare_directories()
+        self._dump_app_inputs()
+        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir
+
+    def get_submit_command(self):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, "lsf.log")
         env = dict()
@@ -67,8 +71,7 @@ class NextflowJobSubmitter(JobSubmitter):
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
         env["NXF_CACHE_DIR"] = self.job_store_dir
-        external_id = self.lsf_client.submit(command_line, self._leader_args(), log_path, self.job_id, env)
-        return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
+        return command_line, self._leader_args(), log_path, self.job_id, env
 
     def _leader_args(self):
         args = self._walltime()
@@ -145,21 +148,35 @@ class NextflowJobSubmitter(JobSubmitter):
         result_json = {"outputs": result}
         return result_json, error_message
 
-    def _dump_app_inputs(self):
-        app_location = self.app.resolve(self.job_work_dir)
-        profile = self.inputs.get("profile")
-        input_map = dict()
-        config_path = None
+    @property
+    def app_location(self):
+        return self.app.resolve(self.job_work_dir)
+
+    @property
+    def inputs_location(self):
+        """
+        returns inputs_map
+        """
         inputs = self.inputs.get("inputs", [])
-        params = self.inputs.get("params", [])
+        input_map = dict()
+        for i in inputs:
+            input_map[i["name"]] = os.path.join(self.job_work_dir, i["name"])
+        return input_map
+
+    @property
+    def config_location(self):
+        return os.path.join(self.job_work_dir, "nf.config")
+
+    def _dump_app_inputs(self):
+        input_map = dict()
+        inputs = self.inputs.get("inputs", [])
         for i in inputs:
             input_map[i["name"]] = self._dump_input(i["name"], i["content"], self.job_work_dir)
             if self.log_dir:
                 input_map[i["name"]] = self._dump_input(i["name"], i["content"], self.log_dir)
         config = self.inputs.get("config")
         if config:
-            config_path = self._dump_config(config)
-        return app_location, input_map, config_path, profile, params
+            self._dump_config(config)
 
     def _dump_input(self, name, content, root_dir):
         file_path = os.path.join(root_dir, name)
@@ -168,7 +185,7 @@ class NextflowJobSubmitter(JobSubmitter):
         return file_path
 
     def _dump_config(self, config):
-        file_path = os.path.join(self.job_work_dir, "nf.config")
+        file_path = self.config_location
         with open(file_path, "w") as f:
             f.write(config)
         return file_path

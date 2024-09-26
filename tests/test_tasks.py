@@ -38,7 +38,7 @@ class TestTasks(TestCase):
 
     @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__")
     @patch("orchestrator.tasks.submit_job_to_lsf")
-    @patch("submitter.jobsubmitter.JobSubmitter.submit")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.submit")
     @skip("Need to mock memcached lock")
     def test_submit_polling(self, job_submitter, submit_job_to_lsf, init):
         init.return_value = None
@@ -56,11 +56,9 @@ class TestTasks(TestCase):
         process_jobs()
         self.assertEqual(submit_job_to_lsf.delay.call_count, 0)
 
-    @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.submit")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.submit")
     @patch("orchestrator.tasks.save_job_info")
-    def test_submit(self, save_job_info, submit, init):
-        init.return_value = None
+    def test_submit(self, save_job_info, submit):
         save_job_info.return_value = None
         submit.return_value = (
             self.submitting_job.external_id,
@@ -171,15 +169,13 @@ class TestTasks(TestCase):
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.status")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
     @patch("orchestrator.tasks.set_permission")
-    def test_complete(self, permission, get_outputs, status, init, get_job_info_path, command_processor):
+    def test_complete(self, permission, get_outputs, status, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
         permission.return_value = None
-        init.return_value = None
         command_processor.return_value = True
         get_outputs.return_value = {"outputs": True}, None
         get_job_info_path.return_value = "sample/job/path"
@@ -191,12 +187,10 @@ class TestTasks(TestCase):
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.status")
-    def test_fail(self, status, init, get_job_info_path, command_processor):
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
+    def test_fail(self, status, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
-        init.return_value = None
         command_processor.return_value = True
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.FAILED, "submitter reason"
@@ -218,12 +212,10 @@ class TestTasks(TestCase):
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.status")
-    def test_running(self, status, init, get_job_info_path, command_processor):
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
+    def test_running(self, status, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
-        init.return_value = None
         command_processor.return_value = True
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.RUNNING, None
@@ -234,11 +226,9 @@ class TestTasks(TestCase):
         self.assertEqual(self.current_job.finished, None)
 
     @patch("orchestrator.tasks.command_processor.delay")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.status")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
     @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
-    def test_fail_not_submitted(self, status, init, command_processor):
-        init.return_value = None
+    def test_fail_not_submitted(self, status, command_processor):
         command_processor.return_value = True
         status.return_value = Status.PENDING, None
         self.current_job.status = Status.PENDING

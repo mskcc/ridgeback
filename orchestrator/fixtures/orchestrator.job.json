@@ -116,7 +116,7 @@
         "job_store_location": "/sample/job_store/dir",
         "resume_job_store_location": null,
         "working_dir": "/sample/work/dir",
-        "status": 4,
+        "status": 5,
         "message": {
             "log": "",
             "info": "",
@@ -151,7 +151,7 @@
         "job_store_location": "/sample/job_store/dir",
         "resume_job_store_location": null,
         "working_dir": "/sample/work/dir",
-        "status": 1,
+        "status": 2,
         "message": {
             "log": "",
             "info": "",
@@ -185,7 +185,7 @@
         "job_store_location": "/sample/job_store/dir",
         "resume_job_store_location": null,
         "working_dir": "/sample/work/dir",
-        "status": 1,
+        "status": 2,
         "message": {
             "log": "",
             "info": "",
@@ -208,7 +208,7 @@
     "pk": "0f708022-c841-41b4-80e2-3c0fc0e89132",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 6,
+        "status": 7,
         "started": null,
         "submitted": null,
         "finished": null,
@@ -222,7 +222,7 @@
     "pk": "2d7aaabd-9fa1-4a60-9eda-67681fe7da49",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 1,
+        "status": 2,
         "started": null,
         "submitted": null,
         "finished": null,
@@ -236,7 +236,7 @@
     "pk": "316a4495-ad98-4799-9b73-b4990d3cc259",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 8,
+        "status": 9,
         "started": null,
         "submitted": null,
         "finished": null,
@@ -250,7 +250,7 @@
     "pk": "ca899e87-0f7c-4e81-9eb2-0ffd47d0935b",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 8,
+        "status": 9,
         "started": null,
         "submitted": null,
         "finished": null,
@@ -264,7 +264,7 @@
     "pk": "3efe7f1e-5f4d-4cf2-9c42-9ad00ac190ff",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 4,
+        "status": 5,
         "started": null,
         "submitted": null,
         "finished": null,
@@ -278,7 +278,7 @@
     "pk": "54bf4212-33fb-44e2-9e4d-1561b97d2cb8",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 6,
+        "status": 7,
         "started": null,
         "submitted": null,
         "finished": null,
@@ -292,7 +292,7 @@
     "pk": "6085f322-b08f-44d7-bfa1-e6e3944f229c",
     "fields": {
         "root": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1a",
-        "status": 5,
+        "status": 6,
         "started": null,
         "submitted": null,
         "finished": null,
