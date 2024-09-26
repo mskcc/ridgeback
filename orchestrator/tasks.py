@@ -128,12 +128,6 @@ def process_jobs():
 
 
 @shared_task(bind=True)
-def run_short_job(self, job_function, log_message, job):
-    logger.info(log_message)
-    job_function(job)
-
-
-@shared_task(bind=True)
 def command_processor(self, command_dict):
     try:
         command = Command.from_dict(command_dict)
@@ -166,12 +160,9 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.RESUME:
                     logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
-                elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
-                    message = "Setting output permission for job %s"
-                    run_short_job.delay(set_permission, message, job)
                 elif command.command_type == CommandType.CHECK_HANGING:
-                    message = "Checking if the job %s has any hanging tasks" % command.job_id
-                    run_short_job.delay(check_job_hanging, message, job)
+                    logger.info("CHECK_HANGING for job %s " % command.job_id)
+                    check_job_hanging(job)
             else:
                 logger.info("Job lock not acquired for job: %s" % command.job_id)
                 self.retry()
@@ -182,6 +173,12 @@ def command_processor(self, command_dict):
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
         logger.error("Command %s failed. Not retrying. Exception %s" % (command_dict, str(e)))
+
+
+@shared_task(bind=True)
+def set_permissions_job(job_id):
+    job = Job.objects.get(id=job_id)
+    set_permission(job)
 
 
 def prepare_job(job):
@@ -249,8 +246,7 @@ def submit_job_to_lsf(job):
 
 def _complete(job, outputs):
     job.complete(outputs)
-    # Move from command processor
-    command_processor.delay(Command(CommandType.SET_OUTPUT_PERMISSION, str(job.id)).to_dict())
+    set_permissions_job.delay(str(job.id))
 
 
 def _fail(job, error_message=""):
@@ -318,7 +314,7 @@ def check_job_status(job):
                 command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
 
         elif lsf_status in (Status.COMPLETED,):
-            submiter = JobSubmitterFactory.factory(
+            submitter = JobSubmitterFactory.factory(
                 job.type,
                 str(job.id),
                 job.app,
@@ -328,7 +324,7 @@ def check_job_status(job):
                 log_dir=job.log_dir,
                 app_name=job.metadata["pipeline_name"],
             )
-            outputs, error_message = submiter.get_outputs()
+            outputs, error_message = submitter.get_outputs()
             if outputs:
                 _complete(job, outputs)
             else:
