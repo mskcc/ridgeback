@@ -23,27 +23,34 @@ def message_default():
 
 class Status(IntEnum):
     CREATED = 0
-    SUBMITTING = 1
-    SUBMITTED = 2
-    PENDING = 3
-    RUNNING = 4
-    COMPLETED = 5
-    FAILED = 6
-    TERMINATED = 7
-    UNKNOWN = 8
-    SUSPENDED = 9
+    PREPARING = 1
+    SUBMITTING = 2
+    SUBMITTED = 3
+    PENDING = 4
+    RUNNING = 5
+    COMPLETED = 6
+    FAILED = 7
+    TERMINATED = 8
+    UNKNOWN = 9
+    SUSPENDED = 10
 
     def transition(self, transition_to):
         if self == self.CREATED:
             """
             When job is received for execution it is in CREATED state. It is picked up by process_jobs and if
-            conditions are satisfied SUBMIT Command will be sent for that job, and it will be moved to SUBMITTING
+            conditions are satisfied SUBMIT Command will be sent for that job, and it will be moved to PREPARING
             state. Job in CREATED state can also be TERMINATED
             """
             if transition_to in (
                 self.SUBMITTING,
                 self.TERMINATED,
             ):
+                return True
+        elif self == self.PREPARING:
+            """
+            PREPARE Command setting up the directories needed for running the Job, and move the job to SUBMITTING state. Job can also be TERMINATED while in SUBMITTING state by TERMINATE command
+            """
+            if transition_to in (self.SUBMITTING, self.TERMINATED):
                 return True
         elif self == self.SUBMITTING:
             if transition_to in (self.SUBMITTED, self.TERMINATED):
@@ -181,24 +188,33 @@ class Job(BaseModel):
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
     metadata = JSONField(blank=True, null=True, default=dict)
 
-    def submit_to_lsf(self, external_id, job_store_dir, job_work_dir, job_output_dir, log_path):
-        self.status = Status.SUBMITTED
-        self.external_id = external_id
+    def job_prepared(self, job_store_dir, job_work_dir, job_output_dir, log_path):
+        self.status = Status.SUBMITTING
         self.job_store_location = job_store_dir
         self.working_dir = job_work_dir
         self.output_directory = job_output_dir
         self.log_path = log_path
-        self.submitted = now()
         self.message["log"] = log_path
         self.save(
             update_fields=[
                 "status",
-                "external_id",
                 "job_store_location",
                 "working_dir",
                 "output_directory",
-                "submitted",
+                "log_path",
                 "message",
+            ]
+        )
+
+    def submitted_to_scheduler(self, external_id):
+        self.status = Status.SUBMITTED
+        self.external_id = external_id
+        self.submitted = now()
+        self.save(
+            update_fields=[
+                "status",
+                "external_id",
+                "submitted",
             ]
         )
 

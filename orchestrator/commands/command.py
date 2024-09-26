@@ -5,12 +5,13 @@ from enum import IntEnum
 class CommandType(IntEnum):
     CHECK_STATUS_ON_LSF = 0
     CHECK_COMMAND_LINE_STATUS = 1
-    SUBMIT = 2
-    TERMINATE = 3
-    SUSPEND = 4
-    RESUME = 5
-    SET_OUTPUT_PERMISSION = 6
-    CHECK_HANGING = 7
+    PREPARE = 2
+    SUBMIT = 3
+    TERMINATE = 4
+    SUSPEND = 5
+    RESUME = 6
+    SET_OUTPUT_PERMISSION = 7
+    CHECK_HANGING = 8
 
 
 class Command(object):

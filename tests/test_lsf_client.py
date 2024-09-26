@@ -66,6 +66,7 @@ class TestLSFClient(TestCase):
         stdout_file = "stdout.txt"
         submit_process_obj = Mock()
         submit_process_obj.stdout = self.submit_response
+        submit_process_obj.returncode = 0
         submit_process.return_value = submit_process_obj
         lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
         expected_command = (
@@ -84,6 +85,7 @@ class TestLSFClient(TestCase):
         stdout_file = "stdout.txt"
         submit_process_obj = Mock()
         submit_process_obj.stdout = self.submit_response_please_wait
+        submit_process_obj.returncode = 0
         submit_process.return_value = submit_process_obj
         lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
         self.assertEqual(lsf_id, self.example_id)

@@ -5,7 +5,7 @@ import tempfile
 import os
 from orchestrator.commands import CommandType, Command
 from orchestrator.models import Job, Status, PipelineType
-from orchestrator.exceptions import RetryException
+from orchestrator.exceptions import RetryException, FetchStatusException
 from orchestrator.tasks import (
     command_processor,
     check_job_status,
@@ -285,8 +285,8 @@ class TasksTest(TestCase):
     @patch("django.core.cache.cache.add")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
     def test_check_status_command_processor(self, status, add, delete):
-        def _raise_retryable_exception():
-            raise Exception()
+        def _raise_retryable_exception(job_id):
+            raise FetchStatusException("Error")
 
         job_pending_1 = Job.objects.create(
             type=PipelineType.CWL,
