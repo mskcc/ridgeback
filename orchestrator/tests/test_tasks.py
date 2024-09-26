@@ -4,7 +4,7 @@ from django.test import TestCase
 import tempfile
 import os
 from orchestrator.commands import CommandType, Command
-from orchestrator.models import Job, Status, PipelineType, CommandLineToolJob
+from orchestrator.models import CommandLineToolJob
 from orchestrator.models import Job, Status, PipelineType
 from orchestrator.exceptions import RetryException, FetchStatusException
 from orchestrator.tasks import (

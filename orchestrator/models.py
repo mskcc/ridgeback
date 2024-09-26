@@ -48,7 +48,8 @@ class Status(IntEnum):
                 return True
         elif self == self.PREPARED:
             """
-            PREPARE Command setting up the directories needed for running the Job, and move the job to SUBMITTING state. Job can also be TERMINATED while in SUBMITTING state by TERMINATE command
+            PREPARE Command setting up the directories needed for running the Job, and move the job to SUBMITTING
+            state. Job can also be TERMINATED while in SUBMITTING state by TERMINATE command
             """
             if transition_to in (self.SUBMITTING, self.TERMINATED):
                 return True
