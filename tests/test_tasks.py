@@ -180,7 +180,7 @@ class TestTasks(TestCase):
     @patch("orchestrator.tasks.get_job_info_path")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
-    @patch("orchestrator.tasks.set_permission")
+    @patch("orchestrator.tasks.set_permissions_job.delay")
     def test_complete(self, permission, get_outputs, status, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()

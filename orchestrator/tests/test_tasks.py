@@ -206,7 +206,7 @@ class TasksTest(TestCase):
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    @patch("orchestrator.tasks.set_permission")
+    @patch("orchestrator.tasks.set_permissions_job.delay")
     def test_running_to_completed(self, permission, status, get_outputs, command_processor):
         job = Job.objects.create(
             type=PipelineType.CWL,
