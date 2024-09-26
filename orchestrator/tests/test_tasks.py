@@ -4,6 +4,7 @@ from django.test import TestCase
 import tempfile
 import os
 from orchestrator.commands import CommandType, Command
+from orchestrator.models import Job, Status, PipelineType, CommandLineToolJob
 from orchestrator.models import Job, Status, PipelineType
 from orchestrator.exceptions import RetryException, FetchStatusException
 from orchestrator.tasks import (
@@ -23,7 +24,8 @@ class TasksTest(TestCase):
     def test_status_transition(self):
         created = Status.CREATED
         self.assertFalse(created.transition(Status.CREATED))
-        self.assertTrue(created.transition(Status.SUBMITTING))
+        self.assertTrue(created.transition(Status.PREPARED))
+        self.assertFalse(created.transition(Status.SUBMITTING))
         self.assertFalse(created.transition(Status.SUBMITTED))
         self.assertFalse(created.transition(Status.PENDING))
         self.assertFalse(created.transition(Status.RUNNING))
@@ -35,6 +37,7 @@ class TasksTest(TestCase):
 
         submitting = Status.SUBMITTING
         self.assertFalse(submitting.transition(Status.CREATED))
+        self.assertFalse(submitting.transition(Status.PREPARED))
         self.assertFalse(submitting.transition(Status.SUBMITTING))
         self.assertTrue(submitting.transition(Status.SUBMITTED))
         self.assertFalse(submitting.transition(Status.PENDING))
@@ -45,20 +48,22 @@ class TasksTest(TestCase):
         self.assertFalse(submitting.transition(Status.SUSPENDED))
         self.assertFalse(submitting.transition(Status.UNKNOWN))
 
-        submited = Status.SUBMITTED
-        self.assertFalse(submited.transition(Status.CREATED))
-        self.assertFalse(submited.transition(Status.SUBMITTING))
-        self.assertFalse(submited.transition(Status.SUBMITTED))
-        self.assertTrue(submited.transition(Status.PENDING))
-        self.assertTrue(submited.transition(Status.RUNNING))
-        self.assertTrue(submited.transition(Status.COMPLETED))
-        self.assertTrue(submited.transition(Status.FAILED))
-        self.assertTrue(submited.transition(Status.TERMINATED))
-        self.assertTrue(submited.transition(Status.UNKNOWN))
-        self.assertTrue(submited.transition(Status.SUSPENDED))
+        submitted = Status.SUBMITTED
+        self.assertFalse(submitted.transition(Status.CREATED))
+        self.assertFalse(submitted.transition(Status.PREPARED))
+        self.assertFalse(submitted.transition(Status.SUBMITTING))
+        self.assertFalse(submitted.transition(Status.SUBMITTED))
+        self.assertTrue(submitted.transition(Status.PENDING))
+        self.assertTrue(submitted.transition(Status.RUNNING))
+        self.assertTrue(submitted.transition(Status.COMPLETED))
+        self.assertTrue(submitted.transition(Status.FAILED))
+        self.assertTrue(submitted.transition(Status.TERMINATED))
+        self.assertTrue(submitted.transition(Status.UNKNOWN))
+        self.assertTrue(submitted.transition(Status.SUSPENDED))
 
         pending = Status.PENDING
         self.assertFalse(pending.transition(Status.CREATED))
+        self.assertFalse(pending.transition(Status.PREPARED))
         self.assertFalse(pending.transition(Status.SUBMITTING))
         self.assertFalse(pending.transition(Status.SUBMITTED))
         self.assertTrue(pending.transition(Status.PENDING))
@@ -71,6 +76,7 @@ class TasksTest(TestCase):
 
         running = Status.RUNNING
         self.assertFalse(running.transition(Status.CREATED))
+        self.assertFalse(running.transition(Status.PREPARED))
         self.assertFalse(running.transition(Status.SUBMITTING))
         self.assertFalse(running.transition(Status.SUBMITTED))
         self.assertFalse(running.transition(Status.PENDING))
@@ -83,6 +89,7 @@ class TasksTest(TestCase):
 
         terminated = Status.TERMINATED
         self.assertFalse(terminated.transition(Status.CREATED))
+        self.assertFalse(terminated.transition(Status.PREPARED))
         self.assertFalse(terminated.transition(Status.SUBMITTING))
         self.assertFalse(terminated.transition(Status.SUBMITTED))
         self.assertFalse(terminated.transition(Status.PENDING))
@@ -95,6 +102,7 @@ class TasksTest(TestCase):
 
         suspended = Status.SUSPENDED
         self.assertFalse(suspended.transition(Status.CREATED))
+        self.assertFalse(suspended.transition(Status.PREPARED))
         self.assertFalse(suspended.transition(Status.SUBMITTING))
         self.assertFalse(suspended.transition(Status.SUBMITTED))
         self.assertTrue(suspended.transition(Status.PENDING))
@@ -107,6 +115,7 @@ class TasksTest(TestCase):
 
         unknown = Status.UNKNOWN
         self.assertFalse(unknown.transition(Status.CREATED))
+        self.assertFalse(unknown.transition(Status.PREPARED))
         self.assertFalse(unknown.transition(Status.SUBMITTING))
         self.assertFalse(unknown.transition(Status.SUBMITTED))
         self.assertTrue(unknown.transition(Status.PENDING))
@@ -118,24 +127,30 @@ class TasksTest(TestCase):
         self.assertTrue(unknown.transition(Status.SUSPENDED))
 
         completed = Status.COMPLETED
+        self.assertFalse(completed.transition(Status.CREATED))
+        self.assertFalse(completed.transition(Status.PREPARED))
+        self.assertFalse(completed.transition(Status.SUBMITTING))
+        self.assertFalse(completed.transition(Status.SUBMITTED))
+        self.assertFalse(completed.transition(Status.PENDING))
         self.assertFalse(completed.transition(Status.RUNNING))
         self.assertFalse(completed.transition(Status.COMPLETED))
         self.assertFalse(completed.transition(Status.FAILED))
         self.assertFalse(completed.transition(Status.TERMINATED))
-        self.assertFalse(completed.transition(Status.SUSPENDED))
         self.assertFalse(completed.transition(Status.UNKNOWN))
-        self.assertFalse(completed.transition(Status.PENDING))
-        self.assertFalse(completed.transition(Status.CREATED))
+        self.assertFalse(completed.transition(Status.SUSPENDED))
 
         failed = Status.FAILED
+        self.assertFalse(failed.transition(Status.CREATED))
+        self.assertFalse(failed.transition(Status.PREPARED))
+        self.assertFalse(failed.transition(Status.SUBMITTING))
+        self.assertFalse(failed.transition(Status.SUBMITTED))
+        self.assertFalse(failed.transition(Status.PENDING))
         self.assertFalse(failed.transition(Status.RUNNING))
         self.assertFalse(failed.transition(Status.COMPLETED))
         self.assertFalse(failed.transition(Status.FAILED))
         self.assertFalse(failed.transition(Status.TERMINATED))
-        self.assertFalse(failed.transition(Status.SUSPENDED))
         self.assertFalse(failed.transition(Status.UNKNOWN))
-        self.assertFalse(failed.transition(Status.PENDING))
-        self.assertFalse(failed.transition(Status.CREATED))
+        self.assertFalse(failed.transition(Status.SUSPENDED))
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
@@ -238,6 +253,127 @@ class TasksTest(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Status.FAILED)
 
+    @patch("orchestrator.tasks.command_processor.delay")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
+    def test_failed_error_message_two_failed(self, status, command_processor):
+        job = Job.objects.create(
+            type=PipelineType.CWL,
+            app={
+                "github": {
+                    "version": "1.0.0",
+                    "entrypoint": "test.cwl",
+                    "repository": "",
+                }
+            },
+            external_id="ext_id",
+            status=Status.RUNNING,
+            metadata={"pipeline_name": "NA"},
+        )
+        failed_job_1 = CommandLineToolJob.objects.create(
+            root=job, status=Status.FAILED, job_id="1", job_name="First Failed"
+        )
+        failed_job_2 = CommandLineToolJob.objects.create(
+            root=job, status=Status.FAILED, job_id="2", job_name="Second Failed"
+        )
+        status.return_value = Status.FAILED, ""
+        command_processor.return_value = True
+        check_job_status(job)
+        job.refresh_from_db()
+        self.assertEqual(job.status, Status.FAILED)
+        self.assertTrue(
+            failed_job_1.job_name in job.message["failed_jobs"] and failed_job_2.job_name in job.message["failed_jobs"]
+        )
+
+    @patch("orchestrator.tasks.command_processor.delay")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
+    def test_failed_error_message_1_running(self, status, command_processor):
+        job = Job.objects.create(
+            type=PipelineType.CWL,
+            app={
+                "github": {
+                    "version": "1.0.0",
+                    "entrypoint": "test.cwl",
+                    "repository": "",
+                }
+            },
+            external_id="ext_id",
+            status=Status.RUNNING,
+            metadata={"pipeline_name": "NA"},
+        )
+        running_job_1 = CommandLineToolJob.objects.create(
+            root=job, status=Status.RUNNING, job_id="1", job_name="First Running"
+        )
+        status.return_value = Status.FAILED, ""
+        command_processor.return_value = True
+        check_job_status(job)
+        job.refresh_from_db()
+        self.assertEqual(job.status, Status.FAILED)
+        self.assertTrue(running_job_1.job_name in job.message["failed_jobs"])
+
+    @patch("orchestrator.tasks.command_processor.delay")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
+    def test_failed_error_message_2_running(self, status, command_processor):
+        job = Job.objects.create(
+            type=PipelineType.CWL,
+            app={
+                "github": {
+                    "version": "1.0.0",
+                    "entrypoint": "test.cwl",
+                    "repository": "",
+                }
+            },
+            external_id="ext_id",
+            status=Status.RUNNING,
+            metadata={"pipeline_name": "NA"},
+        )
+        running_job_1 = CommandLineToolJob.objects.create(
+            root=job, status=Status.RUNNING, job_id="1", job_name="First Running"
+        )
+        running_job_2 = CommandLineToolJob.objects.create(
+            root=job, status=Status.RUNNING, job_id="2", job_name="Second Running"
+        )
+        status.return_value = Status.FAILED, ""
+        command_processor.return_value = True
+        check_job_status(job)
+        job.refresh_from_db()
+        self.assertEqual(job.status, Status.FAILED)
+        failed_jobs = job.message["failed_jobs"]
+        self.assertTrue(running_job_1.job_name not in failed_jobs and running_job_2.job_name in failed_jobs)
+
+    @patch("orchestrator.tasks.command_processor.delay")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
+    def test_failed_error_message_1_failed_2_running(self, status, command_processor):
+        job = Job.objects.create(
+            type=PipelineType.CWL,
+            app={
+                "github": {
+                    "version": "1.0.0",
+                    "entrypoint": "test.cwl",
+                    "repository": "",
+                }
+            },
+            external_id="ext_id",
+            status=Status.RUNNING,
+            metadata={"pipeline_name": "NA"},
+        )
+        failed_job_1 = CommandLineToolJob.objects.create(
+            root=job, status=Status.FAILED, job_id="1", job_name="First Failed"
+        )
+        running_job_1 = CommandLineToolJob.objects.create(
+            root=job, status=Status.RUNNING, job_id="1", job_name="First Running"
+        )
+        running_job_2 = CommandLineToolJob.objects.create(
+            root=job, status=Status.RUNNING, job_id="2", job_name="Second Running"
+        )
+        status.return_value = Status.FAILED, ""
+        command_processor.return_value = True
+        check_job_status(job)
+        job.refresh_from_db()
+        self.assertEqual(job.status, Status.FAILED)
+        failed_jobs = job.message["failed_jobs"]
+        self.assertTrue(failed_job_1.job_name in failed_jobs and running_job_1.job_name not in failed_jobs)
+        self.assertTrue(running_job_2.job_name in failed_jobs)
+
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
     @patch("orchestrator.tasks.command_processor.delay")
@@ -275,7 +411,7 @@ class TasksTest(TestCase):
         process_jobs()
         calls = [
             call(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)).to_dict()),
-            call(Command(CommandType.SUBMIT, str(job_created_1.id)).to_dict()),
+            call(Command(CommandType.PREPARE, str(job_created_1.id)).to_dict()),
         ]
 
         command_processor.assert_has_calls(calls, any_order=True)

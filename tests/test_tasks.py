@@ -2,6 +2,7 @@ from unittest import skip
 from django.test import TestCase
 from orchestrator.models import Job, Status, PipelineType
 from orchestrator.tasks import (
+    prepare_job,
     submit_job_to_lsf,
     process_jobs,
     on_failure_to_submit,
@@ -24,6 +25,7 @@ class TestTasks(TestCase):
 
     def setUp(self):
         self.current_job = Job.objects.first()
+        self.preparing_job = Job.objects.filter(status=Status.CREATED).first()
         self.submitting_job = Job.objects.filter(status=Status.SUBMITTING).first()
 
     def test_failure_to_submit(self):
@@ -56,20 +58,27 @@ class TestTasks(TestCase):
         process_jobs()
         self.assertEqual(submit_job_to_lsf.delay.call_count, 0)
 
+    @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.prepare_to_submit")
+    def test_prepare_job(self, prepare_to_submit):
+        prepare_to_submit.return_value = (
+            "/new/job_store_location",
+            self.preparing_job.working_dir,
+            self.preparing_job.root_dir,
+        )
+        prepare_job(self.preparing_job)
+        self.preparing_job.refresh_from_db()
+        self.assertEqual(self.preparing_job.job_store_location, "/new/job_store_location")
+        self.assertEqual(self.preparing_job.status, Status.PREPARED)
+
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.submit")
     @patch("orchestrator.tasks.save_job_info")
     def test_submit(self, save_job_info, submit):
         save_job_info.return_value = None
-        submit.return_value = (
-            self.submitting_job.external_id,
-            "/new/job_store_location",
-            self.current_job.working_dir,
-            self.current_job.output_directory,
-        )
+        submit.return_value = self.submitting_job.external_id
         submit_job_to_lsf(self.submitting_job)
         self.submitting_job.refresh_from_db()
         self.assertEqual(self.submitting_job.finished, None)
-        self.assertEqual(self.submitting_job.job_store_location, "/new/job_store_location")
+        self.assertEqual(self.submitting_job.status, Status.SUBMITTED)
 
     def test_job_args(self):
         job_id = str(uuid.uuid4())
@@ -204,6 +213,7 @@ class TestTasks(TestCase):
         expected_failed_jobs = {
             "failed_job_1": ["failed_job_1_id"],
             "failed_job_2": ["failed_job_2_id"],
+            "running_job": ["running_job_id"],
         }
         expected_unknown_jobs = {"unknown_job": ["unknown_job_id_1", "unknown_job_id_2"]}
         self.assertEqual(info_message, "submitter reason")

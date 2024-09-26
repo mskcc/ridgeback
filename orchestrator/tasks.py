@@ -109,6 +109,11 @@ def process_jobs():
 
     check_leader_not_running.delay()
 
+    jobs_for_preparing = Job.objects.filter(status=Status.CREATED).values_list("pk", flat=True)
+    for job_id in jobs_for_preparing:
+        # Send PREPARE commands for Jobs
+        command_processor.delay(Command(CommandType.PREPARE, str(job_id)).to_dict())
+
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
         command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
@@ -175,7 +180,7 @@ def command_processor(self, command_dict):
 
 
 def prepare_job(job):
-    if Status(job.status).transition(Status.SUBMITTING):
+    if Status(job.status).transition(Status.PREPARED):
         logger.info(f"Preparing job {str(job.id)} for execution")
         submitter = JobSubmitterFactory.factory(
             job.type,
@@ -194,7 +199,7 @@ def prepare_job(job):
             job_store_dir, job_work_dir, job_output_dir = submitter.prepare_to_submit()
             # This needs to be done through LSFClient
             job_log_path = os.path.join(job_work_dir, "lsf.log")
-        except Exception:
+        except Exception as e:
             raise RetryException("Failed to fetch status for job %s" % (str(job.id)))
         else:
             job.job_prepared(job_store_dir, job_work_dir, job_output_dir, job_log_path)
@@ -232,7 +237,7 @@ def submit_job_to_lsf(job):
                 external_job_id,
                 submitter.job_store_dir,
                 submitter.job_work_dir,
-                submitter.job_output_dir,
+                submitter.job_outputs_dir,
                 job.metadata,
             )
 
@@ -246,11 +251,24 @@ def _complete(job, outputs):
 def _fail(job, error_message=""):
     failed_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.FAILED)
     unknown_command_line_tool_jobs = CommandLineToolJob.objects.filter(root__id__exact=job.id, status=Status.UNKNOWN)
+    latest_running_job = (
+        CommandLineToolJob.objects.order_by("-created_date")
+        .filter(root__id__exact=job.id, status=Status.RUNNING)
+        .first()
+    )
     failed_jobs = {}
     unknown_jobs = {}
     for single_tool_job in failed_command_line_tool_jobs:
         job_name = single_tool_job.job_name
         job_id = single_tool_job.job_id
+        if job_name not in failed_jobs:
+            failed_jobs[job_name] = [job_id]
+        else:
+            failed_jobs[job_name].append(job_id)
+            failed_jobs[job_name].sort()
+    if latest_running_job:
+        job_name = latest_running_job.job_name
+        job_id = latest_running_job.job_id
         if job_name not in failed_jobs:
             failed_jobs[job_name] = [job_id]
         else:

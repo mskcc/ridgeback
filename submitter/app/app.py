@@ -48,6 +48,10 @@ class GithubApp(App):
             git.Git(location).clone(self.github, "--branch", self.version, "--recurse-submodules")
         return os.path.join(dirname, self.entrypoint)
 
+    def get_app_path(self, location):
+        dirname = os.path.join(location, self._extract_dirname_from_github_link())
+        return os.path.join(dirname, self.entrypoint)
+
     def _extract_dirname_from_github_link(self):
         dirname = self.github.rsplit("/", 2)[1] if self.github.endswith("/") else self.github.rsplit("/", 1)[1]
         if dirname.endswith(".git"):

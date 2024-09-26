@@ -23,7 +23,7 @@ def message_default():
 
 class Status(IntEnum):
     CREATED = 0
-    PREPARING = 1
+    PREPARED = 1
     SUBMITTING = 2
     SUBMITTED = 3
     PENDING = 4
@@ -42,11 +42,11 @@ class Status(IntEnum):
             state. Job in CREATED state can also be TERMINATED
             """
             if transition_to in (
-                self.SUBMITTING,
+                self.PREPARED,
                 self.TERMINATED,
             ):
                 return True
-        elif self == self.PREPARING:
+        elif self == self.PREPARED:
             """
             PREPARE Command setting up the directories needed for running the Job, and move the job to SUBMITTING state. Job can also be TERMINATED while in SUBMITTING state by TERMINATE command
             """
@@ -189,11 +189,11 @@ class Job(BaseModel):
     metadata = JSONField(blank=True, null=True, default=dict)
 
     def job_prepared(self, job_store_dir, job_work_dir, job_output_dir, log_path):
-        self.status = Status.SUBMITTING
+        self.status = Status.PREPARED
         self.job_store_location = job_store_dir
         self.working_dir = job_work_dir
         self.output_directory = job_output_dir
-        self.log_path = log_path
+        self.log_dir = log_path
         self.message["log"] = log_path
         self.save(
             update_fields=[
@@ -201,7 +201,7 @@ class Job(BaseModel):
                 "job_store_location",
                 "working_dir",
                 "output_directory",
-                "log_path",
+                "log_dir",
                 "message",
             ]
         )

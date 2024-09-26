@@ -54,6 +54,7 @@ class ToilJobSubmitter(JobSubmitter):
     def prepare_to_submit(self):
         self._prepare_directories()
         self._dump_app_inputs()
+        self.app.resolve(self.job_work_dir)
         return self.job_store_dir, self.job_work_dir, self.job_outputs_dir
 
     def get_submit_command(self):
@@ -146,7 +147,7 @@ class ToilJobSubmitter(JobSubmitter):
 
     @property
     def app_location(self):
-        return self.app.resolve(self.job_work_dir)
+        return self.app.get_app_path(self.job_work_dir)
 
     @property
     def inputs_location(self):

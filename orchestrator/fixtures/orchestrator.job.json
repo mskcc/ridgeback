@@ -1,6 +1,15 @@
 [
 {
     "model": "orchestrator.basemodel",
+    "pk": "b8839b4d-6e68-4d80-ac40-1126ab70b590",
+    "fields": {
+        "created_date": "2020-06-23T18:57:54.850Z",
+        "modified_date": "2020-06-23T18:57:54.850Z",
+        "output_directory": "/sample/output/dir"
+    }
+},
+{
+    "model": "orchestrator.basemodel",
     "pk": "0f708022-c841-41b4-80e2-3c0fc0e89132",
     "fields": {
         "created_date": "2020-06-23T18:57:54.850Z",
@@ -102,6 +111,40 @@
 },
 {
     "model": "orchestrator.job",
+    "pk": "b8839b4d-6e68-4d80-ac40-1126ab70b590",
+    "fields": {
+        "type": 0,
+        "app": {
+            "github": {
+                "entrypoint": "tempo.cwl",
+                "repository": "https://github.com/mskcc-cwl/tempo"
+            }
+        },
+        "external_id": "1234",
+        "root_dir": "/sample/root/dir",
+        "job_store_location": "/sample/job_store/dir",
+        "resume_job_store_location": null,
+        "working_dir": "/sample/work/dir",
+        "status": 0,
+        "message": {
+            "log": "",
+            "info": "",
+            "failed_jobs": {},
+            "unknown_jobs": {}
+        },
+        "inputs": null,
+        "outputs": null,
+        "job_store_clean_up": null,
+        "working_dir_clean_up": null,
+        "started": "2020-06-23T18:56:18.067Z",
+        "submitted": "2020-06-23T18:56:18.067Z",
+        "finished": null,
+        "track_cache": null,
+        "metadata": {"pipeline_name": "NA"}
+    }
+},
+{
+    "model": "orchestrator.job",
     "pk": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1c",
     "fields": {
         "type": 0,
@@ -134,7 +177,6 @@
         "metadata": {"pipeline_name": "NA"}
     }
 },
-
 {
     "model": "orchestrator.job",
     "pk": "1cdbb924-9078-400f-b4b9-4bef1ea5ce1b",
