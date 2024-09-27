@@ -7,18 +7,48 @@ import orchestrator.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0015_auto_20240925_2237'),
+        ("orchestrator", "0015_auto_20240925_2237"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PREPARED'), (2, 'SUBMITTING'), (3, 'SUBMITTED'), (4, 'PENDING'), (5, 'RUNNING'), (6, 'COMPLETED'), (7, 'FAILED'), (8, 'TERMINATED'), (9, 'UNKNOWN'), (10, 'SUSPENDED')], default=orchestrator.models.Status(0)),
+            model_name="commandlinetooljob",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PREPARED"),
+                    (2, "SUBMITTING"),
+                    (3, "SUBMITTED"),
+                    (4, "PENDING"),
+                    (5, "RUNNING"),
+                    (6, "COMPLETED"),
+                    (7, "FAILED"),
+                    (8, "TERMINATED"),
+                    (9, "UNKNOWN"),
+                    (10, "SUSPENDED"),
+                ],
+                default=orchestrator.models.Status(0),
+            ),
         ),
         migrations.AlterField(
-            model_name='job',
-            name='status',
-            field=models.IntegerField(choices=[(0, 'CREATED'), (1, 'PREPARED'), (2, 'SUBMITTING'), (3, 'SUBMITTED'), (4, 'PENDING'), (5, 'RUNNING'), (6, 'COMPLETED'), (7, 'FAILED'), (8, 'TERMINATED'), (9, 'UNKNOWN'), (10, 'SUSPENDED')], default=orchestrator.models.Status(0)),
+            model_name="job",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (0, "CREATED"),
+                    (1, "PREPARED"),
+                    (2, "SUBMITTING"),
+                    (3, "SUBMITTED"),
+                    (4, "PENDING"),
+                    (5, "RUNNING"),
+                    (6, "COMPLETED"),
+                    (7, "FAILED"),
+                    (8, "TERMINATED"),
+                    (9, "UNKNOWN"),
+                    (10, "SUSPENDED"),
+                ],
+                default=orchestrator.models.Status(0),
+            ),
         ),
     ]
