@@ -80,8 +80,8 @@ Includecmd: no
         exit 1
     fi
 
-    if [ -z "RIDGEBACK_SHORT_QUEUE" ]; then
-        echo "ERROR: SINGULARITYENV_RIDGEBACK_SHORT_QUEUE is not defined"
+    if [ -z "RIDGEBACK_SET_PERMISSIONS_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_SET_PERMISSIONS_QUEUE is not defined"
         exit 1
     fi
 
@@ -203,9 +203,9 @@ Includecmd: no
     nohup celery --workdir ${RIDGEBACK_PATH} \
     -A orchestrator worker \
     -l info \
-    -Q ${RIDGEBACK_SHORT_QUEUE} \
-    -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_SHORT_QUEUE}.log \
-    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SHORT_QUEUE}.pid \
+    -Q ${RIDGEBACK_SET_PERMISSIONS_QUEUE} \
+    -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_SET_PERMISSIONS_QUEUE}.log \
+    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}.pid \
     --concurrency=10 >/dev/null 2>&1 < /dev/null &
 
     echo "Running cleanup queue worker..."
@@ -380,4 +380,4 @@ Includecmd: no
     echo "Submit job queue - $RIDGEBACK_SUBMIT_JOB_QUEUE"
     echo "Cleanup queue - $RIDGEBACK_CLEANUP_QUEUE"
     echo "Command queue - $RIDGEBACK_COMMAND_QUEUE"
-    echo "Short queue - $RIDGEBACK_SET_PERMISSIONS_QUEUE"
+    echo "Set permissions queue - $RIDGEBACK_SET_PERMISSIONS_QUEUE"
