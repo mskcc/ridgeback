@@ -164,7 +164,7 @@ def command_processor(self, command_dict):
                     logger.info("CHECK_HANGING for job %s " % command.job_id)
                     check_job_hanging(job)
             else:
-                logger.info(f"Job lock not acquired for job: {command.job_id}")
+                logger.info(f"Job lock not acquired for job: {str(command.job_id)}")
                 self.retry()
     except RetryException as e:
         logger.info(
@@ -172,8 +172,20 @@ def command_processor(self, command_dict):
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
-        print("Does this execute")
-        logger.error(f"Command {str(command)} failed. Not retrying. Exception {str(e)}")
+        logger.error(f"Command {str(command.command_type)} failed. Not retrying. Exception {str(e)}")
+        if command.command_type == CommandType.SUBMIT:
+            reset_job_to_created(command.job_id)
+
+
+def reset_job_to_created(job_id):
+    job = Job.objects.get(id=job_id)
+    clean_directory(job.job_store_location)
+    clean_directory(job.working_dir)
+    clean_directory(job.log_dir)
+    job.job_store_location = ""
+    job.working_dir = ""
+    job.status = Status.CREATED
+    job.save()
 
 
 @shared_task(bind=True)
@@ -234,7 +246,7 @@ def submit_job_to_lsf(job, retries=0):
                 raise RetryException(f"Failed to submit job to scheduler {str(job.id)}")
             else:
                 logger.exception(str(f))
-                raise StopException(f"Failed to submit job to scheduler {str(job.id)} not more retries")
+                raise StopException(f"Failed to submit job to scheduler {str(job.id)} no more retries")
         else:
             logger.info(f"Job {str(job.id)} submitted to lsf with id: {external_job_id}")
             job.submitted_to_scheduler(external_job_id)
