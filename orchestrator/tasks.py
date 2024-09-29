@@ -227,7 +227,7 @@ def submit_job_to_lsf(job):
         try:
             command_line, args, log_path, job_id, env = submitter.get_submit_command()
             external_job_id = lsf_client.submit(command_line, args, log_path, env, job_id=uuid.uuid4)
-        except FailToSubmitToSchedulerException as f:
+        except Exception as f:
             logger.exception(str(f))
             raise RetryException("Failed to fetch status for job %s" % (str(job.id)))
         else:
