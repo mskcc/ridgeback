@@ -603,7 +603,10 @@ def update_command_line_jobs(command_line_jobs, root):
 
 
 def check_status_of_command_line_jobs(job):
-    if job.status != Status.COMPLETED:
+    """
+    Check CommandLineTools Status while Job is running
+    """
+    if job.status == Status.RUNNING:
         submiter = JobSubmitterFactory.factory(
             job.type,
             str(job.id),
