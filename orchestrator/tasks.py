@@ -312,6 +312,7 @@ def check_job_status(job):
 
             if lsf_status in (Status.RUNNING,):
                 command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
+                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
         elif lsf_status in (Status.COMPLETED,):
             submitter = JobSubmitterFactory.factory(
@@ -327,8 +328,10 @@ def check_job_status(job):
             outputs, error_message = submitter.get_outputs()
             if outputs:
                 _complete(job, outputs)
+                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
             else:
                 _fail(job, error_message)
+                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
         elif lsf_status in (Status.FAILED,):
             _fail(job, lsf_message)
@@ -603,28 +606,24 @@ def update_command_line_jobs(command_line_jobs, root):
 
 
 def check_status_of_command_line_jobs(job):
-    """
-    Check CommandLineTools Status while Job is running
-    """
-    if job.status == Status.RUNNING:
-        submiter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
-            log_dir=job.log_dir,
-            app_name=job.metadata["pipeline_name"],
-        )
-        track_cache_str = job.track_cache
-        command_line_status = submiter.get_commandline_status(track_cache_str)
-        command_line_jobs = {}
-        if command_line_status:
-            command_line_jobs_str, new_track_cache_str = command_line_status
-            new_track_cache = json.loads(new_track_cache_str)
-            command_line_jobs = json.loads(command_line_jobs_str)
-            job.track_cache = new_track_cache
-            job.save()
-        if command_line_jobs:
-            update_command_line_jobs(command_line_jobs, job)
+    submitter = JobSubmitterFactory.factory(
+        job.type,
+        str(job.id),
+        job.app,
+        job.inputs,
+        job.root_dir,
+        job.resume_job_store_location,
+        log_dir=job.log_dir,
+        app_name=job.metadata["pipeline_name"],
+    )
+    track_cache_str = job.track_cache
+    command_line_status = submitter.get_commandline_status(track_cache_str)
+    command_line_jobs = {}
+    if command_line_status:
+        command_line_jobs_str, new_track_cache_str = command_line_status
+        new_track_cache = json.loads(new_track_cache_str)
+        command_line_jobs = json.loads(command_line_jobs_str)
+        job.track_cache = new_track_cache
+        job.save()
+    if command_line_jobs:
+        update_command_line_jobs(command_line_jobs, job)
