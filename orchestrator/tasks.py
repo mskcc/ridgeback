@@ -144,7 +144,7 @@ def command_processor(self, command_dict):
                     prepare_job(job)
                 elif command.command_type == CommandType.SUBMIT:
                     logger.info("SUBMIT command for job %s" % command.job_id)
-                    submit_job_to_lsf(job)
+                    submit_job_to_lsf(job, self.request.retries)
                 elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
                     logger.info("CHECK_STATUS_ON_LSF command for job %s" % command.job_id)
                     check_job_status(job)
@@ -164,7 +164,7 @@ def command_processor(self, command_dict):
                     logger.info("CHECK_HANGING for job %s " % command.job_id)
                     check_job_hanging(job)
             else:
-                logger.info("Job lock not acquired for job: %s" % command.job_id)
+                logger.info(f"Job lock not acquired for job: {command.job_id}")
                 self.retry()
     except RetryException as e:
         logger.info(
@@ -172,7 +172,8 @@ def command_processor(self, command_dict):
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
-        logger.error("Command %s failed. Not retrying. Exception %s" % (command_dict, str(e)))
+        print("Does this execute")
+        logger.error(f"Command {str(command)} failed. Not retrying. Exception {str(e)}")
 
 
 @shared_task(bind=True)
@@ -207,9 +208,9 @@ def prepare_job(job):
             job.job_prepared(job_store_dir, job_work_dir, job_output_dir, job_log_path)
 
 
-def submit_job_to_lsf(job):
+def submit_job_to_lsf(job, retries=0):
     if Status(job.status).transition(Status.SUBMITTED):
-        logger.info("Submitting job %s to lsf" % str(job.id))
+        logger.info(f"Submitting job {str(job.id)} to lsf. Try {retries}")
         lsf_client = LSFClient()
         submitter = JobSubmitterFactory.factory(
             job.type,
@@ -228,10 +229,14 @@ def submit_job_to_lsf(job):
             command_line, args, log_path, job_id, env = submitter.get_submit_command()
             external_job_id = lsf_client.submit(command_line, args, log_path, env, job_id=uuid.uuid4)
         except Exception as f:
-            logger.exception(str(f))
-            raise RetryException("Failed to fetch status for job %s" % (str(job.id)))
+            if retries < 5:
+                logger.exception(str(f))
+                raise RetryException(f"Failed to submit job to scheduler {str(job.id)}")
+            else:
+                logger.exception(str(f))
+                raise StopException(f"Failed to submit job to scheduler {str(job.id)} not more retries")
         else:
-            logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
+            logger.info(f"Job {str(job.id)} submitted to lsf with id: {external_job_id}")
             job.submitted_to_scheduler(external_job_id)
             # Keeping this for debugging purposes
             save_job_info(
@@ -523,7 +528,7 @@ def cleanup_failed_jobs(self):
 
 
 @shared_task(bind=True)
-def cleanup_TERMINATED_jobs(self):
+def cleanup_terminated_jobs(self):
     cleanup_jobs(Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", "lsf.log"])
 
 
