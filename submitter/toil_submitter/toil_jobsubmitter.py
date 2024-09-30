@@ -55,7 +55,7 @@ class ToilJobSubmitter(JobSubmitter):
         self._prepare_directories()
         self._dump_app_inputs()
         self.app.resolve(self.job_work_dir)
-        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir
+        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir
 
     def get_submit_command(self):
         command_line = self._command_line()
