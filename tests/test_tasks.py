@@ -5,7 +5,6 @@ from orchestrator.tasks import (
     prepare_job,
     submit_job_to_lsf,
     process_jobs,
-    on_failure_to_submit,
     cleanup_completed_jobs,
     cleanup_failed_jobs,
     check_job_status,
