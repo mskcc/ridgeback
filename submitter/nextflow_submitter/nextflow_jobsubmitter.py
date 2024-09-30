@@ -60,7 +60,7 @@ class NextflowJobSubmitter(JobSubmitter):
     def prepare_to_submit(self):
         self._prepare_directories()
         self._dump_app_inputs()
-        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir
+        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir
 
     def get_submit_command(self):
         command_line = self._command_line()
@@ -209,14 +209,14 @@ class NextflowJobSubmitter(JobSubmitter):
                 os.makedirs(self.log_dir, exist_ok=True)
 
     def _command_line(self):
-        app_location, input_map, config, profile, params = self._dump_app_inputs()
-
+        profile = self.inputs["profile"]
+        params = self.inputs.get("params", {})
         command_line = [
             settings.NEXTFLOW,
             "-log",
             "%s/nextflow.log" % self.job_work_dir,
             "run",
-            app_location,
+            self.app_location,
             "-profile",
             profile,
             "-w",
@@ -224,10 +224,10 @@ class NextflowJobSubmitter(JobSubmitter):
             "--outDir",
             self.job_outputs_dir,
         ]
-        for k, v in input_map.items():
+        for k, v in self.inputs_location.items():
             command_line.extend(["--%s" % k, v])
-        if config:
-            command_line.extend(["-c", config])
+        if self.config_location:
+            command_line.extend(["-c", self.config_location])
         if params:
             for k, v in params.items():
                 if v is None:
