@@ -3,7 +3,6 @@ import json
 import shutil
 import logging
 import tempfile
-import uuid
 from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
