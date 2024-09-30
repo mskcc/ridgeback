@@ -230,7 +230,7 @@ def submit_job_to_lsf(job, retries=0):
         )
         try:
             command_line, args, log_path, job_id, env = submitter.get_submit_command()
-            external_job_id = lsf_client.submit(command_line, args, log_path, env, job_id)
+            external_job_id = lsf_client.submit(command_line, args, log_path, job_id, env)
         except Exception as f:
             if retries < 5:
                 logger.exception(str(f))
