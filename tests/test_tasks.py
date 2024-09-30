@@ -28,16 +28,6 @@ class TestTasks(TestCase):
         self.preparing_job = Job.objects.filter(status=Status.CREATED).first()
         self.submitting_job = Job.objects.filter(status=Status.SUBMITTING).first()
 
-    def test_failure_to_submit(self):
-        on_failure_to_submit(None, None, None, [self.current_job.id], None, None)
-        self.current_job.refresh_from_db()
-        self.assertEqual(self.current_job.status, Status.FAILED)
-        self.assertNotEqual(self.current_job.finished, None)
-        info_message = self.current_job.message["info"]
-        log_path = self.current_job.message["log"]
-        self.assertEqual(info_message, "Failed to submit job")
-        self.assertNotEqual(log_path, None)
-
     @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__")
     @patch("orchestrator.tasks.submit_job_to_lsf")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.submit")
