@@ -18,7 +18,6 @@ from batch_systems.lsf_client.lsf_client import LSFClient
 from orchestrator.exceptions import (
     RetryException,
     StopException,
-    FailToSubmitToSchedulerException,
     FetchStatusException,
 )
 
@@ -52,14 +51,6 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
             json.dump(job_info, job_info_file)
     else:
         logger.error("Working directory %s does not exist", working_dir)
-
-
-def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
-    logger.error("On failure to submit")
-    job_id = args[0]
-    logger.error("Failed to submit job: %s" % job_id)
-    job = Job.objects.get(id=job_id)
-    job.fail("Failed to submit job")
 
 
 def suspend_job(job):
@@ -239,7 +230,7 @@ def submit_job_to_lsf(job, retries=0):
         )
         try:
             command_line, args, log_path, job_id, env = submitter.get_submit_command()
-            external_job_id = lsf_client.submit(command_line, args, log_path, env, job_id=uuid.uuid4)
+            external_job_id = lsf_client.submit(command_line, args, log_path, env, job_id)
         except Exception as f:
             if retries < 5:
                 logger.exception(str(f))
