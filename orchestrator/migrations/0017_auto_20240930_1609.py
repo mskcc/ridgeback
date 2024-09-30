@@ -18,4 +18,4 @@ class Migration(migrations.Migration):
         ("orchestrator", "0016_auto_20240927_1228"),
     ]
 
-    operations = [[migrations.RunPython(migrate_statuses)]]
+    operations = [migrations.RunPython(migrate_statuses)]
