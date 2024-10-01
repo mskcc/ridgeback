@@ -201,13 +201,11 @@ def prepare_job(job):
             app_name=job.metadata["pipeline_name"],
         )
         try:
-            job_store_dir, job_work_dir, job_output_dir = submitter.prepare_to_submit()
-            # This needs to be done through LSFClient
-            job_log_path = os.path.join(job_work_dir, "lsf.log")
+            job_store_dir, job_work_dir, job_output_dir, log_dir = submitter.prepare_to_submit()
         except Exception as e:
             raise RetryException(f"Failed to fetch status for job {str(job.id)} {e}")
         else:
-            job.job_prepared(job_store_dir, job_work_dir, job_output_dir, job_log_path)
+            job.job_prepared(job_store_dir, job_work_dir, job_output_dir, log_dir)
 
 
 def submit_job_to_lsf(job, retries=0):
