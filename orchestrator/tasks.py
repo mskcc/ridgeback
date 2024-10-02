@@ -179,7 +179,7 @@ def reset_job_to_created(job_id):
 
 
 @shared_task(bind=True)
-def set_permissions_job(job_id):
+def set_permissions_job(self, job_id):
     job = Job.objects.get(id=job_id)
     set_permission(job)
 
