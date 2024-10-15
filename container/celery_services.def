@@ -80,6 +80,11 @@ Includecmd: no
         exit 1
     fi
 
+    if [ -z "RIDGEBACK_SET_PERMISSIONS_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_SET_PERMISSIONS_QUEUE is not defined"
+        exit 1
+    fi
+
     ### Celery env variables
     if [ -z "${RIDGEBACK_CELERY_LOG_PATH}" ]; then
         echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_LOG_PATH not set; suggest setting to default /tmp, accessible by container."
@@ -185,7 +190,7 @@ Includecmd: no
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
 
-    echo "Running check status queue worker..."
+    echo "Running submit job queue worker..."
     nohup celery --workdir ${RIDGEBACK_PATH} \
     -A orchestrator worker \
     -l info \
@@ -193,6 +198,15 @@ Includecmd: no
     -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
     --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
     --concurrency=1 >/dev/null 2>&1 < /dev/null &
+
+    echo "Running short queue worker..."
+    nohup celery --workdir ${RIDGEBACK_PATH} \
+    -A orchestrator worker \
+    -l info \
+    -Q ${RIDGEBACK_SET_PERMISSIONS_QUEUE} \
+    -f ${RIDGEBACK_CELERY_LOG_PATH}/${RIDGEBACK_SET_PERMISSIONS_QUEUE}.log \
+    --pidfile ${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}.pid \
+    --concurrency=10 >/dev/null 2>&1 < /dev/null &
 
     echo "Running cleanup queue worker..."
     nohup celery --workdir ${RIDGEBACK_PATH} \
@@ -254,11 +268,17 @@ Includecmd: no
         exit 1
     fi
 
+    if [ -z "RIDGEBACK_SET_PERMISSIONS_QUEUE" ]; then
+        echo "ERROR: SINGULARITYENV_RIDGEBACK_SET_PERMISSIONS_QUEUE is not defined"
+        exit 1
+    fi
+
     export RIDGEBACK_CELERY_BEAT_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.ridgeback_beat.pid
     export RIDGEBACK_ACTION_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_ACTION_QUEUE}.pid
     export RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid
     export RIDGEBACK_CLEANUP_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid
     export RIDGEBACK_COMMAND_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_COMMAND_QUEUE}.pid
+    export RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}.pid
 
     echo "Killing celery services with the following settings:"
     echo "RIDGEBACK_PATH:"$RIDGEBACK_PATH
@@ -272,6 +292,7 @@ Includecmd: no
     echo "RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
     echo "RIDGEBACK_CLEANUP_QUEUE_PID_FILE:"$RIDGEBACK_CLEANUP_QUEUE_PID_FILE
     echo "RIDGEBACK_COMMAND_QUEUE_PID_FILE:"$RIDGEBACK_COMMAND_QUEUE_PID_FILE
+    echo "RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE:"$RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE
 
     echo ""
     echo "Removing PID files..."
@@ -280,6 +301,7 @@ Includecmd: no
     rm $RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
     rm $RIDGEBACK_CLEANUP_QUEUE_PID_FILE
     rm $RIDGEBACK_COMMAND_QUEUE_PID_FILE
+    rm $RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE
     sleep 5
 
     ps auxww | grep 'celery' | grep $RIDGEBACK_CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
@@ -287,6 +309,7 @@ Includecmd: no
     ps auxww | grep 'celery' | grep $RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
     ps auxww | grep 'celery' | grep $RIDGEBACK_CLEANUP_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
     ps auxww | grep 'celery' | grep $RIDGEBACK_COMMAND_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+    ps auxww | grep 'celery' | grep $RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | xargs kill -9
 
 ############################################################
 # check env variables with celery-env
@@ -328,6 +351,7 @@ Includecmd: no
     export RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid
     export RIDGEBACK_CLEANUP_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_CLEANUP_QUEUE}.pid
     export RIDGEBACK_COMMAND_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_COMMAND_QUEUE}.pid
+    export RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE=${RIDGEBACK_CELERY_PID_PATH}/${RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}.pid
 
     echo "Current celery settings:"
     echo "RIDGEBACK_PATH:"$RIDGEBACK_PATH
@@ -340,6 +364,7 @@ Includecmd: no
     echo "RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE:"$RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE
     echo "RIDGEBACK_CLEANUP_QUEUE_PID_FILE:"$RIDGEBACK_CLEANUP_QUEUE_PID_FILE
     echo "RIDGEBACK_COMMAND_QUEUE_PID_FILE:"$RIDGEBACK_COMMAND_QUEUE_PID_FILE
+    echo "RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE:"$RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE
 
     export RIDGEBACK_CELERY_BEAT=`ps auxww | grep 'celery' | grep $RIDGEBACK_CELERY_BEAT_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
     export RIDGEBACK_ACTION_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_ACTION_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
@@ -347,6 +372,7 @@ Includecmd: no
     export RIDGEBACK_SUBMIT_JOB_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_SUBMIT_JOB_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
     export RIDGEBACK_CLEANUP_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_CLEANUP_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
     export RIDGEBACK_COMMAND_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_COMMAND_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
+    export RIDGEBACK_SET_PERMISSIONS_QUEUE=`ps auxww | grep 'celery' | grep $RIDGEBACK_SET_PERMISSIONS_QUEUE_PID_FILE | grep -v 'grep' | awk '{print $2}' | wc -l`
 
     echo "Number of celery processes currently running for $RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX:"
     echo "Beat - $RIDGEBACK_CELERY_BEAT"
@@ -354,3 +380,4 @@ Includecmd: no
     echo "Submit job queue - $RIDGEBACK_SUBMIT_JOB_QUEUE"
     echo "Cleanup queue - $RIDGEBACK_CLEANUP_QUEUE"
     echo "Command queue - $RIDGEBACK_COMMAND_QUEUE"
+    echo "Set permissions queue - $RIDGEBACK_SET_PERMISSIONS_QUEUE"
