@@ -13,7 +13,12 @@ from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
 from orchestrator.scheduler import Scheduler
 from orchestrator.commands import Command, CommandType
-from orchestrator.exceptions import RetryException, StopException
+from batch_systems.lsf_client.lsf_client import LSFClient
+from orchestrator.exceptions import (
+    RetryException,
+    StopException,
+    FetchStatusException,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -47,27 +52,10 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
         logger.error("Working directory %s does not exist", working_dir)
 
 
-def on_failure_to_submit(self, exc, task_id, args, kwargs, einfo):
-    logger.error("On failure to submit")
-    job_id = args[0]
-    logger.error("Failed to submit job: %s" % job_id)
-    job = Job.objects.get(id=job_id)
-    job.fail("Failed to submit job")
-
-
 def suspend_job(job):
     if Status(job.status).transition(Status.SUSPENDED):
-        submitter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
-            log_dir=job.log_dir,
-            app_name=job.metadata["pipeline_name"],
-        )
-        job_suspended = submitter.suspend()
+        lsf_client = LSFClient()
+        job_suspended = lsf_client.suspend(str(job.id))
         if not job_suspended:
             raise RetryException("Failed to suspend job: %s" % str(job.id))
         job.update_status(Status.SUSPENDED)
@@ -86,7 +74,8 @@ def resume_job(job):
             log_dir=job.log_dir,
             app_name=job.metadata["pipeline_name"],
         )
-        job_resumed = submitter.resume()
+        lsf_client = LSFClient()
+        job_resumed = lsf_client.resume(submitter.job_id)
         if not job_resumed:
             raise RetryException("Failed to resume job: %s" % str(job.id))
         job.update_status(Status.RUNNING)
@@ -109,6 +98,11 @@ def process_jobs():
     ).values_list("pk", flat=True)
 
     check_leader_not_running.delay()
+
+    jobs_for_preparing = Job.objects.filter(status=Status.CREATED).values_list("pk", flat=True)
+    for job_id in jobs_for_preparing:
+        # Send PREPARE commands for Jobs
+        command_processor.delay(Command(CommandType.PREPARE, str(job_id)).to_dict())
 
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
@@ -133,10 +127,14 @@ def command_processor(self, command_dict):
                 try:
                     job = Job.objects.get(id=command.job_id)
                 except Job.DoesNotExist:
+                    logger.error(f"Command sent for job:{command.job_id} which doesn't exist. Skipping command")
                     return
-                if command.command_type == CommandType.SUBMIT:
+                if command.command_type == CommandType.PREPARE:
+                    logger.info("PREPARE command for job %s" % command.job_id)
+                    prepare_job(job)
+                elif command.command_type == CommandType.SUBMIT:
                     logger.info("SUBMIT command for job %s" % command.job_id)
-                    submit_job_to_lsf(job)
+                    submit_job_to_lsf(job, self.request.retries)
                 elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
                     logger.info("CHECK_STATUS_ON_LSF command for job %s" % command.job_id)
                     check_job_status(job)
@@ -152,15 +150,11 @@ def command_processor(self, command_dict):
                 elif command.command_type == CommandType.RESUME:
                     logger.info("RESUME command for job %s" % command.job_id)
                     resume_job(job)
-                elif command.command_type == CommandType.SET_OUTPUT_PERMISSION:
-                    logger.info("Setting output permission for job %s" % command.job_id)
-                    set_permission(job)
                 elif command.command_type == CommandType.CHECK_HANGING:
-                    logger.info("Checking if the job %s has any hanging tasks" % command.job_id)
+                    logger.info("CHECK_HANGING for job %s " % command.job_id)
                     check_job_hanging(job)
-
             else:
-                logger.info("Job lock not acquired for job: %s" % command.job_id)
+                logger.info(f"Job lock not acquired for job: {str(command.job_id)}")
                 self.retry()
     except RetryException as e:
         logger.info(
@@ -168,12 +162,31 @@ def command_processor(self, command_dict):
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
     except StopException as e:
-        logger.error("Command %s failed. Not retrying. Exception %s" % (command_dict, str(e)))
+        logger.error(f"Command {str(command.command_type)} failed. Not retrying. Exception {str(e)}")
+        if command.command_type == CommandType.SUBMIT:
+            reset_job_to_created(command.job_id)
 
 
-def submit_job_to_lsf(job):
-    if Status(job.status).transition(Status.SUBMITTED):
-        logger.info("Submitting job %s to lsf" % str(job.id))
+def reset_job_to_created(job_id):
+    job = Job.objects.get(id=job_id)
+    clean_directory(job.job_store_location)
+    clean_directory(job.working_dir)
+    clean_directory(job.log_dir)
+    job.job_store_location = ""
+    job.working_dir = ""
+    job.status = Status.CREATED
+    job.save()
+
+
+@shared_task(bind=True)
+def set_permissions_job(self, job_id):
+    job = Job.objects.get(id=job_id)
+    set_permission(job)
+
+
+def prepare_job(job):
+    if Status(job.status).transition(Status.PREPARED):
+        logger.info(f"Preparing job {str(job.id)} for execution")
         submitter = JobSubmitterFactory.factory(
             job.type,
             str(job.id),
@@ -187,27 +200,58 @@ def submit_job_to_lsf(job):
             log_dir=job.log_dir,
             app_name=job.metadata["pipeline_name"],
         )
-        (
-            external_job_id,
-            job_store_dir,
-            job_work_dir,
-            job_output_dir,
-        ) = submitter.submit()
-        logger.info("Job %s submitted to lsf with id: %s" % (str(job.id), external_job_id))
-        job.submit_to_lsf(
-            external_job_id,
-            job_store_dir,
-            job_work_dir,
-            job_output_dir,
-            os.path.join(job_work_dir, "lsf.log"),
+        try:
+            job_store_dir, job_work_dir, job_output_dir, log_dir = submitter.prepare_to_submit()
+        except Exception as e:
+            raise RetryException(f"Failed to fetch status for job {str(job.id)} {e}")
+        else:
+            job.job_prepared(job_store_dir, job_work_dir, job_output_dir, log_dir)
+
+
+def submit_job_to_lsf(job, retries=0):
+    if Status(job.status).transition(Status.SUBMITTED):
+        logger.info(f"Submitting job {str(job.id)} to lsf. Try {retries}")
+        lsf_client = LSFClient()
+        submitter = JobSubmitterFactory.factory(
+            job.type,
+            str(job.id),
+            job.app,
+            job.inputs,
+            job.root_dir,
+            job.resume_job_store_location,
+            job.walltime,
+            job.tool_walltime,
+            job.memlimit,
+            log_dir=job.log_dir,
+            app_name=job.metadata["pipeline_name"],
         )
-        # Keeping this for debuging purposes
-        save_job_info(str(job.id), external_job_id, job_store_dir, job_work_dir, job_output_dir, job.metadata)
+        try:
+            command_line, args, log_path, job_id, env = submitter.get_submit_command()
+            external_job_id = lsf_client.submit(command_line, args, log_path, job_id, env)
+        except Exception as f:
+            if retries < 5:
+                logger.exception(str(f))
+                raise RetryException(f"Failed to submit job to scheduler {str(job.id)}")
+            else:
+                logger.exception(str(f))
+                raise StopException(f"Failed to submit job to scheduler {str(job.id)} no more retries")
+        else:
+            logger.info(f"Job {str(job.id)} submitted to lsf with id: {external_job_id}")
+            job.submitted_to_scheduler(external_job_id)
+            # Keeping this for debugging purposes
+            save_job_info(
+                str(job.id),
+                external_job_id,
+                submitter.job_store_dir,
+                submitter.job_work_dir,
+                submitter.job_outputs_dir,
+                job.metadata,
+            )
 
 
 def _complete(job, outputs):
     job.complete(outputs)
-    command_processor.delay(Command(CommandType.SET_OUTPUT_PERMISSION, str(job.id)).to_dict())
+    set_permissions_job.delay(str(job.id))
 
 
 def _fail(job, error_message=""):
@@ -255,20 +299,12 @@ def check_job_status(job):
         Status.UNKNOWN,
     ):
         return
-    submiter = JobSubmitterFactory.factory(
-        job.type,
-        str(job.id),
-        job.app,
-        job.inputs,
-        job.root_dir,
-        job.resume_job_store_location,
-        log_dir=job.log_dir,
-        app_name=job.metadata["pipeline_name"],
-    )
     try:
-        lsf_status, lsf_message = submiter.status(job.external_id)
-    except Exception:
+        lsf_client = LSFClient()
+        lsf_status, lsf_message = lsf_client.status(str(job.external_id))
+    except FetchStatusException as e:
         # If failed to check status on LSF retry
+        logger.exception(e)
         raise RetryException("Failed to fetch status for job %s" % (str(job.id)))
     if Status(job.status).transition(lsf_status):
         if lsf_status in (
@@ -281,19 +317,31 @@ def check_job_status(job):
 
             if lsf_status in (Status.RUNNING,):
                 command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
+                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
         elif lsf_status in (Status.COMPLETED,):
-            outputs, error_message = submiter.get_outputs()
+            submitter = JobSubmitterFactory.factory(
+                job.type,
+                str(job.id),
+                job.app,
+                job.inputs,
+                job.root_dir,
+                job.resume_job_store_location,
+                log_dir=job.log_dir,
+                app_name=job.metadata["pipeline_name"],
+            )
+            outputs, error_message = submitter.get_outputs()
             if outputs:
                 _complete(job, outputs)
+                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
             else:
                 _fail(job, error_message)
+                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
         elif lsf_status in (Status.FAILED,):
             _fail(job, lsf_message)
 
         command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
-
     else:
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
@@ -413,17 +461,8 @@ def terminate_job(job):
             Status.SUSPENDED,
             Status.UNKNOWN,
         ):
-            submitter = JobSubmitterFactory.factory(
-                job.type,
-                str(job.id),
-                job.app,
-                job.inputs,
-                job.root_dir,
-                job.resume_job_store_location,
-                log_dir=job.log_dir,
-                app_name=job.metadata["pipeline_name"],
-            )
-            job_killed = submitter.terminate()
+            lsf_client = LSFClient()
+            job_killed = lsf_client.terminate(str(job.id))
             if not job_killed:
                 raise RetryException("Failed to TERMINATE job %s" % str(job.id))
         job.terminate()
@@ -489,7 +528,7 @@ def cleanup_failed_jobs(self):
 
 
 @shared_task(bind=True)
-def cleanup_TERMINATED_jobs(self):
+def cleanup_terminated_jobs(self):
     cleanup_jobs(Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", "lsf.log"])
 
 
@@ -572,25 +611,24 @@ def update_command_line_jobs(command_line_jobs, root):
 
 
 def check_status_of_command_line_jobs(job):
-    if job.status != Status.COMPLETED:
-        submiter = JobSubmitterFactory.factory(
-            job.type,
-            str(job.id),
-            job.app,
-            job.inputs,
-            job.root_dir,
-            job.resume_job_store_location,
-            log_dir=job.log_dir,
-            app_name=job.metadata["pipeline_name"],
-        )
-        track_cache_str = job.track_cache
-        command_line_status = submiter.get_commandline_status(track_cache_str)
-        command_line_jobs = {}
-        if command_line_status:
-            command_line_jobs_str, new_track_cache_str = command_line_status
-            new_track_cache = json.loads(new_track_cache_str)
-            command_line_jobs = json.loads(command_line_jobs_str)
-            job.track_cache = new_track_cache
-            job.save()
-        if command_line_jobs:
-            update_command_line_jobs(command_line_jobs, job)
+    submitter = JobSubmitterFactory.factory(
+        job.type,
+        str(job.id),
+        job.app,
+        job.inputs,
+        job.root_dir,
+        job.resume_job_store_location,
+        log_dir=job.log_dir,
+        app_name=job.metadata["pipeline_name"],
+    )
+    track_cache_str = job.track_cache
+    command_line_status = submitter.get_commandline_status(track_cache_str)
+    command_line_jobs = {}
+    if command_line_status:
+        command_line_jobs_str, new_track_cache_str = command_line_status
+        new_track_cache = json.loads(new_track_cache_str)
+        command_line_jobs = json.loads(command_line_jobs_str)
+        job.track_cache = new_track_cache
+        job.save()
+    if command_line_jobs:
+        update_command_line_jobs(command_line_jobs, job)

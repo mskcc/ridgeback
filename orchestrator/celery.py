@@ -21,6 +21,7 @@ app.autodiscover_tasks()
 app.conf.task_routes = {
     "orchestrator.tasks.cleanup_folders": {"queue": settings.RIDGEBACK_ACTION_QUEUE},
     "orchestrator.tasks.command_processor": {"queue": settings.RIDGEBACK_COMMAND_QUEUE},
+    "orchestrator.tasks.set_permissions_job": {"queue": settings.RIDGEBACK_SET_PERMISSIONS_QUEUE},
 }
 
 app.conf.beat_schedule = {
