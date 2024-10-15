@@ -2,9 +2,9 @@ from unittest import skip
 from django.test import TestCase
 from orchestrator.models import Job, Status, PipelineType
 from orchestrator.tasks import (
+    prepare_job,
     submit_job_to_lsf,
     process_jobs,
-    on_failure_to_submit,
     cleanup_completed_jobs,
     cleanup_failed_jobs,
     check_job_status,
@@ -24,21 +24,12 @@ class TestTasks(TestCase):
 
     def setUp(self):
         self.current_job = Job.objects.first()
+        self.preparing_job = Job.objects.filter(status=Status.CREATED).first()
         self.submitting_job = Job.objects.filter(status=Status.SUBMITTING).first()
-
-    def test_failure_to_submit(self):
-        on_failure_to_submit(None, None, None, [self.current_job.id], None, None)
-        self.current_job.refresh_from_db()
-        self.assertEqual(self.current_job.status, Status.FAILED)
-        self.assertNotEqual(self.current_job.finished, None)
-        info_message = self.current_job.message["info"]
-        log_path = self.current_job.message["log"]
-        self.assertEqual(info_message, "Failed to submit job")
-        self.assertNotEqual(log_path, None)
 
     @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__")
     @patch("orchestrator.tasks.submit_job_to_lsf")
-    @patch("submitter.jobsubmitter.JobSubmitter.submit")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.submit")
     @skip("Need to mock memcached lock")
     def test_submit_polling(self, job_submitter, submit_job_to_lsf, init):
         init.return_value = None
@@ -56,22 +47,28 @@ class TestTasks(TestCase):
         process_jobs()
         self.assertEqual(submit_job_to_lsf.delay.call_count, 0)
 
-    @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.submit")
-    @patch("orchestrator.tasks.save_job_info")
-    def test_submit(self, save_job_info, submit, init):
-        init.return_value = None
-        save_job_info.return_value = None
-        submit.return_value = (
-            self.submitting_job.external_id,
+    @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.prepare_to_submit")
+    def test_prepare_job(self, prepare_to_submit):
+        prepare_to_submit.return_value = (
             "/new/job_store_location",
-            self.current_job.working_dir,
-            self.current_job.output_directory,
+            self.preparing_job.working_dir,
+            self.preparing_job.root_dir,
+            self.preparing_job.log_dir,
         )
+        prepare_job(self.preparing_job)
+        self.preparing_job.refresh_from_db()
+        self.assertEqual(self.preparing_job.job_store_location, "/new/job_store_location")
+        self.assertEqual(self.preparing_job.status, Status.PREPARED)
+
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.submit")
+    @patch("orchestrator.tasks.save_job_info")
+    def test_submit(self, save_job_info, submit):
+        save_job_info.return_value = None
+        submit.return_value = self.submitting_job.external_id
         submit_job_to_lsf(self.submitting_job)
         self.submitting_job.refresh_from_db()
         self.assertEqual(self.submitting_job.finished, None)
-        self.assertEqual(self.submitting_job.job_store_location, "/new/job_store_location")
+        self.assertEqual(self.submitting_job.status, Status.SUBMITTED)
 
     def test_job_args(self):
         job_id = str(uuid.uuid4())
@@ -171,15 +168,13 @@ class TestTasks(TestCase):
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.status")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
-    @patch("orchestrator.tasks.set_permission")
-    def test_complete(self, permission, get_outputs, status, init, get_job_info_path, command_processor):
+    @patch("orchestrator.tasks.set_permissions_job.delay")
+    def test_complete(self, permission, get_outputs, status, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
         permission.return_value = None
-        init.return_value = None
         command_processor.return_value = True
         get_outputs.return_value = {"outputs": True}, None
         get_job_info_path.return_value = "sample/job/path"
@@ -191,12 +186,10 @@ class TestTasks(TestCase):
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.status")
-    def test_fail(self, status, init, get_job_info_path, command_processor):
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
+    def test_fail(self, status, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
-        init.return_value = None
         command_processor.return_value = True
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.FAILED, "submitter reason"
@@ -219,12 +212,10 @@ class TestTasks(TestCase):
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.status")
-    def test_running(self, status, init, get_job_info_path, command_processor):
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
+    def test_running(self, status, get_job_info_path, command_processor):
         self.current_job.status = Status.PENDING
         self.current_job.save()
-        init.return_value = None
         command_processor.return_value = True
         get_job_info_path.return_value = "sample/job/path"
         status.return_value = Status.RUNNING, None
@@ -235,11 +226,9 @@ class TestTasks(TestCase):
         self.assertEqual(self.current_job.finished, None)
 
     @patch("orchestrator.tasks.command_processor.delay")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.__init__")
-    @patch("submitter.toil_submitter.ToilJobSubmitter.status")
+    @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
     @skip("We are no longer failing tests on pending status, and instead letting the task fail it")
-    def test_fail_not_submitted(self, status, init, command_processor):
-        init.return_value = None
+    def test_fail_not_submitted(self, status, command_processor):
         command_processor.return_value = True
         status.return_value = Status.PENDING, None
         self.current_job.status = Status.PENDING

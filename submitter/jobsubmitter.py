@@ -1,5 +1,4 @@
 from submitter.app import App
-from batch_systems.lsf_client.lsf_client import LSFClient
 
 
 class JobSubmitter(object):
@@ -7,40 +6,23 @@ class JobSubmitter(object):
         self.app = App.factory(app)
         self.job_id = job_id
         self.inputs = inputs
-        self.lsf_client = LSFClient()
         self.walltime = walltime
         self.tool_walltime = tool_walltime
         self.memlimit = memlimit
         self.log_dir = log_dir
         self.app_name = app_name
 
-    def submit(self):
+    def prepare_to_submit(self):
         """
-        Submit pipeline job to lsf
-        :return: lsf id, job store directory, job working directory, output directory
+        Prepare directories to submit job
         """
         pass
 
-    def status(self, external_id):
-        return self.lsf_client.status(external_id)
-
-    def terminate(self):
+    def get_submit_command(self):
         """
-        Terminates the job
+        return: command_line, args, log_path, job_id, env_map
         """
-        return self.lsf_client.terminate(self.job_id)
-
-    def resume(self):
-        """
-        Resumes the job
-        """
-        return self.lsf_client.resume(self.job_id)
-
-    def suspend(self):
-        """
-        Suspends the job
-        """
-        return self.lsf_client.suspend(self.job_id)
+        pass
 
     def get_commandline_status(self, cache):
         """

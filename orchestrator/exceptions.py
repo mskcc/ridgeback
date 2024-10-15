@@ -4,3 +4,11 @@ class RetryException(Exception):
 
 class StopException(Exception):
     pass
+
+
+class FailToSubmitToSchedulerException(Exception):
+    pass
+
+
+class FetchStatusException(Exception):
+    pass
