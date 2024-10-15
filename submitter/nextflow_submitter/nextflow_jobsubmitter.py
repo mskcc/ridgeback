@@ -168,7 +168,6 @@ class NextflowJobSubmitter(JobSubmitter):
         return os.path.join(self.job_work_dir, "nf.config")
 
     def _dump_app_inputs(self):
-        input_map = dict()
         inputs = self.inputs.get("inputs", [])
         for i in inputs:
             self._dump_input(i["name"], i["content"], self.job_work_dir)
