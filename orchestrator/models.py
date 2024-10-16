@@ -1,3 +1,4 @@
+import os
 import uuid
 import logging
 from enum import IntEnum
@@ -195,7 +196,7 @@ class Job(BaseModel):
         self.working_dir = job_work_dir
         self.output_directory = job_output_dir
         self.log_dir = log_path
-        self.message["log"] = log_path
+        self.message["log"] = os.path.join(job_work_dir, "lsf.log")
         self.save(
             update_fields=[
                 "status",
