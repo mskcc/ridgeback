@@ -13,7 +13,7 @@ class App(object):
             version = app["github"].get("version", "master")
             if app["github"].get("nfcore_template"):
                 nfcore_template = app["github"]["nfcore_template"]
-            else: 
+            else:
                 nfcore_template = None
             return GithubApp(repo, entrypoint, nfcore_template, version)
         elif app.get("base64"):
