@@ -6,9 +6,9 @@ import re
 import subprocess
 import json
 import logging
-from random import randint
 from django.conf import settings
 from orchestrator.models import Status
+from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
 
 
 def format_lsf_job_id(job_id):
@@ -35,9 +35,10 @@ class LSFClient(object):
 
         Args:
             command (str): command to submit
-            stdout (str): log file path
             job_args (list): Additional options for leader bsub
-            tool_args (list): Additional options for tool bsub
+            stdout (str): log file path
+            job_id (str): job_id
+            env (dict): Environment variables
 
         Returns:
             int: lsf job id
@@ -62,6 +63,11 @@ class LSFClient(object):
             universal_newlines=True,
             env=current_env,
         )
+        if process.returncode != 0:
+            self.logger.exception(f"Failed to submit job to LSF. Process return_code: {process.returncode}")
+            raise FailToSubmitToSchedulerException(
+                f"Failed to submit job to LSF. Process return_code: {process.returncode}"
+            )
         return self._parse_procid(process.stdout)
 
     def terminate(self, job_id):
@@ -124,11 +130,10 @@ class LSFClient(object):
         if lsf_job_id_search:
             lsf_job_id = int(lsf_job_id_search[1])
             self.logger.debug("Got the job id: %s", lsf_job_id)
+            return lsf_job_id
         else:
-            self.logger.error("Could not submit job\nReason: %s", stdout)
-            temp_id = randint(10000000, 99999999)
-            lsf_job_id = "NOT_SUBMITTED_{}".format(temp_id)
-        return lsf_job_id
+            self.logger.error("Could not parse job_id. Job is not submitted to LSF\nReason: %s", stdout)
+            raise FailToSubmitToSchedulerException(f"Reason: {stdout}")
 
     def _handle_status(self, process_status, process_output, external_job_id):
         """
@@ -196,7 +201,7 @@ class LSFClient(object):
                 if process_output["ERROR"]:
                     error_message = process_output["ERROR"]
                 return Status.UNKNOWN, error_message.strip()
-        return None
+        raise FetchStatusException(f"Failed to get status for job {external_job_id}")
 
     def status(self, external_job_id):
         """Parse LSF status
