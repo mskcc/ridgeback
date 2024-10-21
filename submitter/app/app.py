@@ -11,7 +11,8 @@ class App(object):
             repo = app["github"]["repository"]
             entrypoint = app["github"]["entrypoint"]
             version = app["github"].get("version", "master")
-            return GithubApp(repo, entrypoint, version)
+            nfcore_template = app["github"]["nfcore_template"]
+            return GithubApp(repo, entrypoint, nfcore_template, version)
         elif app.get("base64"):
             raise Exception("Base64 app not implemented yet")
         elif app.get("app"):
@@ -32,11 +33,12 @@ class GithubApp(App):
     type = "github"
     logger = logging.getLogger(__name__)
 
-    def __init__(self, github, entrypoint, version="master"):
+    def __init__(self, github, entrypoint, nfcore_template, version="master"):
         super().__init__()
         self.github = github
         self.entrypoint = entrypoint
         self.version = version
+        self.nfcore_template = nfcore_template
 
     def resolve(self, location):
         dirname = os.path.join(location, self._extract_dirname_from_github_link())
