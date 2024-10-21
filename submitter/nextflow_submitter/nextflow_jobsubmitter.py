@@ -145,7 +145,7 @@ class NextflowJobSubmitter(JobSubmitter):
         result = list()
         if self.app.nfcore_template:
             prov_file = os.path.join(self.job_outputs_dir, "manifest.json")
-            try: 
+            try:
                 with open(prov_file, "r") as f:
                     prov_json = json.loads(f.read())
                     published_json = prov_json["published"]
@@ -157,7 +157,7 @@ class NextflowJobSubmitter(JobSubmitter):
                 error_message = "Could not parse json from %s" % prov_file
             except FileNotFoundError:
                 error_message = "Could not find %s" % prov_file
-        else: 
+        else:
             try:
                 with open(self.inputs["outputs"]) as f:
                     files = f.readlines()
