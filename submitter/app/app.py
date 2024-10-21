@@ -11,7 +11,10 @@ class App(object):
             repo = app["github"]["repository"]
             entrypoint = app["github"]["entrypoint"]
             version = app["github"].get("version", "master")
-            nfcore_template = app["github"]["nfcore_template"]
+            if app["github"].get("nfcore_template"):
+                nfcore_template = app["github"]["nfcore_template"]
+            else: 
+                nfcore_template = None
             return GithubApp(repo, entrypoint, nfcore_template, version)
         elif app.get("base64"):
             raise Exception("Base64 app not implemented yet")
