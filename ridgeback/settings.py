@@ -214,6 +214,7 @@ RIDGEBACK_ACTION_QUEUE = os.environ.get("RIDGEBACK_ACTION_QUEUE", "ridgeback_act
 RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get("RIDGEBACK_SUBMIT_JOB_LSF_QUEUE", "ridgeback_submit_job_lsf_queue")
 RIDGEBACK_CLEANUP_QUEUE = os.environ.get("RIDGEBACK_CLEANUP_QUEUE", "ridgeback_cleanup_queue")
 RIDGEBACK_COMMAND_QUEUE = os.environ.get("RIDGEBACK_COMMAND_QUEUE", "ridgeback_command_queue")
+RIDGEBACK_SET_PERMISSIONS_QUEUE = os.environ.get("RIDGEBACK_SET_PERMISSIONS_QUEUE", "ridgeback_set_permissions")
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -313,3 +314,5 @@ OUTPUT_DEFAULT_GID = int(os.environ.get("RIDGEBACK_OUTPUT_DEFAULT_GID", 6146))
 APP_CACHE = os.environ.get("RIDGEBACK_APP_CACHE", "/tmp")
 
 MAX_HANGING_HOURS = os.environ.get("RIDGEBACK_MAX_HANGING_HOURS", "5")
+
+SKIP_THE_QUEUE_JOBS = ("ARGOS", "ACCESS_HEME", "ACCESS", "CMO-CH")

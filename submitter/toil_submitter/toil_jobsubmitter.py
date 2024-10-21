@@ -51,8 +51,13 @@ class ToilJobSubmitter(JobSubmitter):
         self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
 
-    def submit(self):
+    def prepare_to_submit(self):
         self._prepare_directories()
+        self._dump_app_inputs()
+        self.app.resolve(self.job_work_dir)
+        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir
+
+    def get_submit_command(self):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, "lsf.log")
         env = dict()
@@ -66,8 +71,7 @@ class ToilJobSubmitter(JobSubmitter):
             toil_lsf_args = "%s %s" % (" ".join(self._job_group()), " ".join(self._tool_args()))
         env["JAVA_HOME"] = None
         env["TOIL_LSF_ARGS"] = toil_lsf_args
-        external_id = self.lsf_client.submit(command_line, self._leader_args(), log_path, self.job_id, env)
-        return external_id, self.job_store_dir, self.job_work_dir, self.job_outputs_dir
+        return command_line, self._leader_args(), log_path, self.job_id, env
 
     def get_commandline_status(self, cache):
         """
@@ -141,16 +145,22 @@ class ToilJobSubmitter(JobSubmitter):
 
         return result_json, error_message
 
+    @property
+    def app_location(self):
+        return self.app.get_app_path(self.job_work_dir)
+
+    @property
+    def inputs_location(self):
+        return os.path.join(self.job_work_dir, "input.json")
+
     def _dump_app_inputs(self):
-        app_location = self.app.resolve(self.job_work_dir)
-        inputs_location = os.path.join(self.job_work_dir, "input.json")
+        inputs_location = self.inputs_location
         with open(inputs_location, "w") as f:
             json.dump(self.inputs, f)
         if self.log_dir:
             inputs_log_location = os.path.join(self.log_dir, "input.json")
             with open(inputs_log_location, "w") as f:
                 json.dump(self.inputs, f)
-        return app_location, inputs_location
 
     def _prepare_directories(self):
         if not os.path.exists(self.job_work_dir):
@@ -165,7 +175,7 @@ class ToilJobSubmitter(JobSubmitter):
 
         if self.resume_jobstore:
             if not os.path.exists(self.resume_jobstore):
-                raise Exception("The jobstore indicated to be resumed could not be found")
+                raise Exception("The job_store indicated to be resumed could not be found")
 
         if not os.path.exists(self.job_tmp_dir):
             os.mkdir(self.job_tmp_dir)
@@ -319,9 +329,9 @@ class ToilJobSubmitter(JobSubmitter):
                 "SINGULARITYENV_LC_ALL",
                 "PWD",
                 "--defaultMemory",
-                "8G",
+                settings.TOIL_DEFAULT_MEMORY,
                 "--maxCores",
-                "16",
+                settings.TOIL_MAX_CORES,
                 "--maxDisk",
                 "128G",
                 "--maxMemory",
@@ -340,10 +350,8 @@ class ToilJobSubmitter(JobSubmitter):
                 "--maxLocalJobs",
                 "500",
             ]
-
-        app_location, inputs_location = self._dump_app_inputs()
         if self.resume_jobstore:
-            command_line.extend(["--restart", app_location])
+            command_line.extend(["--restart", self.app_location])
         else:
-            command_line.extend([app_location, inputs_location])
+            command_line.extend([self.app_location, self.inputs_location])
         return command_line
