@@ -143,8 +143,8 @@ class NextflowJobSubmitter(JobSubmitter):
     def get_outputs(self):
         error_message = None
         result = list()
-        if self.app.nfcore_template:
-            prov_file = os.path.join(self.job_outputs_dir, "manifest.json")
+        prov_file = os.path.join(self.job_outputs_dir, "manifest.json")
+        if os.path.exists(prov_file):
             try:
                 with open(prov_file, "r") as f:
                     prov_json = json.loads(f.read())
