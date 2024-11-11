@@ -22,6 +22,7 @@ app.conf.task_routes = {
     "orchestrator.tasks.cleanup_folders": {"queue": settings.RIDGEBACK_ACTION_QUEUE},
     "orchestrator.tasks.command_processor": {"queue": settings.RIDGEBACK_COMMAND_QUEUE},
     "orchestrator.tasks.set_permissions_job": {"queue": settings.RIDGEBACK_SET_PERMISSIONS_QUEUE},
+    "orchestrator.tasks.check_leader_not_running": {"queue": settings.RIDGEBACK_CHECK_STATUS_QUEUE},
 }
 
 app.conf.beat_schedule = {
