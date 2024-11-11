@@ -1,6 +1,7 @@
 import os
 import shutil
 import hashlib
+import json
 from django.conf import settings
 from submitter import JobSubmitter
 
@@ -47,6 +48,10 @@ class NextflowJobSubmitter(JobSubmitter):
         JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, app_name)
         self.resume_jobstore = resume_jobstore
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
+        if self.app.nfcore_template:
+            self.cli_output_name = "--outdir"
+        else:
+            self.cli_output_name = "--outDir"
         if not dir_config:
             dir_config = settings.PIPELINE_CONFIG["NA"]
         if resume_jobstore:
@@ -117,34 +122,53 @@ class NextflowJobSubmitter(JobSubmitter):
         except Exception:
             return 0
 
+    def _output_construct(self, path):
+        location = self._location(path)
+        basename = self._basename(path)
+        checksum = self._checksum(path)
+        size = self._size(path)
+        nameroot = self._nameroot(path)
+        nameext = self._nameext(path)
+        file_obj = {
+            "location": location,
+            "basename": basename,
+            "checksum": checksum,
+            "size": size,
+            "nameroot": nameroot,
+            "nameext": nameext,
+            "class": "File",
+        }
+        return file_obj
+
     def get_outputs(self):
-        result = list()
         error_message = None
-        try:
-            with open(self.inputs["outputs"]) as f:
-                files = f.readlines()
-                for f in files:
-                    path = f.strip()
-                    location = self._location(path)
-                    basename = self._basename(path)
-                    checksum = self._checksum(path)
-                    size = self._size(path)
-                    nameroot = self._nameroot(path)
-                    nameext = self._nameext(path)
-                    file_obj = {
-                        "location": location,
-                        "basename": basename,
-                        "checksum": checksum,
-                        "size": size,
-                        "nameroot": nameroot,
-                        "nameext": nameext,
-                        "class": "File",
-                    }
-                    result.append(file_obj)
-        except FileNotFoundError:
-            error_message = "Could not find %s" % self.inputs["outputs"]
-        except Exception:
-            error_message = "Could not parse %s" % self.inputs["outputs"]
+        result = list()
+        prov_file = os.path.join(self.job_outputs_dir, "manifest.json")
+        if os.path.exists(prov_file):
+            try:
+                with open(prov_file, "r") as f:
+                    prov_json = json.loads(f.read())
+                    published_json = prov_json["published"]
+                    for f in published_json:
+                        path = f["target"]
+                        file_obj = self._output_construct(path)
+                        result.append(file_obj)
+            except (IndexError, ValueError):
+                error_message = "Could not parse json from %s" % prov_file
+            except FileNotFoundError:
+                error_message = "Could not find %s" % prov_file
+        else:
+            try:
+                with open(self.inputs["outputs"]) as f:
+                    files = f.readlines()
+                    for f in files:
+                        path = f.strip()
+                        file_obj = self._output_construct(path)
+                        result.append(file_obj)
+            except FileNotFoundError:
+                error_message = "Could not find %s" % self.inputs["outputs"]
+            except Exception:
+                error_message = "Could not parse %s" % self.inputs["outputs"]
         result_json = {"outputs": result}
         return result_json, error_message
 
@@ -168,11 +192,11 @@ class NextflowJobSubmitter(JobSubmitter):
         return os.path.join(self.job_work_dir, "nf.config")
 
     def _dump_app_inputs(self):
+        input_map = dict()
         inputs = self.inputs.get("inputs", [])
         for i in inputs:
-            self._dump_input(i["name"], i["content"], self.job_work_dir)
-            if self.log_dir:
-                self._dump_input(i["name"], i["content"], self.log_dir)
+            input_map[i["name"]] = self._dump_input(i["name"], i["content"], self.job_work_dir)
+
         config = self.inputs.get("config")
         if config:
             self._dump_config(config)
@@ -219,8 +243,8 @@ class NextflowJobSubmitter(JobSubmitter):
             "-profile",
             profile,
             "-w",
-            self.job_store_dir,
-            "--outDir",
+            self.job_work_dir,
+            self.cli_output_name,
             self.job_outputs_dir,
         ]
         for k, v in self.inputs_location.items():
