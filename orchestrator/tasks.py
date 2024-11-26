@@ -181,7 +181,10 @@ def reset_job_to_created(job_id):
 @shared_task(bind=True)
 def set_permissions_job(self, job_id):
     job = Job.objects.get(id=job_id)
-    set_permission(job)
+    try:
+        set_permission(job)
+    except Exception as e:
+        logger.error(f"Failed to set permissions for job:{job_id}. {str(e)}")
     job.complete()
 
 
