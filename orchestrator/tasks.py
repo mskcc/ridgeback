@@ -80,7 +80,7 @@ def resume_job(job):
             raise RetryException("Failed to resume job: %s" % str(job.id))
         job.update_status(Status.RUNNING)
         return
-    logger.info(
+    logger.error(
         "Can't resume job: %s because it is in status %s, not in SUSPENDED" % (Status(job.status).name, str(job.id))
     )
 
@@ -130,34 +130,34 @@ def command_processor(self, command_dict):
                     logger.error(f"Command sent for job:{command.job_id} which doesn't exist. Skipping command")
                     return
                 if command.command_type == CommandType.PREPARE:
-                    logger.info("PREPARE command for job %s" % command.job_id)
+                    logger.debug("PREPARE command for job %s" % command.job_id)
                     prepare_job(job)
                 elif command.command_type == CommandType.SUBMIT:
-                    logger.info("SUBMIT command for job %s" % command.job_id)
+                    logger.debug("SUBMIT command for job %s" % command.job_id)
                     submit_job_to_lsf(job, self.request.retries)
                 elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
-                    logger.info("CHECK_STATUS_ON_LSF command for job %s" % command.job_id)
+                    logger.debug("CHECK_STATUS_ON_LSF command for job %s" % command.job_id)
                     check_job_status(job)
                 elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
-                    logger.info("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
+                    logger.debug("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
                     check_status_of_command_line_jobs(job)
                 elif command.command_type == CommandType.TERMINATE:
-                    logger.info("TERMINATE command for job %s" % command.job_id)
+                    logger.debug("TERMINATE command for job %s" % command.job_id)
                     terminate_job(job)
                 elif command.command_type == CommandType.SUSPEND:
-                    logger.info("SUSPEND command for job %s" % command.job_id)
+                    logger.debug("SUSPEND command for job %s" % command.job_id)
                     suspend_job(job)
                 elif command.command_type == CommandType.RESUME:
-                    logger.info("RESUME command for job %s" % command.job_id)
+                    logger.debug("RESUME command for job %s" % command.job_id)
                     resume_job(job)
                 elif command.command_type == CommandType.CHECK_HANGING:
-                    logger.info("CHECK_HANGING for job %s " % command.job_id)
+                    logger.debug("CHECK_HANGING for job %s " % command.job_id)
                     check_job_hanging(job)
             else:
-                logger.info(f"Job lock not acquired for job: {str(command.job_id)}")
+                logger.debug(f"Job lock not acquired for job: {str(command.job_id)}")
                 self.retry()
     except RetryException as e:
-        logger.info(
+        logger.error(
             "Command %s failed. Retrying in %s. Exception %s" % (command_dict, self.request.retries * 5, str(e))
         )
         raise self.retry(exc=e, countdown=self.request.retries * 5, max_retries=5)
@@ -181,7 +181,11 @@ def reset_job_to_created(job_id):
 @shared_task(bind=True)
 def set_permissions_job(self, job_id):
     job = Job.objects.get(id=job_id)
-    set_permission(job)
+    try:
+        set_permission(job)
+    except Exception as e:
+        logger.error(f"Failed to set permissions for job:{job_id}. {str(e)}")
+    job.complete()
 
 
 def prepare_job(job):
@@ -249,8 +253,8 @@ def submit_job_to_lsf(job, retries=0):
             )
 
 
-def _complete(job, outputs):
-    job.complete(outputs)
+def _pipeline_completed(job, outputs):
+    job.pipeline_completed(outputs)
     set_permissions_job.delay(str(job.id))
 
 
@@ -332,7 +336,7 @@ def check_job_status(job):
             )
             outputs, error_message = submitter.get_outputs()
             if outputs:
-                _complete(job, outputs)
+                _pipeline_completed(job, outputs)
                 command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
             else:
                 _fail(job, error_message)
@@ -487,14 +491,14 @@ def set_permission(job):
             for root, dirs, files in os.walk(permissions_dir):
                 for single_dir in dirs:
                     if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
-                        logger.info(f"Setting permissions for {os.path.join(root, single_dir)}")
+                        logger.debug(f"Setting permissions for {os.path.join(root, single_dir)}")
                         path = os.path.join(root, single_dir)
                         os.chmod(path, permission_octal)
                         os.chown(path, uid=uid, gid=gid)
                 for single_file in files:
                     if oct(os.lstat(os.path.join(root, single_file)).st_mode)[-3:] != permission_octal:
                         path = os.path.join(root, single_file)
-                        logger.info(f"Setting permissions for {path}")
+                        logger.debug(f"Setting permissions for {path}")
                         os.chmod(path, permission_octal)
                         os.chown(path, uid=uid, gid=gid)
         except Exception:
@@ -502,7 +506,7 @@ def set_permission(job):
             failed_to_set = True
             continue
         else:
-            logger.info(f"Permissions set for directory {permissions_dir}")
+            logger.debug(f"Permissions set for directory {permissions_dir}")
             break
     if failed_to_set:
         raise RuntimeError("Failed to change permission of directory %s" % permissions_dir)
