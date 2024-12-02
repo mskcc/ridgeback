@@ -1,0 +1,91 @@
+on: push
+   
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: github_actions
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        pip install pip==19.3.1
+        pip install --force-reinstall 'setuptools<58.0.0'
+        pip install -r requirements.txt
+        pip install -r requirements-toil.txt
+        #python manage.py migrate
+    - name: Run migrations
+      run: python manage.py migrate
+    - name: Run test
+      #run: python manage.py test
+      run: |
+        coverage run --source='.' manage.py test
+        coverage report -m --fail-under=75
+    - name: Run flake8
+      uses: suo/flake8-github-action@releases/v1
+      with:
+          checkName: 'build'   # NOTE: this needs to be the same as the job name
+    env:
+      #database env variables 
+      RIDGEBACK_DB_NAME: github_actions
+      RIDGEBACK_DB_PASSWORD: postgres
+      RIDGEBACK_DB_USERNAME: postgres
+
+      #lsf env variables
+      RIDGEBACK_LSF_WALLTIME: 10:00
+      RIDGEBACK_LSF_SLA: SLA
+
+      #celery env variables
+      CELERY_LOG_PATH: /sample_path
+      CELERY_PID_PATH: /sample_path
+      CELERY_BEAT_SCHEDULE_PATH: /sample_path
+
+      #general env variables
+      SINGULARITY_PATH: /sample_singularity
+      RIDGEBACK_VENV: /sample_path
+      RIDGEBACK_PATH: /sample_path
+      RIDGEBACK_PORT: 4009
+
+      #general env variables
+      RIDGEBACK_DEFAULT_QUEUE: sample_queue
+      RIDGEBACK_RABBITMQ_USERNAME: sample_username
+      RIDGEBACK_RABBITMQ_PASSWORD: sample_password
+
+      #pipeline env variables 
+
+      ARGOS_JOB_STORE_ROOT: /sample_path
+      ARGOS_WORK_DIR_ROOT: /sample_path
+      ARGOS_TMP_DIR_ROOT: /sample_path
+      TEMPO_JOB_STORE_ROOT: /sample_path
+      TEMPO_WORK_DIR_ROOT: /sample_path
+      TEMPO_TMP_DIR_ROOT: /sample_path
+      ACCESS_JOB_STORE_ROOT: /sample_path
+      ACCESS_WORK_DIR_ROOT: /sample_path
+      ACCESS_TMP_DIR_ROOT: /sample_path
+      CMO_CH_JOB_STORE_ROOT: /sample_path
+      CMO_CH_WORK_DIR_ROOT: /sample_path
+      CMO_CH_TMP_DIR_ROOT: /sample_path
+      ACCESS_HEME_JOB_STORE_ROOT: /sample_path
+      ACCESS_HEME_WORK_DIR_ROOT: /sample_path
+      ACCESS_HEME_TMP_DIR_ROOT: /sample_path
+      DEFAULT_JOB_STORE_ROOT: /sample_path
+      DEFAULT_WORK_DIR_ROOT: /sample_path
+      DEFAULT_TMP_DIR_ROOT: /sample_path
