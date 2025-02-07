@@ -1,6 +1,7 @@
 """
 Tests for commandline status handling
 """
+
 import os
 from shutil import unpack_archive, copytree, copy
 import tempfile
