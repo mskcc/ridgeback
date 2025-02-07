@@ -3,7 +3,7 @@ from django.test import TestCase
 from orchestrator.models import Job, Status, PipelineType
 from orchestrator.tasks import (
     prepare_job,
-    submit_job_to_lsf,
+    submit_job_to_batch_system,
     process_jobs,
     cleanup_completed_jobs,
     cleanup_failed_jobs,
@@ -28,10 +28,10 @@ class TestTasks(TestCase):
         self.submitting_job = Job.objects.filter(status=Status.SUBMITTING).first()
 
     @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.__init__")
-    @patch("orchestrator.tasks.submit_job_to_lsf")
+    @patch("orchestrator.tasks.submit_job_to_batch_system")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.submit")
     @skip("Need to mock memcached lock")
-    def test_submit_polling(self, job_submitter, submit_job_to_lsf, init):
+    def test_submit_polling(self, job_submitter, submit_job_to_batch_system, init):
         init.return_value = None
         job_submitter.return_value = (
             self.current_job.external_id,
@@ -39,13 +39,13 @@ class TestTasks(TestCase):
             self.current_job.working_dir,
             self.current_job.output_directory,
         )
-        submit_job_to_lsf.return_value = None
+        submit_job_to_batch_system.return_value = None
         created_jobs = len(Job.objects.filter(status=Status.CREATED))
         process_jobs()
-        self.assertEqual(submit_job_to_lsf.delay.call_count, created_jobs)
-        submit_job_to_lsf.reset_mock()
+        self.assertEqual(submit_job_to_batch_system.delay.call_count, created_jobs)
+        submit_job_to_batch_system.reset_mock()
         process_jobs()
-        self.assertEqual(submit_job_to_lsf.delay.call_count, 0)
+        self.assertEqual(submit_job_to_batch_system.delay.call_count, 0)
 
     @patch("submitter.toil_submitter.toil_jobsubmitter.ToilJobSubmitter.prepare_to_submit")
     def test_prepare_job(self, prepare_to_submit):
@@ -65,7 +65,7 @@ class TestTasks(TestCase):
     def test_submit(self, save_job_info, submit):
         save_job_info.return_value = None
         submit.return_value = self.submitting_job.external_id
-        submit_job_to_lsf(self.submitting_job)
+        submit_job_to_batch_system(self.submitting_job)
         self.submitting_job.refresh_from_db()
         self.assertEqual(self.submitting_job.finished, None)
         self.assertEqual(self.submitting_job.status, Status.SUBMITTED)
