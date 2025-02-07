@@ -4,6 +4,7 @@ import hashlib
 import json
 from django.conf import settings
 from submitter import JobSubmitter
+from batch_systems.batch_system import get_batch_system
 
 
 class NextflowJobSubmitter(JobSubmitter):
@@ -61,6 +62,7 @@ class NextflowJobSubmitter(JobSubmitter):
         self.job_work_dir = os.path.join(dir_config["WORK_DIR_ROOT"], self.job_id)
         self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
+        self.batch_system = get_batch_system()
 
     def prepare_to_submit(self):
         self._prepare_directories()
@@ -69,7 +71,7 @@ class NextflowJobSubmitter(JobSubmitter):
 
     def get_submit_command(self):
         command_line = self._command_line()
-        log_path = os.path.join(self.job_work_dir, "lsf.log")
+        log_path = os.path.join(self.job_work_dir, self.batch_system.logfileName)
         env = dict()
         env["NXF_OPTS"] = settings.NEXTFLOW_NXF_OPTS
         env["JAVA_HOME"] = settings.NEXTFLOW_JAVA_HOME
@@ -84,10 +86,10 @@ class NextflowJobSubmitter(JobSubmitter):
         return args
 
     def _walltime(self):
-        return ["-W", str(self.walltime)] if self.walltime else []
+        return self.batch_system.set_walltime(self.walltime)
 
     def _memlimit(self):
-        return ["-M", self.memlimit] if self.memlimit else ["-M", "20"]
+        return self.batch_system.set_memlimit(self.memlimit, default="20")
 
     def _sha1(self, path, buffersize=1024 * 1024):
         try:
