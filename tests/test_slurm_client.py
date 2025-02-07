@@ -1,6 +1,5 @@
 from django.test import TestCase
 from mock import patch, Mock
-from django.conf import settings
 from batch_systems.slurm_client.slurm_client import SLURMClient
 from orchestrator.models import Status
 

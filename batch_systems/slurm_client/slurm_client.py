@@ -5,7 +5,6 @@ Submit, monitor, and control SLURM jobs
 import os
 import re
 import subprocess
-import json
 import logging
 from django.conf import settings
 from orchestrator.models import Status
@@ -96,7 +95,7 @@ class SLURMClient(BatchClient):
             walltime_args = walltime_args + [f"--t={expected_limit}"]
         if hard_limit:
             self.logger.debug(
-                "Hard limits are no supported on submission, its configured by the clusters's KillWait and OverTimeLimit parameters"
+                "Hard limits on submit are no supported, please check the cluster KillWait and OverTimeLimit params"
             )
         return walltime_args
 
