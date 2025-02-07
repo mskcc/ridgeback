@@ -104,6 +104,32 @@ class TestLSFClient(TestCase):
         self.assertEqual(terminated, True)
 
     @patch("subprocess.run")
+    def test_suspend(self, suspend_process):
+        """
+        Test LSF suspend
+        """
+        suspend_process_obj = Mock()
+        suspend_process_obj.returncode = 0
+        suspend_process.return_value = suspend_process_obj
+        expected_command = ["bstop", "-g", self.example_lsf_id, "0"]
+        suspended = self.lsf_client.suspend(self.example_job_id)
+        self.assertEqual(suspend_process.call_args[0][0], expected_command)
+        self.assertEqual(suspended, True)
+
+    @patch("subprocess.run")
+    def test_resume(self, resume_process):
+        """
+        Test LSF resume
+        """
+        resume_process_obj = Mock()
+        resume_process_obj.returncode = 0
+        resume_process.return_value = resume_process_obj
+        expected_command = ["bresume", "-g", self.example_lsf_id, "0"]
+        resumed = self.lsf_client.resume(self.example_job_id)
+        self.assertEqual(resume_process.call_args[0][0], expected_command)
+        self.assertEqual(resumed, True)
+
+    @patch("subprocess.run")
     def test_failed_status(self, status_process):
         """
         Test LSF failed status
