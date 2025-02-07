@@ -137,15 +137,18 @@ class SLURMClient(BatchClient):
             tuple: sacct job record (id,status,batch_system_exitcode,tool_exitcode)
         """
         sacct_record = None
-        if not sacct_output_str:
+        if sacct_output_str:
+            output_lines = sacct_output_str.strip().split("\n")
+            for single_sacct_line in output_lines:
+                slurm_job_info = single_sacct_line.strip().split("|")
+                slurm_id = slurm_job_info[0]
+                if slurm_id == external_job_id:
+                    status = slurm_job_info[1]
+                    exitcode_batch = slurm_job_info[2].split(":")[0]
+                    exitcode_tool = slurm_job_info[2].split(":")[1]
+                    sacct_record = (slurm_id, status, exitcode_batch, exitcode_tool)
+        if not sacct_record:
             self.logger.error(f"Error - sacct command could not find job {external_job_id}")
-        else:
-            slurm_job_info = sacct_output_str.split("|")
-            slurm_id = slurm_job_info[0].split(".")[0]
-            status = slurm_job_info[1]
-            exitcode_batch = slurm_job_info[2].split(":")[0]
-            exitcode_tool = slurm_job_info[2].split(":")[1]
-            sacct_record = (slurm_id, status, exitcode_batch, exitcode_tool)
         return sacct_record
 
     def _parse_procid(self, stdout):
@@ -240,7 +243,7 @@ class SLURMClient(BatchClient):
             tuple: (Ridgeback Status int, extra info)
         """
 
-        sacct_record = self._parse_sacct(stdout)
+        sacct_record = self._parse_sacct(stdout, external_job_id)
         if sacct_record:
             status = sacct_record[1]
             exit_batch = sacct_record[2]
@@ -261,7 +264,7 @@ class SLURMClient(BatchClient):
         saact_command = ["sacct", f"--jobs={external_job_id}.batch", "--format='jobid,state,exitcode'", "-n", "-P"]
         self.logger.debug("Checking slurm status for job: %s", external_job_id)
         process = subprocess.run(saact_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
-        status = self._parse_status(process.stdout, external_job_id)
+        status = self._parse_status(process.stdout, str(external_job_id))
         return status
 
     def _get_job_list(self, job_id):
@@ -278,8 +281,10 @@ class SLURMClient(BatchClient):
         saact_command = ["sacct", f"--wckeys={job_id}", "--format='jobid'", "-n", "-P"]
         process = subprocess.run(saact_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         output = process.stdout
-        for single_slurm_id in output:
-            slurm_jobs.append(single_slurm_id)
+        for single_line in output.strip().split("\n"):
+            single_slurm_id = single_line.split(".")[0]
+            if single_slurm_id and single_slurm_id not in slurm_jobs:
+                slurm_jobs.append(single_slurm_id)
         return slurm_jobs
 
     def suspend(self, job_id):
