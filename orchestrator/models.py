@@ -1,3 +1,4 @@
+import os
 import uuid
 import logging
 from enum import IntEnum
@@ -28,11 +29,12 @@ class Status(IntEnum):
     SUBMITTED = 3
     PENDING = 4
     RUNNING = 5
-    COMPLETED = 6
-    FAILED = 7
-    TERMINATED = 8
-    UNKNOWN = 9
-    SUSPENDED = 10
+    SET_PERMISSIONS = 6
+    COMPLETED = 7
+    FAILED = 8
+    TERMINATED = 9
+    UNKNOWN = 10
+    SUSPENDED = 11
 
     def transition(self, transition_to):
         if self == self.CREATED:
@@ -195,7 +197,7 @@ class Job(BaseModel):
         self.working_dir = job_work_dir
         self.output_directory = job_output_dir
         self.log_dir = log_path
-        self.message["log"] = log_path
+        self.message["log"] = os.path.join(job_work_dir, "lsf.log")
         self.save(
             update_fields=[
                 "status",
@@ -226,11 +228,15 @@ class Job(BaseModel):
         self.status = lsf_status
         self.save(update_fields=["status", "started"])
 
-    def complete(self, outputs):
+    def pipeline_completed(self, outputs):
         self.track_cache = None
         self.outputs = outputs
-        self.status = Status.COMPLETED
+        self.status = Status.SET_PERMISSIONS
         self.finished = now()
+        self.save()
+
+    def complete(self):
+        self.status = Status.COMPLETED
         self.save()
 
     def fail(self, error_message, failed_jobs="", unknown_jobs=""):
