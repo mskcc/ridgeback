@@ -13,7 +13,7 @@ from lib.memcache_lock import memcache_task_lock, memcache_lock
 from submitter.factory import JobSubmitterFactory
 from orchestrator.scheduler import Scheduler
 from orchestrator.commands import Command, CommandType
-from batch_systems.lsf_client.lsf_client import LSFClient
+from batch_systems.batch_system import get_batch_system
 from orchestrator.exceptions import (
     RetryException,
     StopException,
@@ -22,6 +22,7 @@ from orchestrator.exceptions import (
 
 
 logger = logging.getLogger(__name__)
+BATCH_SYSTEM = get_batch_system()
 
 
 def get_job_info_path(job_id):
@@ -54,8 +55,7 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
 
 def suspend_job(job):
     if Status(job.status).transition(Status.SUSPENDED):
-        lsf_client = LSFClient()
-        job_suspended = lsf_client.suspend(str(job.id))
+        job_suspended = BATCH_SYSTEM.suspend(str(job.id))
         if not job_suspended:
             raise RetryException("Failed to suspend job: %s" % str(job.id))
         job.update_status(Status.SUSPENDED)
@@ -74,8 +74,7 @@ def resume_job(job):
             log_dir=job.log_dir,
             app_name=job.metadata["pipeline_name"],
         )
-        lsf_client = LSFClient()
-        job_resumed = lsf_client.resume(submitter.job_id)
+        job_resumed = BATCH_SYSTEM.resume(submitter.job_id)
         if not job_resumed:
             raise RetryException("Failed to resume job: %s" % str(job.id))
         job.update_status(Status.RUNNING)
@@ -106,7 +105,7 @@ def process_jobs():
 
     for job_id in status_jobs:
         # Send CHECK_STATUS commands for Jobs
-        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_id)).to_dict())
+        command_processor.delay(Command(CommandType.CHECK_STATUS_ON_BATCH_SYSTEM, str(job_id)).to_dict())
 
     jobs = Scheduler.get_jobs_to_submit()
 
@@ -133,10 +132,10 @@ def command_processor(self, command_dict):
                     logger.debug("PREPARE command for job %s" % command.job_id)
                     prepare_job(job)
                 elif command.command_type == CommandType.SUBMIT:
-                    logger.debug("SUBMIT command for job %s" % command.job_id)
-                    submit_job_to_lsf(job, self.request.retries)
-                elif command.command_type == CommandType.CHECK_STATUS_ON_LSF:
-                    logger.debug("CHECK_STATUS_ON_LSF command for job %s" % command.job_id)
+                    logger.info("SUBMIT command for job %s" % command.job_id)
+                    submit_job_to_batch_system(job, self.request.retries)
+                elif command.command_type == CommandType.CHECK_STATUS_ON_BATCH_SYSTEM:
+                    logger.info("CHECK_STATUS_ON_BATCH_SYSTEM command for job %s" % command.job_id)
                     check_job_status(job)
                 elif command.command_type == CommandType.CHECK_COMMAND_LINE_STATUS:
                     logger.debug("CHECK_COMMAND_LINE_STATUS command for job %s" % command.job_id)
@@ -212,10 +211,9 @@ def prepare_job(job):
             job.job_prepared(job_store_dir, job_work_dir, job_output_dir, log_dir)
 
 
-def submit_job_to_lsf(job, retries=0):
+def submit_job_to_batch_system(job, retries=0):
     if Status(job.status).transition(Status.SUBMITTED):
-        logger.info(f"Submitting job {str(job.id)} to lsf. Try {retries}")
-        lsf_client = LSFClient()
+        logger.info(f"Submitting job {str(job.id)} to {BATCH_SYSTEM.name}. Try {retries}")
         submitter = JobSubmitterFactory.factory(
             job.type,
             str(job.id),
@@ -231,7 +229,7 @@ def submit_job_to_lsf(job, retries=0):
         )
         try:
             command_line, args, log_path, job_id, env = submitter.get_submit_command()
-            external_job_id = lsf_client.submit(command_line, args, log_path, job_id, env)
+            external_job_id = BATCH_SYSTEM.submit(command_line, args, log_path, job_id, env)
         except Exception as f:
             if retries < 5:
                 logger.exception(str(f))
@@ -240,7 +238,7 @@ def submit_job_to_lsf(job, retries=0):
                 logger.exception(str(f))
                 raise StopException(f"Failed to submit job to scheduler {str(job.id)} no more retries")
         else:
-            logger.info(f"Job {str(job.id)} submitted to lsf with id: {external_job_id}")
+            logger.info(f"Job {str(job.id)} submitted to {BATCH_SYSTEM.name} with id: {external_job_id}")
             job.submitted_to_scheduler(external_job_id)
             # Keeping this for debugging purposes
             save_job_info(
@@ -304,26 +302,25 @@ def check_job_status(job):
     ):
         return
     try:
-        lsf_client = LSFClient()
-        lsf_status, lsf_message = lsf_client.status(str(job.external_id))
+        batch_system_status, batch_system_message = BATCH_SYSTEM.status(str(job.external_id))
     except FetchStatusException as e:
-        # If failed to check status on LSF retry
+        # If failed to check status on batch system retry
         logger.exception(e)
         raise RetryException("Failed to fetch status for job %s" % (str(job.id)))
-    if Status(job.status).transition(lsf_status):
-        if lsf_status in (
+    if Status(job.status).transition(batch_system_status):
+        if batch_system_status in (
             Status.SUBMITTED,
             Status.PENDING,
             Status.RUNNING,
             Status.UNKNOWN,
         ):
-            job.update_status(lsf_status)
+            job.update_status(batch_system_status)
 
-            if lsf_status in (Status.RUNNING,):
+            if batch_system_status in (Status.RUNNING,):
                 command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
                 command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
-        elif lsf_status in (Status.COMPLETED,):
+        elif batch_system_status in (Status.COMPLETED,):
             submitter = JobSubmitterFactory.factory(
                 job.type,
                 str(job.id),
@@ -342,12 +339,12 @@ def check_job_status(job):
                 _fail(job, error_message)
                 command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
-        elif lsf_status in (Status.FAILED,):
-            _fail(job, lsf_message)
+        elif batch_system_status in (Status.FAILED,):
+            _fail(job, batch_system_message)
 
         command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
     else:
-        raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
+        raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(batch_system_status).name))
 
 
 def _add_alert(job, alert_obj):
@@ -465,8 +462,7 @@ def terminate_job(job):
             Status.SUSPENDED,
             Status.UNKNOWN,
         ):
-            lsf_client = LSFClient()
-            job_killed = lsf_client.terminate(str(job.id))
+            job_killed = BATCH_SYSTEM.terminate(str(job.id))
             if not job_killed:
                 raise RetryException("Failed to TERMINATE job %s" % str(job.id))
         job.terminate()
@@ -523,17 +519,17 @@ def full_cleanup_jobs(self):
 
 @shared_task(bind=True)
 def cleanup_completed_jobs(self):
-    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS, exclude=["input.json", "lsf.log"])
+    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS, exclude=["input.json", BATCH_SYSTEM.logfileName])
 
 
 @shared_task(bind=True)
 def cleanup_failed_jobs(self):
-    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", "lsf.log"])
+    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", BATCH_SYSTEM.logfileName])
 
 
 @shared_task(bind=True)
 def cleanup_terminated_jobs(self):
-    cleanup_jobs(Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", "lsf.log"])
+    cleanup_jobs(Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", BATCH_SYSTEM.logfileName])
 
 
 def cleanup_jobs(status, time_delta, exclude=[]):
