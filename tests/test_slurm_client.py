@@ -11,7 +11,7 @@ class TestSLURMClient(TestCase):
     """
 
     def setUp(self):
-        self.example_id = 12345678
+        self.example_id = "12345678"
         self.example_job_id = "d736e17e-d67a-4897-901b-decab9942398"
         self.submit_response = "Submitted batch job {}".format(self.example_id)
         self.slurm_client = SLURMClient()
@@ -35,7 +35,7 @@ class TestSLURMClient(TestCase):
         """.format(
             self.example_id
         )
-        self.exit_reason = "FAILED, tool exit code: 1, batchsystem exit code: 0"
+        self.exit_reason = "FAILED, tool exit code: 0, batchsystem exit code: 1"
         self.pend_reason = None
 
     @patch("subprocess.run")
@@ -45,13 +45,13 @@ class TestSLURMClient(TestCase):
         """
         command = "ls"
         args = []
-        stdout_file = "stdout.txt"
+        stdout_file = f"{self.slurm_client.logfileName}"
         submit_process_obj = Mock()
         submit_process_obj.stdout = self.submit_response
         submit_process_obj.returncode = 0
         submit_process.return_value = submit_process_obj
-        slurm_id = self.slurm_client.submit(command, args, stdout_file, self.example_job_id, {})
         with self.settings(SLURM_PARTITION=self.example_partion):
+            slurm_id = self.slurm_client.submit(command, args, stdout_file, self.example_job_id, {})
             expected_command = (
                 [
                     "sbatch",
@@ -62,7 +62,7 @@ class TestSLURMClient(TestCase):
                 + args
                 + [f"--wrap=exec {command}"]
             )
-        self.assertEqual(slurm_id, self.example_id)
+        self.assertEqual(f"{slurm_id}", self.example_id)
         self.assertEqual(submit_process.call_args[0][0], expected_command)
 
     @patch("subprocess.run")
@@ -72,7 +72,7 @@ class TestSLURMClient(TestCase):
         """
         command = "ls"
         args = []
-        stdout_file = "stdout.txt"
+        stdout_file = f"{self.slurm_client.logfileName}"
         submit_process_obj = Mock()
         submit_process_obj.stdout = self.submit_response
         submit_process_obj.returncode = 0
@@ -93,7 +93,7 @@ class TestSLURMClient(TestCase):
                 + args
                 + [f"--wrap=exec {command}"]
             )
-        self.assertEqual(slurm_id, self.example_id)
+        self.assertEqual(f"{slurm_id}", self.example_id)
         self.assertEqual(submit_process.call_args[0][0], expected_command)
 
     @patch("subprocess.run")
@@ -114,7 +114,12 @@ class TestSLURMClient(TestCase):
         """
         Test SLURM suspend
         """
-        suspend_process.side_effect = [f"{self.example_id}", ""]
+        sacct_process_obj = Mock()
+        sacct_process_obj.stdout = f"{self.example_id}"
+        sacct_process_obj.returncode = 0
+        scontrol_process_obj = Mock()
+        scontrol_process_obj.returncode = 0
+        suspend_process.side_effect = [sacct_process_obj, scontrol_process_obj]
         expected_command = ["scontrol", "suspend", f"{self.example_id}"]
         suspended = self.slurm_client.suspend(self.example_job_id)
         self.assertEqual(suspend_process.call_args[0][0], expected_command)
@@ -125,7 +130,12 @@ class TestSLURMClient(TestCase):
         """
         Test SLURM resume
         """
-        resume_process.side_effect = [f"{self.example_job_id}", ""]
+        sacct_process_obj = Mock()
+        sacct_process_obj.stdout = f"{self.example_id}"
+        sacct_process_obj.returncode = 0
+        scontrol_process_obj = Mock()
+        scontrol_process_obj.returncode = 0
+        resume_process.side_effect = [sacct_process_obj, scontrol_process_obj]
         expected_command = ["scontrol", "resume", f"{self.example_id}"]
         resumed = self.slurm_client.resume(self.example_job_id)
         self.assertEqual(resume_process.call_args[0][0], expected_command)
