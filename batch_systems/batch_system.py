@@ -5,9 +5,11 @@ import logging
 def get_batch_system():
     if settings.BATCH_SYSTEM == "LSF":
         from batch_systems.lsf_client.lsf_client import LSFClient
+
         return LSFClient()
     elif settings.BATCH_SYSTEM == "SLURM":
         from batch_systems.slurm_client.slurm_client import SLURMClient
+
         return SLURMClient()
     else:
         raise Exception(f"Batch system {settings.BATCH_SYSTEM} not supported, please use either LSF or SLURM")
