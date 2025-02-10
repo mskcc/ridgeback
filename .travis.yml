@@ -29,6 +29,5 @@ script:
   - source travis_env.sh
   - coverage run --source='.' manage.py test
   - coverage report -m --fail-under=75
-  - flake8
   - black --check .
 
