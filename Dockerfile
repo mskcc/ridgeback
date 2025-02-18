@@ -5,6 +5,7 @@ LABEL maintainer="Nikhil Kumar (kumarn1@mskcc.org)" \
       source.ridgeback="https://github.com/mskcc/ridgeback"
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV PIP_ROOT_USER_ACTION ignore
 ENV RIDGEBACK_BRANCH master
 
 RUN apt-get clean && apt-get update -qq \
@@ -22,9 +23,8 @@ RUN apt-get clean && apt-get update -qq \
     && cd /usr/bin/ridgeback \
     # Install python packages
     && pip3 install --upgrade pip \
-    && python3 -m pip install python-ldap \
-    && pip3 install setuptools==57.5.0 \
-    && pip install "cython<3.0.0" wheel \
-    && pip install "pyyaml==5.4.1" --no-build-isolation \
+    && pip3 install python-ldap,setuptools==57.5.0 \
+    && pip3 install "cython<3.0.0" wheel \
+    && pip3 install "pyyaml==5.4.1" --no-build-isolation \
     && pip3 install -r requirements.txt \
     && pip3 install -r requirements-toil.txt
