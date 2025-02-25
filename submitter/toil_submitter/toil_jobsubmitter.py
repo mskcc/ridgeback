@@ -206,7 +206,7 @@ class ToilJobSubmitter(JobSubmitter):
     def _command_line(self):
         single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
         single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
-        if "git@github.com:mskcc/access-pipeline" in self.app.github.lower():
+        if settings.ACCESS_LEGACY_APP in self.app.github.lower():
             """
             Start ACCESS-specific code
             """
