@@ -9,8 +9,6 @@ from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
 from batch_systems.lsf_client.lsf_client import format_lsf_job_id
 
-ACCESS_LEGACY_NAME = "access-pipeline"
-
 
 def translate_toil_to_model_status(status):
     """
@@ -208,7 +206,7 @@ class ToilJobSubmitter(JobSubmitter):
     def _command_line(self):
         single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
         single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
-        if ACCESS_LEGACY_NAME in self.app.github.lower():
+        if settings.ACCESS_LEGACY_APP in self.app.github.lower():
             """
             Start ACCESS-specific code
             """
