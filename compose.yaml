@@ -1,0 +1,191 @@
+name: 'Ridgeback Services'
+
+services:
+  postgres:
+    image: postgres:17
+    restart: on-failure
+    volumes:
+      - ./ridgeback_compose/database:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${RIDGEBACK_DB_USERNAME}
+      - POSTGRES_PASSWORD=${RIDGEBACK_DB_PASSWORD}
+      - POSTGRES_DB=${RIDGEBACK_DB_NAME}
+    ports:
+      - ${RIDGEBACK_DB_PORT}:5432
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${RIDGEBACK_DB_USERNAME} -d ${RIDGEBACK_DB_NAME}'"]
+      interval: 60s
+      timeout: 3s
+      retries: 3
+  memcached:
+    image: memcached:1.6.36
+    restart: on-failure
+    ports:
+        - ${RIDGEBACK_MEMCACHED_PORT}:11211
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "11211"]
+      interval: 10s
+      timeout: 5s
+      retries: 3 
+  rabbitmq:
+    image: rabbitmq:4.0.6-management-alpine
+    restart: always
+    volumes:
+      - ./ridgeback_compose/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./ridgeback_compose/rabbitmq/log/:/var/log/rabbitmq/
+    ports:
+      - ${RIDGEBACK_RABBITMQ_PORT}:5672
+      - ${RIDGEBACK_RABBITMQ_MANAGEMENT_PORT}:15672
+    environment:
+      - RABBITMQ_NODENAME=rabbitmq_ridgeback
+      - RABBITMQ_NODE_IP_ADDRESS=127.0.0.1
+      - RABBITMQ_DEFAULT_USER=${RIDGEBACK_RABBITMQ_USERNAME}
+      - RABBITMQ_DEFAULT_PASS=${RIDGEBACK_RABBITMQ_PASSWORD}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 60s
+      timeout: 3s
+      retries: 3
+  ridgeback_webserver:
+    iamge:  mskcc/ridgeback:${RIDGEBACK_VERSION}
+    restart: always
+    volumes:
+      - ./ridgeback_compose/server:/ridgeback/server
+    ports:
+      - ${RIDGEBACK_PORT}:${RIDGEBACK_PORT}
+    command: >
+      bash -c "
+               python3 ${RIDGEBACK_PATH}/manage.py wait_for_db &&
+               python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput &&
+               python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput &&
+               python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:${RIDGEBACK_POR}T >> /ridgeback_compose/server/boot.log 2>&1"              
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:${RIDGEBACK_PORT}/ || exit 1"]
+      interval: 60s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      memcached:
+        condition: service_healthy
+        restart: false
+      rabbitmq:
+        condition: service_healthy
+        restart: false
+  ridgeback_celery:
+    iamge:  mskcc/ridgeback:${RIDGEBACK_VERSION}
+    restart: always
+    user: "${DOCKER_UID}:${DOCKER_GID}"
+    volumes:
+      - ${SLURM_BIN_PATH}:/usr/batchsystem/bin
+      - ${SLURM_ETC}:${SLURM_ETC}
+      - ${SLURM_LIB_PATH}:${SLURM_LIB_PATH}
+      - ${SLURM_ETC_PASSWD}:${SLURM_ETC_PASSWD}
+      - ${SLURM_MUNGE_VAR}:${SLURM_MUNGE_VAR}
+      - ${SLURM_LIBMUNGE_OBJECT}:${SLURM_LIBMUNGE_OBJECT}
+      - ./ridgeback_compose/celery/logs:/ridgeback/celery/logs
+      - ./ridgeback_compose/celery/pids:/ridgeback/celery/pids
+      - ./ridgeback_compose/celery:/ridgeback/celery
+      - ${CLUSTER_FILESYSTEM_MOUNT}:${CLUSTER_FILESYSTEM_MOUNT}
+    command: >
+      bash -c "source ${RIDGEBACK_VENV}/bin/activate &&
+              pip3 install --upgrade pip &&
+              pip3 install --force-reinstall 'setuptools<58.0.0 &&
+              pip3 install -r /usr/bin/ridgeback/requirements.txt &&
+              pip3 install -r requirements-toil.txt &&
+              
+              echo 'Running orchestrator beat...' &&
+              
+              celery --workdir ${RIDGEBACK_PATH} \
+              -A orchestrator beat \
+              --detach \
+              -l info \
+              -f /ridgeback/celery/logs/ridgeback_beat.log \
+              --pidfile /ridgeback/celery/pids/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid \
+              -s /ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.celerybeat-schedule -detach &&
+
+              echo 'Running command queue worker...' &&
+
+              celery --workdir ${RIDGEBACK_PATH} \
+              -A orchestrator worker \
+              --detach \
+              -l info \
+              -Q ${RIDGEBACK_COMMAND_QUEUE} \
+              -f /ridgeback/celery/logs/${RIDGEBACK_COMMAND_QUEUE}.log \
+              --pidfile /ridgeback/celery/pids/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}.pid \
+              --concurrency=30 \
+              -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE} &&
+
+              echo 'Running action queue worker...''
+              
+              celery --workdir ${RIDGEBACK_PATH} \
+              -A orchestrator worker \
+              --detach \
+              -l info \
+              -Q ${RIDGEBACK_ACTION_QUEUE} \
+              -f /ridgeback/celery/logs/${RIDGEBACK_ACTION_QUEUE}.log \
+              --pidfile /ridgeback/celery/pids/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}.pid \
+              --concurrency=10 \
+              -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE} &&
+
+              echo 'Running check status queue worker...''
+              
+              celery --workdir ${RIDGEBACK_PATH} \
+              -A orchestrator worker \
+              --detach \
+              -l info \
+              -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
+              -f /ridgeback/celery/logs/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
+              --pidfile /ridgeback/celery/pids/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid \
+              --concurrency=1 &&
+
+              echo 'Running submit job queue worker...'
+              
+              celery --workdir ${RIDGEBACK_PATH} \
+              -A orchestrator worker \
+              --detach \
+              -l info \
+              -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
+              -f /ridgeback/celery/logs/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
+              --pidfile /ridgeback/celery/pids/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid \
+              --concurrency=1 &&
+
+              echo 'Running short queue worker...'
+
+              celery --workdir ${RIDGEBACK_PATH} \
+              -A orchestrator worker \
+              --detach \
+              -l info \
+              -Q ${RIDGEBACK_SET_PERMISSIONS_QUEUE} \
+              -f /ridgeback/celery/logs/${RIDGEBACK_SET_PERMISSIONS_QUEUE}.log \
+              --pidfile /ridgeback/celery/pids/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}.pid \
+              --concurrency=10 &&
+
+              echo 'Running cleanup queue worker...'
+              
+              celery --workdir ${RIDGEBACK_PATH} \
+              -A orchestrator worker \
+              --detach \
+              -l info \
+              -Q ${RIDGEBACK_CLEANUP_QUEUE} \
+              -f /ridgeback/celery/logs/${RIDGEBACK_CLEANUP_QUEUE}.log \
+              --pidfile /ridgeback/celery/pids/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE}.pid \
+              --concurrency=2"
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'source ${RIDGEBACK_VENV}/bin/activate; celery -A orchestrator' status || exit 1"]
+      interval: 60s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      memcached:
+        condition: service_healthy
+        restart: false
+      rabbitmq:
+        condition: service_healthy
+        restart: false
+
