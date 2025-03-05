@@ -7,7 +7,7 @@ LABEL maintainer="Nikhil Kumar (kumarn1@mskcc.org)" \
 ENV DEBIAN_FRONTEND noninteractive
 ENV PIP_ROOT_USER_ACTION ignore
 ENV PIP_BREAK_SYSTEM_PACKAGES 1
-ENV RIDGEBACK_BRANCH feature/IRIS_migration
+ENV RIDGEBACK_BRANCH feature/IRIS_update
 
 RUN apt-get update \
      # Install dependencies
