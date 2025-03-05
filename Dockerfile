@@ -1,4 +1,4 @@
-FROM openjdk:22-slim
+FROM ubuntu:22.04
 
 LABEL maintainer="Nikhil Kumar (kumarn1@mskcc.org)" \
       version.image="1.0.0" \
@@ -14,7 +14,7 @@ RUN apt-get update \
      && apt-get -y --no-install-recommends install \
         python3 python3-pip wget \
         libldap2-dev libsasl2-dev libssl-dev libxml2-dev libxslt-dev \
-        postgresql-client libpq-dev \
+        postgresql-client libpq-dev default-jdk \
         gawk nodejs git build-essential python3-dev \
      # Install Ridgeback
         && cd /usr/bin \
