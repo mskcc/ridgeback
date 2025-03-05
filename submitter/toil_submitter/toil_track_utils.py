@@ -1,6 +1,7 @@
 """
 Track commandline status of toil jobs
 """
+
 import os
 import sys
 import logging

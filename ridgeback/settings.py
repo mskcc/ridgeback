@@ -118,7 +118,7 @@ DATABASES = {
         "PORT": DB_PORT,
     }
 }
-
+MEMCACHED_HOST = os.environ.get("RIDGEBACK_MEMCACHED_HOST", "127.0.0.1")
 MEMCACHED_PORT = os.environ.get("RIDGEBACK_MEMCACHED_PORT", 11211)
 
 if ENVIRONMENT == "dev":
@@ -132,7 +132,7 @@ else:
     CACHES = {
         "default": {
             "BACKEND": "djpymemcache.backend.PyMemcacheCache",
-            "LOCATION": "127.0.0.1:%s" % MEMCACHED_PORT,
+            "LOCATION": "%s:%s" % (MEMCACHED_HOST, MEMCACHED_PORT),
             "OPTIONS": {
                 # see https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html
                 "default_noreply": False
@@ -281,11 +281,21 @@ PIPELINE_CONFIG = {
         "TMP_DIR_ROOT": os.environ["DEFAULT_TMP_DIR_ROOT"],
     },
 }
+# Batch System settings
 
-# Toil settings
+BATCH_SYSTEM = os.environ.get("RIDGEBACK_BATCH_SYSTEM", "LSF")
+
+# SLURM settings
+
+SLURM_PARTITION = os.environ.get("RIDGEBACK_SLURM_PARTITION", None)
+
+# LSF settings
 
 LSF_WALLTIME = os.environ["RIDGEBACK_LSF_WALLTIME"]
 LSF_SLA = os.environ.get("RIDGEBACK_LSF_SLA", None)
+
+# Toil settings
+
 CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
 TOIL_MAX_CORES = os.environ.get("RIDGEBACK_TOIL_MAX_CORES", "24")
