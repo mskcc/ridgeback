@@ -12,7 +12,7 @@ ENV RIDGEBACK_BRANCH feature/IRIS_update
 RUN apt-get update \
      # Install dependencies
         && apt-get -y --no-install-recommends install \
-            wget curl libldap2-dev libsasl2-dev libssl-dev libxml2-dev libxslt-dev \
+            wget curl libldap2-dev libsasl2-dev procps libssl-dev libxml2-dev libxslt-dev \
             libpq-dev gawk nodejs git build-essential \
      # Install Ridgeback
         && cd /usr/bin \
