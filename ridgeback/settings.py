@@ -39,17 +39,6 @@ STATIC_ROOT = "ridgeback_staticfiles"
 
 SESSION_COOKIE_NAME = os.environ.get("RIDGEBACK_COOKIE_SESSION_NAME", "ridgeback_prod_session")
 
-
-ELASTIC_APM = {
-    # Set the required service name. Allowed characters:
-    # a-z, A-Z, 0-9, -, _, and space
-    "SERVICE_NAME": "ridgeback",
-    # Set the custom APM Server URL (default: http://localhost:8200)
-    "SERVER_URL": "http://bic-dockerapp01.mskcc.org:8200/",
-    # Set the service environment
-    "ENVIRONMENT": ENVIRONMENT,
-}
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -63,12 +52,10 @@ INSTALLED_APPS = [
     "orchestrator.apps.OrchestratorConfig",
     "rest_framework",
     "drf_yasg",
-    "elasticapm",
     "django_extensions",
 ]
 
 MIDDLEWARE = [
-    "elasticapm.contrib.django.middleware.TracingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
