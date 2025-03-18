@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM python:3.10-slim
 
 LABEL maintainer="Nikhil Kumar (kumarn1@mskcc.org)" \
       version.image="1.0.0" \
@@ -11,11 +11,9 @@ ENV RIDGEBACK_BRANCH feature/IRIS_update
 
 RUN apt-get update \
      # Install dependencies
-     && apt-get -y --no-install-recommends install \
-        python3 python3-pip wget \
-        libldap2-dev libsasl2-dev libssl-dev libxml2-dev libxslt-dev \
-        postgresql-client libpq-dev default-jdk \
-        gawk nodejs git build-essential python3-dev \
+        && apt-get -y --no-install-recommends install \
+            wget curl libldap2-dev libsasl2-dev procps libssl-dev libxml2-dev libxslt-dev \
+            libpq-dev gawk nodejs git build-essential \
      # Install Ridgeback
         && cd /usr/bin \
         && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH \
@@ -27,6 +25,7 @@ RUN apt-get update \
         && pip3 install -r requirements.txt \
         && pip3 install -r requirements-toil.txt \
     # Clean up image
-     && rm -rf /var/lib/apt/lists/* 
+        && apt-get -y purge --auto-remove build-essential \
+        && rm -rf /var/lib/apt/lists/*
 
 
