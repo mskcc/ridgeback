@@ -54,7 +54,7 @@ class ToilJobSubmitter(JobSubmitter):
         self.batch_system_args_env = None
         if settings.BATCH_SYSTEM == "LSF":
             self.batch_system_args_env = "TOIL_LSF_ARGS"
-        elif settings.BATCH_STYSTEM == "SLURM":
+        elif settings.BATCH_SYSTEM == "SLURM":
             self.batch_system_args_env = "TOIL_SLURM_ARGS"
 
     def prepare_to_submit(self):
