@@ -20,8 +20,7 @@ RUN apt-get update \
         && cd /usr/bin/ridgeback \
      # Install python packages
         && pip3 install --upgrade pip \
-        && pip3 install python-ldap setuptools==57.5.0 \
-        && pip3 install "pyyaml==5.4.1" --no-build-isolation \
+        && pip3 install python-ldap \
         && pip3 install -r requirements.txt \
         && pip3 install -r requirements-toil.txt \
     # Clean up image
