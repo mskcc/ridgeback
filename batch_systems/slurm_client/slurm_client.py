@@ -33,7 +33,7 @@ class SLURMClient(BatchClient):
         Submit command to SLURM and store log in stdout
 
         Args:
-            command (str): command to submit
+            command (list): command to submit
             job_args (list): Additional options for leader sbatch
             stdout (str): log file path
             job_id (str): job_id
@@ -44,13 +44,15 @@ class SLURMClient(BatchClient):
         """
         work_dir = os.path.dirname(stdout)
 
+        command_str = " ".join(command)
+
         sbatch_command = (
             ["sbatch"]
             + self.set_service_queue()
             + self.set_group(job_id)
             + self.set_stdout_file(stdout)
             + job_args
-            + [f"--wrap=exec {command}"]
+            + [f"--wrap=exec {command_str}"]
         )
         current_env = os.environ.copy()
         for k, v in env.items():

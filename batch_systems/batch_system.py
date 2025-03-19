@@ -36,7 +36,7 @@ class BatchClient(object):
         Submit command to LSF and store log in stdout
 
         Args:
-            command (str): command to submit
+            command (list): command to submit
             job_args (list): Additional options for leader job
             stdout (str): log file path
             job_id (str): job_id
