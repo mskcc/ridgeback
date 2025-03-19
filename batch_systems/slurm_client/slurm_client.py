@@ -262,7 +262,7 @@ class SLURMClient(BatchClient):
         Returns:
             tuple: (Ridgeback Status int, extra info)
         """
-        saact_command = ["sacct", f"--jobs={external_job_id}.batch", "--format='jobid,state,exitcode'", "-n", "-P"]
+        saact_command = ["sacct", f"--jobs={external_job_id}.batch", "--format=jobid,state,exitcode", "-n", "-P"]
         self.logger.debug("Checking slurm status for job: %s", external_job_id)
         process = subprocess.run(saact_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         status = self._parse_status(process.stdout, str(external_job_id))
@@ -279,7 +279,7 @@ class SLURMClient(BatchClient):
         """
 
         slurm_jobs = []
-        saact_command = ["sacct", f"--wckeys={job_id}", "--format='jobid'", "-n", "-P"]
+        saact_command = ["sacct", f"--wckeys={job_id}", "--format=jobid", "-n", "-P"]
         process = subprocess.run(saact_command, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         output = process.stdout
         for single_line in output.strip().split("\n"):
