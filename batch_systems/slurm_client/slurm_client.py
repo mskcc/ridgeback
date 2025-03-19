@@ -145,7 +145,7 @@ class SLURMClient(BatchClient):
             for single_sacct_line in output_lines:
                 slurm_job_info = single_sacct_line.strip().split("|")
                 slurm_id = slurm_job_info[0]
-                if slurm_id == external_job_id:
+                if slurm_id == f"{external_job_id}.batch":
                     status = slurm_job_info[1]
                     exitcode_batch = slurm_job_info[2].split(":")[0]
                     exitcode_tool = slurm_job_info[2].split(":")[1]
