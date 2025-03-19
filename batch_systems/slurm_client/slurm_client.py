@@ -42,6 +42,7 @@ class SLURMClient(BatchClient):
         Returns:
             int: slurm job id
         """
+        work_dir = os.path.dirname(stdout)
 
         sbatch_command = (
             ["sbatch"]
@@ -63,6 +64,7 @@ class SLURMClient(BatchClient):
             check=True,
             stdout=subprocess.PIPE,
             universal_newlines=True,
+            cwd=work_dir,
             env=current_env,
         )
         if process.returncode != 0:
