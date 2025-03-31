@@ -162,7 +162,7 @@ class ToilJobSubmitter(JobSubmitter):
         with open(inputs_location, "w") as f:
             json.dump(self.inputs, f)
         if self.log_dir:
-            inputs_log_name = f"{self.log_prefix}.input.json" if self.log_dir else "input.json"
+            inputs_log_name = f"{self.log_prefix}.input.json" if self.log_prefix else "input.json"
             inputs_log_location = os.path.join(self.log_dir, inputs_log_name)
             with open(inputs_log_location, "w") as f:
                 json.dump(self.inputs, f)
