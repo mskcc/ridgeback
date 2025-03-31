@@ -15,13 +15,34 @@ class JobSubmitterFactory(object):
         tool_walltime=None,
         memlimit=None,
         log_dir=None,
+        log_prefix="",
         app_name="NA",
     ):
         if type == PipelineType.CWL:
             return ToilJobSubmitter(
-                job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit, log_dir, app_name
+                job_id,
+                app,
+                inputs,
+                root_dir,
+                resume_jobstore,
+                walltime,
+                tool_walltime,
+                memlimit,
+                log_dir,
+                log_prefix,
+                app_name,
             )
         elif type == PipelineType.NEXTFLOW:
             return NextflowJobSubmitter(
-                job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit, log_dir, app_name
+                job_id,
+                app,
+                inputs,
+                root_dir,
+                resume_jobstore,
+                walltime,
+                tool_walltime,
+                memlimit,
+                log_dir,
+                log_prefix,
+                app_name,
             )

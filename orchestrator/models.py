@@ -173,6 +173,7 @@ class Job(BaseModel):
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
     log_dir = models.CharField(max_length=1000, null=True, blank=True)
+    log_prefix = models.CharField(max_length=100, default="", blank=True)
     status = models.IntegerField(
         choices=[(status.value, status.name) for status in Status],
         default=Status.CREATED,
@@ -191,12 +192,13 @@ class Job(BaseModel):
     memlimit = models.CharField(blank=True, null=True, default=None, max_length=20)
     metadata = JSONField(blank=True, null=True, default=dict)
 
-    def job_prepared(self, job_store_dir, job_work_dir, job_output_dir, log_path):
+    def job_prepared(self, job_store_dir, job_work_dir, job_output_dir, log_path, log_prefix):
         self.status = Status.PREPARED
         self.job_store_location = job_store_dir
         self.working_dir = job_work_dir
         self.output_directory = job_output_dir
         self.log_dir = log_path
+        self.log_prefix = log_prefix
         self.message["log"] = os.path.join(job_work_dir, "lsf.log")
         self.save(
             update_fields=[
@@ -205,6 +207,7 @@ class Job(BaseModel):
                 "working_dir",
                 "output_directory",
                 "log_dir",
+                "log_prefix",
                 "message",
             ]
         )
