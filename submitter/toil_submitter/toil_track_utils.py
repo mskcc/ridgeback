@@ -384,7 +384,6 @@ class ReadOnlyFileJobStore(FileJobStore):
         pass
 
     # pylint: enable=too-many-arguments
-
     def writeSharedFileStream(self, sharedFileName, isProtected=None, encoding=None, errors=None):
         pass
 
@@ -433,7 +432,6 @@ class ToilTrack:
         self.show_cwl_internal = show_cwl_internal
 
     # pylint: enable=too-many-instance-attributes
-
     def create_job_id(self, job_store_id, id_prefix_param=None, id_suffix_param=None):
         """
         Create a job id using the Id in the TOIL jobstore with
@@ -701,10 +699,10 @@ def main():
     """
 
     usage_str = """
-              USAGE:
-              toil_track_utils.py track [job_store_path] [work_dir_path]
-              toil_track_utils.py snapshot [job_store_path_1] [work_dir_path_1] [job_store_path_2] [work_dir_path_2]
-            """
+        USAGE:
+            toil_track_utils.py track [job_store_path] [work_dir_path]
+            toil_track_utils.py snapshot [job_store_path_1] [work_dir_path_1] [job_store_path_2] [work_dir_path_2]
+    """
 
     if len(sys.argv) not in [4, 6]:
         print(usage_str)
