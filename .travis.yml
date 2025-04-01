@@ -8,10 +8,10 @@ addons:
   postgresql: "11"
   apt:
     packages:
-    - postgresql-11
-    - postgresql-client-11
+      - postgresql-11
+      - postgresql-client-11
 python:
-  - "3.8"
+  - "3.10"
 before_install:
   - sudo apt-get update
   - sudo apt-get --yes remove postgresql\*
@@ -31,4 +31,3 @@ script:
   - coverage report -m --fail-under=75
   - flake8
   - black --check .
-
