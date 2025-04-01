@@ -405,6 +405,9 @@ class ToolStatus(IntEnum):
     FAILED = 4
     UNKNOWN = 5
 
+    def __str__(self):
+        return self.name
+
 
 class ToilTrack:
     """
@@ -676,6 +679,9 @@ def script_track_status(toil_track_obj):
         jobs_path = toil_track_obj.jobs_path
         jobs = toil_track_obj.jobs
         work_log_to_job_id = toil_track_obj.work_log_to_job_id
+        for single_job_id in jobs:
+            single_job = jobs[single_job_id]
+            single_job["status"] = str(single_job["status"])
         print(json.dumps(jobs, indent=4, sort_keys=True, default=str))
         time.sleep(4)
 
