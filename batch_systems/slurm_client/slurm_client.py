@@ -150,6 +150,11 @@ class SLURMClient(BatchClient):
                     exitcode_batch = slurm_job_info[2].split(":")[0]
                     exitcode_tool = slurm_job_info[2].split(":")[1]
                     sacct_record = (slurm_id, status, exitcode_batch, exitcode_tool)
+                if slurm_id == f"{external_job_id}" and not sacct_record:
+                    status = slurm_job_info[1]
+                    exitcode_batch = slurm_job_info[2].split(":")[0]
+                    exitcode_tool = slurm_job_info[2].split(":")[1]
+                    sacct_record = (slurm_id, status, exitcode_batch, exitcode_tool)
         if not sacct_record:
             self.logger.error(f"Error - sacct command could not find job {external_job_id}")
         return sacct_record
