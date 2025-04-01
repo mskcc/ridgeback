@@ -128,7 +128,7 @@ def _get_job_id(text):
     TOIL helper function to parse the
     job id path from text
     """
-    job_id = re.search("kind\S*", text)
+    job_id = re.search(r"kind\S*", text)
     if job_id:
         return job_id[0]
     return None
@@ -284,11 +284,11 @@ def _get_job_display_name(job):
     TOIL adapter to get the display name of the job from TOIL job.
     Use the field job_name or display_name depending on the TOIL version
     Example:
-        job_name: file:///Users/kumarn1/work/ridgeback/tests/test_jobstores/test_cwl/sleep.cwl#simpleWorkflow/sleep/sleep
+        job_name: file:///Users/kumarn1/cwl/test_jobstore/sleep.cwl#simpleWorkflow/sleep/sleep
         returns "sleep"
     When id is not specified in the cwl it will return the name of the cwl
     Example:
-        job_name: file:///Users/kumarn1/work/ridgeback/tests/test_jobstores/test_cwl/sleep.cwl
+        job_name: file:///Users/kumarn1/cwl/test_jobstore/sleep.cwl
         returns "sleep"
     """
     if TOIL_MAJOR_VERSION >= 8:
@@ -364,7 +364,7 @@ class ReadOnlyFileJobStore(FileJobStore):
             try:
                 with open(job_file, "rb") as file_handle:
                     job = pickle.load(file_handle)
-            except:
+            except OSError:
                 return None
             return job
 
