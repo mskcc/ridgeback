@@ -272,6 +272,13 @@ def _get_file_modification_time(file_path):
     return None
 
 
+def _get_bus_path(job_store):
+    """
+    TOIL helper function to get leader bus path, only supported for TOIL >= 8.0.0
+    """
+    return job_store.config.write_messages
+
+
 def _get_job_display_name(job):
     """
     TOIL adapter to get the display name of the job from TOIL job.
@@ -677,7 +684,7 @@ class ToilTrack:
         job_list = []
 
         if TOIL_MAJOR_VERSION >= 8:
-            message_bus = job_store.config.write_messages
+            message_bus = _get_bus_path(job_store)
             if message_bus and os.path.exists(message_bus):
                 all_job_statuses = replay_message_bus(message_bus)
                 for job_status in all_job_statuses.values():
