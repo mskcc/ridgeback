@@ -322,9 +322,9 @@ def check_job_status(job):
         ):
             job.update_status(lsf_status)
 
-            if lsf_status in (Status.RUNNING,):
-                command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
-                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
+            # if lsf_status in (Status.RUNNING,):
+                # command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
+                # command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
         elif lsf_status in (Status.COMPLETED,):
             submitter = JobSubmitterFactory.factory(
@@ -348,8 +348,6 @@ def check_job_status(job):
 
         elif lsf_status in (Status.FAILED,):
             _fail(job, lsf_message)
-
-        command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
     else:
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
