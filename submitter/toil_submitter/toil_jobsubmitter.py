@@ -274,9 +274,9 @@ class ToilJobSubmitter(JobSubmitter):
                 "--stats",
                 "--cleanWorkDir",
                 "onSuccess",
-                "--debug",
                 "--disableProgress",
                 "--doubleMem",
+                "True",
                 "--disableCaching",
                 "--preserve-environment",
                 "PATH",
@@ -295,6 +295,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--not-strict",
                 "--runCwlInternalJobsOnWorkers",
                 "--realTimeLogging",
+                "True",
                 "--jobStore",
                 self.job_store_dir,
                 "--tmpdir-prefix",
@@ -305,6 +306,8 @@ class ToilJobSubmitter(JobSubmitter):
                 self.job_outputs_dir,
                 "--maxLocalJobs",
                 "500",
+                "--no-prepull",
+                "--reference-inputs",
             ]
         else:
             command_line = [
@@ -322,9 +325,9 @@ class ToilJobSubmitter(JobSubmitter):
                 "--stats",
                 "--cleanWorkDir",
                 "onSuccess",
-                "--debug",
                 "--disableProgress",
                 "--doubleMem",
+                "True",
                 "--disableCaching",
                 "--preserve-environment",
                 "PATH",
@@ -344,6 +347,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--not-strict",
                 "--runCwlInternalJobsOnWorkers",
                 "--realTimeLogging",
+                "True",
                 "--jobStore",
                 self.job_store_dir,
                 "--tmpdir-prefix",
@@ -354,6 +358,8 @@ class ToilJobSubmitter(JobSubmitter):
                 self.job_outputs_dir,
                 "--maxLocalJobs",
                 "500",
+                "--no-prepull",
+                "--reference-inputs",
             ]
         if self.resume_jobstore:
             command_line.extend(["--restart", self.app_location])
