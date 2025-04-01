@@ -123,6 +123,17 @@ def _get_job_stream_path(text):
     return None
 
 
+def _get_job_id(text):
+    """
+    TOIL helper function to parse the
+    job id path from text
+    """
+    job_id = re.search("kind\S*", text)
+    if job_id:
+        return job_id[0]
+    return None
+
+
 def _read_stats_file(stats_path):
     """
     TOIL Adapter function to read the stats file
@@ -214,6 +225,15 @@ def _check_job_state(work_log_path, jobs_path):
     if job_stream and job_stream in jobs_path:
         return jobs_path[job_stream]
 
+    return None
+
+
+def get_job_id_from_worker_log(worker_log_path):
+    if os.path.exists(worker_log_path):
+        with open(worker_log_path) as worker_log:
+            for single_line in worker_log:
+                if "Working on job" in single_line:
+                    return _get_job_id(single_line)
     return None
 
 
