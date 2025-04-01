@@ -263,7 +263,7 @@ class CommandLineToolJob(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     job_name = models.CharField(max_length=100)
-    job_id = models.CharField(max_length=20)
+    job_id = models.CharField(max_length=50)
     details = JSONField(blank=True, null=True)
 
     def get_aware_datetime(self, date_str):
