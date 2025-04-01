@@ -50,7 +50,7 @@ class TestSLURMClient(TestCase):
         submit_process_obj.returncode = 0
         submit_process.return_value = submit_process_obj
         with self.settings(SLURM_PARTITION=self.example_partion):
-            slurm_id = self.slurm_client.submit(command, args, stdout_file, self.example_job_id, {})
+            slurm_id = self.slurm_client.submit([command], args, stdout_file, self.example_job_id, {})
             expected_command = (
                 [
                     "sbatch",
@@ -81,7 +81,7 @@ class TestSLURMClient(TestCase):
         args = self.slurm_client.set_walltime(expected_limit, None)
         args.extend(self.slurm_client.set_memlimit(mem_limit))
         with self.settings(SLURM_PARTITION=self.example_partion):
-            slurm_id = self.slurm_client.submit(command, args, stdout_file, self.example_job_id, {})
+            slurm_id = self.slurm_client.submit([command], args, stdout_file, self.example_job_id, {})
             expected_command = (
                 [
                     "sbatch",
