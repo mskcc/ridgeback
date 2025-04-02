@@ -10,13 +10,14 @@ import logging
 from django.conf import settings
 from orchestrator.models import Status
 from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
+from batch_systems.batch_system import BatchClient
 
 
 def format_lsf_job_id(job_id):
     return "/{}".format(job_id)
 
 
-class LSFClient(object):
+class LSFClient(BatchClient):
     """
     Client for LSF
 
@@ -29,13 +30,15 @@ class LSFClient(object):
         init function
         """
         self.logger = logging.getLogger("LSF_client")
+        self.logfileName = "lsf.log"
+        self.name = "lsf"
 
     def submit(self, command, job_args, stdout, job_id, env={}):
         """
         Submit command to LSF and store log in stdout
 
         Args:
-            command (str): command to submit
+            command (list): command to submit
             job_args (list): Additional options for leader bsub
             stdout (str): log file path
             job_id (str): job_id
@@ -44,11 +47,9 @@ class LSFClient(object):
         Returns:
             int: lsf job id
         """
-        if settings.LSF_SLA:
-            bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
-        else:
-            bsub_command = ["bsub", "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
-
+        bsub_command = (
+            ["bsub"] + self.set_service_queue() + self.set_group(job_id) + self.set_stdout_file(stdout) + job_args
+        )
         bsub_command.extend(command)
         current_env = os.environ.copy()
         for k, v in env.items():
@@ -88,7 +89,41 @@ class LSFClient(object):
             return True
         return False
 
-    def parse_bjobs(self, bjobs_output_str):
+    def set_walltime(self, expected_limit, hard_limit):
+        walltime_args = []
+        if expected_limit:
+            walltime_args = walltime_args + ["-We", str(expected_limit)]
+        if hard_limit:
+            walltime_args = walltime_args + ["-W", str(hard_limit)]
+        return walltime_args
+
+    def set_memlimit(self, mem_limit, default=None):
+        mem_limit_args = []
+        if default:
+            mem_limit = ["-M", default]
+        if mem_limit:
+            mem_limit_args = ["-M", mem_limit]
+        return mem_limit_args
+
+    def set_group(self, group_id):
+        group_id_args = []
+        if group_id:
+            group_id_args = ["-g", format_lsf_job_id(group_id)]
+        return group_id_args
+
+    def set_stdout_file(self, stdout_file):
+        if stdout_file:
+            return ["-oo", stdout_file]
+        else:
+            return ["-oo", self.logfileName]
+
+    def set_service_queue(self):
+        service_queue_args = []
+        if settings.LSF_SLA:
+            service_queue_args = ["-sla", settings.LSF_SLA]
+        return service_queue_args
+
+    def _parse_bjobs(self, bjobs_output_str):
         """
         Parse the output of bjobs into a descriptive dict
 
@@ -191,7 +226,7 @@ class LSFClient(object):
         Returns:
             tuple: (Ridgeback Status int, extra info)
         """
-        bjobs_records = self.parse_bjobs(stdout)
+        bjobs_records = self._parse_bjobs(stdout)
         if bjobs_records:
             process_output = bjobs_records[0]
             if "STAT" in process_output:
@@ -229,7 +264,7 @@ class LSFClient(object):
         """
         Suspend LSF job
         Args:
-            extrnsl_job_id (str): id of job
+            job_id (str): id of job
         Returns:
             bool: successful
         """
