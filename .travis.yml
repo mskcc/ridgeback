@@ -5,10 +5,17 @@ os:
   - linux
 services:
   - postgresql
+addons:
+  postgresql: "14"
+  apt:
+    packages:
+      - postgresql-14
+      - postgresql-client-14
 python:
   - "3.10"
 before_install:
   - sudo apt-get update
+  - sudo service postgresql restart 14
 install:
   - psql -p 5433 -c 'create database travis_ci_test;' -U postgres
   - pip install -r requirements.txt
