@@ -58,7 +58,7 @@ services:
                python3 ${RIDGEBACK_PATH}/manage.py wait_for_db &&
                python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput &&
                python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput &&
-               python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:${RIDGEBACK_POR}T >> /ridgeback_compose/server/boot.log 2>&1"              
+               python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:${RIDGEBACK_PORT} >> /ridgeback_compose/server/boot.log 2>&1"              
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:${RIDGEBACK_PORT}/ || exit 1"]
       interval: 60s
