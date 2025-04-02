@@ -54,6 +54,7 @@ class TestTasks(TestCase):
             self.preparing_job.working_dir,
             self.preparing_job.root_dir,
             self.preparing_job.log_dir,
+            "",
         )
         prepare_job(self.preparing_job)
         self.preparing_job.refresh_from_db()

@@ -19,6 +19,7 @@ class NextflowJobSubmitter(JobSubmitter):
         tool_walltime,
         memlimit,
         log_dir=None,
+        log_prefix="",
         app_name="NA",
     ):
         """
@@ -46,7 +47,9 @@ class NextflowJobSubmitter(JobSubmitter):
         :param root_dir:
         :param resume_jobstore:
         """
-        JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, app_name)
+        JobSubmitter.__init__(
+            self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, log_prefix, app_name
+        )
         self.resume_jobstore = resume_jobstore
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
         if self.app.nfcore_template:
@@ -67,7 +70,7 @@ class NextflowJobSubmitter(JobSubmitter):
     def prepare_to_submit(self):
         self._prepare_directories()
         self._dump_app_inputs()
-        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir
+        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir, self.log_prefix
 
     def get_submit_command(self):
         command_line = self._command_line()
