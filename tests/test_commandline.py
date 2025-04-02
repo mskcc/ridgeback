@@ -267,11 +267,11 @@ class TestToil(TestCase):
             single_job.save()
         first_command = CommandLineToolJob.objects.first()
         first_command.status = Status.RUNNING
+        example_log = "path/to/log.log"
+        first_command.details["log_path"] = example_log
         first_command.save()
-        command_log_path = first_command.details["log_path"]
         with override_settings(MAX_HANGING_HOURS=0):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message["alerts"][0])
-        if command_log_path:
-            self.assertTrue(command_log_path in self.job.message["alerts"][0]["message"])
+        self.assertTrue(example_log in self.job.message["alerts"][0]["message"])
