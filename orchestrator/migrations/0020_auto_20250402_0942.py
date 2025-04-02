@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestrator', '0019_job_log_prefix'),
+        ("orchestrator", "0019_job_log_prefix"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='commandlinetooljob',
-            name='job_id',
+            model_name="commandlinetooljob",
+            name="job_id",
             field=models.CharField(max_length=50),
         ),
     ]
