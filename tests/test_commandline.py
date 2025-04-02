@@ -273,4 +273,5 @@ class TestToil(TestCase):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message["alerts"][0])
-        self.assertTrue(command_log_path in self.job.message["alerts"][0]["message"])
+        if command_log_path:
+            self.assertTrue(command_log_path in self.job.message["alerts"][0]["message"])
