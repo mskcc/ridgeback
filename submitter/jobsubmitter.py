@@ -2,7 +2,9 @@ from submitter.app import App
 
 
 class JobSubmitter(object):
-    def __init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir=None, app_name="NA"):
+    def __init__(
+        self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir=None, log_prefix="", app_name="NA"
+    ):
         self.app = App.factory(app)
         self.job_id = job_id
         self.inputs = inputs
@@ -10,6 +12,7 @@ class JobSubmitter(object):
         self.tool_walltime = tool_walltime
         self.memlimit = memlimit
         self.log_dir = log_dir
+        self.log_prefix = log_prefix
         self.app_name = app_name
 
     def prepare_to_submit(self):

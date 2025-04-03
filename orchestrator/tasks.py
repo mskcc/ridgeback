@@ -72,6 +72,7 @@ def resume_job(job):
             job.root_dir,
             job.resume_job_store_location,
             log_dir=job.log_dir,
+            log_prefix=job.log_prefix,
             app_name=job.metadata["pipeline_name"],
         )
         lsf_client = LSFClient()
@@ -202,14 +203,15 @@ def prepare_job(job):
             job.tool_walltime,
             job.memlimit,
             log_dir=job.log_dir,
+            log_prefix=job.log_prefix,
             app_name=job.metadata["pipeline_name"],
         )
         try:
-            job_store_dir, job_work_dir, job_output_dir, log_dir = submitter.prepare_to_submit()
+            job_store_dir, job_work_dir, job_output_dir, log_dir, log_prefix = submitter.prepare_to_submit()
         except Exception as e:
             raise RetryException(f"Failed to fetch status for job {str(job.id)} {e}")
         else:
-            job.job_prepared(job_store_dir, job_work_dir, job_output_dir, log_dir)
+            job.job_prepared(job_store_dir, job_work_dir, job_output_dir, log_dir, log_prefix)
 
 
 def submit_job_to_lsf(job, retries=0):
@@ -227,6 +229,7 @@ def submit_job_to_lsf(job, retries=0):
             job.tool_walltime,
             job.memlimit,
             log_dir=job.log_dir,
+            log_prefix=job.log_prefix,
             app_name=job.metadata["pipeline_name"],
         )
         try:
@@ -319,9 +322,9 @@ def check_job_status(job):
         ):
             job.update_status(lsf_status)
 
-            if lsf_status in (Status.RUNNING,):
-                command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
-                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
+            # if lsf_status in (Status.RUNNING,):
+            # command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
+            # command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
         elif lsf_status in (Status.COMPLETED,):
             submitter = JobSubmitterFactory.factory(
@@ -332,6 +335,7 @@ def check_job_status(job):
                 job.root_dir,
                 job.resume_job_store_location,
                 log_dir=job.log_dir,
+                log_prefix=job.log_prefix,
                 app_name=job.metadata["pipeline_name"],
             )
             outputs, error_message = submitter.get_outputs()
@@ -344,8 +348,6 @@ def check_job_status(job):
 
         elif lsf_status in (Status.FAILED,):
             _fail(job, lsf_message)
-
-        command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
     else:
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(lsf_status).name))
 
@@ -623,6 +625,7 @@ def check_status_of_command_line_jobs(job):
         job.root_dir,
         job.resume_job_store_location,
         log_dir=job.log_dir,
+        log_prefix=job.log_prefix,
         app_name=job.metadata["pipeline_name"],
     )
     track_cache_str = job.track_cache

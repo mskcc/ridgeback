@@ -36,9 +36,12 @@ class ToilJobSubmitter(JobSubmitter):
         tool_walltime,
         memlimit,
         log_dir=None,
+        log_prefix="",
         app_name="NA",
     ):
-        JobSubmitter.__init__(self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, app_name)
+        JobSubmitter.__init__(
+            self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, log_prefix, app_name
+        )
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
         if not dir_config:
             dir_config = settings.PIPELINE_CONFIG["NA"]
@@ -55,7 +58,7 @@ class ToilJobSubmitter(JobSubmitter):
         self._prepare_directories()
         self._dump_app_inputs()
         self.app.resolve(self.job_work_dir)
-        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir
+        return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir, self.log_prefix
 
     def get_submit_command(self):
         command_line = self._command_line()
@@ -139,7 +142,8 @@ class ToilJobSubmitter(JobSubmitter):
             error_message = "Could not find %s" % lsf_log_path
 
         if self.log_dir:
-            output_log_location = os.path.join(self.log_dir, "output.json")
+            output_log_name = f"{self.log_prefix}.output.json" if self.log_prefix else "output.json"
+            output_log_location = os.path.join(self.log_dir, output_log_name)
             with open(output_log_location, "w") as f:
                 json.dump(result_json, f)
 
@@ -158,7 +162,8 @@ class ToilJobSubmitter(JobSubmitter):
         with open(inputs_location, "w") as f:
             json.dump(self.inputs, f)
         if self.log_dir:
-            inputs_log_location = os.path.join(self.log_dir, "input.json")
+            inputs_log_name = f"{self.log_prefix}.input.json" if self.log_prefix else "input.json"
+            inputs_log_location = os.path.join(self.log_dir, inputs_log_name)
             with open(inputs_log_location, "w") as f:
                 json.dump(self.inputs, f)
 
@@ -206,7 +211,7 @@ class ToilJobSubmitter(JobSubmitter):
     def _command_line(self):
         single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
         single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
-        if "git@github.com:mskcc/access-pipeline" in self.app.github.lower():
+        if settings.ACCESS_LEGACY_APP in self.app.github.lower():
             """
             Start ACCESS-specific code
             """
