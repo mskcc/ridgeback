@@ -3,7 +3,7 @@ from enum import IntEnum
 
 
 class CommandType(IntEnum):
-    CHECK_STATUS_ON_LSF = 0
+    CHECK_STATUS_ON_BATCH_SYSTEM = 0
     CHECK_COMMAND_LINE_STATUS = 1
     PREPARE = 2
     SUBMIT = 3

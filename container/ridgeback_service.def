@@ -64,25 +64,26 @@ Includecmd: no
         echo "RIDGEBACK_TOIL set to $RIDGEBACK_TOIL" >> $RIDGEBACK_HOME/logs/boot.log
     fi
 
+    ### SLURM env variables
+    if [ -z "$SLURM_BINDIR" ]; then
+        echo "WARNING environment variable SLURM_BINDIR is not defined, SLURM may not work"
+    fi
+
     ### LSF Parameters to communicate with LSF
     if [ -z "$LSF_ENVDIR" ]; then
-        echo "ERROR: SINGULARITYENV_LSF_ENVDIR is not set." >> $RIDGEBACK_HOME/logs/boot.log
-        exit 1
+        echo "WARNING: SINGULARITYENV_LSF_ENVDIR is not set." >> $RIDGEBACK_HOME/logs/boot.log
     fi
 
     if [ -z "$LSF_BINDIR" ]; then
-        echo "ERROR: SINGULARITYENV_LSF_BINDIR is not set." >> $RIDGEBACK_HOME/logs/boot.log
-        exit 1
+        echo "WARNING: SINGULARITYENV_LSF_BINDIR is not set." >> $RIDGEBACK_HOME/logs/boot.log
     fi
 
     if [ -z "$LSF_LIBDIR" ]; then
-        echo "ERROR: SINGULARITYENV_LSF_LIBDIR is not set." >> $RIDGEBACK_HOME/logs/boot.log
-        exit 1
+        echo "WARNING: SINGULARITYENV_LSF_LIBDIR is not set." >> $RIDGEBACK_HOME/logs/boot.log
     fi
 
     if [ -z "$LSF_SERVERDIR" ]; then
-        echo "ERROR: SINGULARITYENV_LSF_SERVERDIR is not set." >> $RIDGEBACK_HOME/logs/boot.log
-        exit 1
+        echo "WARNING: SINGULARITYENV_LSF_SERVERDIR is not set." >> $RIDGEBACK_HOME/logs/boot.log
     fi
     
     python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput

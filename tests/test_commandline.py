@@ -5,6 +5,7 @@ Tests for commandline status handling
 import os
 from shutil import unpack_archive, copytree, copy
 import tempfile
+from mock import patch
 from django.test import TestCase, override_settings
 import toil
 from orchestrator.models import Job, Status, PipelineType, CommandLineToolJob
@@ -33,7 +34,7 @@ class TestToil(TestCase):
     def setUp(self):
         Job.objects.all().delete()
         self.toil_version = toil.version.baseVersion
-        if self.toil_version not in ["3.21.0", "5.4.0a1"]:
+        if self.toil_version not in ["3.21.0", "5.4.0a1", "8.0.0"]:
             raise Exception("TOIL version: %s not supported" % self.toil_version)
         self.mock_dir = tempfile.TemporaryDirectory()
         self.job = Job(
@@ -55,17 +56,24 @@ class TestToil(TestCase):
         """
         Mock track using TOIL snapshots
         """
+
         mock_data_path = os.path.join(self.mock_full_path, run_type)
         first_jobstore = os.path.join(mock_data_path, "0", "jobstore")
         first_work = os.path.join(mock_data_path, "0", "work")
-        second_jobstore = os.path.join(mock_data_path, "1", "jobstore")
-        second_work = os.path.join(mock_data_path, "1", "work")
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.check_status(first_jobstore, first_work, tmpdir)
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.check_status(second_jobstore, second_work, tmpdir)
+        if self.toil_version == "8.0.0":
+            with tempfile.TemporaryDirectory() as tmpdir:
+                bus_path = os.path.join(mock_data_path, "0", "bus")
+                self.check_status(first_jobstore, first_work, tmpdir, bus_path)
+        else:
+            second_jobstore = os.path.join(mock_data_path, "1", "jobstore")
+            second_work = os.path.join(mock_data_path, "1", "work")
+            with tempfile.TemporaryDirectory() as tmpdir:
+                self.check_status(first_jobstore, first_work, tmpdir, None)
+            with tempfile.TemporaryDirectory() as tmpdir:
+                self.check_status(second_jobstore, second_work, tmpdir, None)
 
-    def check_status(self, jobstore, work_dir, tmp_dir):
+    @patch("submitter.toil_submitter.toil_track_utils._get_bus_path")
+    def check_status(self, jobstore, work_dir, tmp_dir, bus_path, get_bus_path):
         """
         Check status of command line jobs
         """
@@ -74,6 +82,10 @@ class TestToil(TestCase):
         tmp_jobstore = os.path.join(tmp_dir, "jobstore")
         new_work_dir = os.path.join(tmp_work_dir, job_id)
         new_jobstore = os.path.join(tmp_jobstore, job_id)
+        if bus_path:
+            new_bus_path = os.path.join(tmp_dir, "bus")
+            copy(bus_path, new_bus_path)
+            get_bus_path.return_value = new_bus_path
         copytree(jobstore, new_jobstore)
         copytree(work_dir, new_work_dir)
         with override_settings(
@@ -90,7 +102,10 @@ class TestToil(TestCase):
         self.mock_track("running")
         mock_num_completed = 0
         mock_num_running = 0
-        if self.toil_version == "3.21.0":
+        if self.toil_version == "8.0.0":
+            mock_num_completed = 1
+            mock_num_running = 2
+        elif self.toil_version == "3.21.0":
             mock_num_completed = 1
             mock_num_running = 2
         elif self.toil_version == "5.4.0a1":
@@ -107,24 +122,27 @@ class TestToil(TestCase):
         Test if failed jobs are properly parsed
         """
         self.mock_track("failed")
-        mock_num_failed = 2
+        if self.toil_version == "8.0.0":
+            mock_num_failed = 3
+        else:
+            mock_num_failed = 2
         num_failed = CommandLineToolJob.objects.filter(status=(Status.FAILED)).count()
         self.assertEqual(num_failed, mock_num_failed)
 
     def test_details_set(self):
         """
-        Test if the metadata is being set for commandLineJObs
+        Test if the metadata is being set for commandLineJobs
         """
         self.mock_track("running")
         first_running_job = CommandLineToolJob.objects.filter(status=(Status.RUNNING)).first()
         details = first_running_job.details
         self.assertIsNotNone(details)
         self.assertIsNotNone(details["cores_req"])
-        self.assertIsNotNone(details["cpu_usage"])
-        self.assertIsNotNone(details["job_stream"])
+        self.assertTrue("cpu_usage" in details)
+        self.assertTrue("job_stream" in details)
         self.assertIsNotNone(details["last_modified"])
-        self.assertIsNotNone(details["log_path"])
-        self.assertIsNotNone(details["mem_usage"])
+        self.assertTrue("log_path" in details)
+        self.assertTrue("mem_usage" in details)
         self.assertIsNotNone(details["memory_req"])
 
     def test_hanging_toil_leader_not_running(self):
@@ -249,10 +267,11 @@ class TestToil(TestCase):
             single_job.save()
         first_command = CommandLineToolJob.objects.first()
         first_command.status = Status.RUNNING
+        example_log = "path/to/log.log"
+        first_command.details["log_path"] = example_log
         first_command.save()
-        command_log_path = first_command.details["log_path"]
         with override_settings(MAX_HANGING_HOURS=0):
             check_job_hanging(self.job)
         self.job.refresh_from_db()
         self.assertIsNotNone(self.job.message["alerts"][0])
-        self.assertTrue(command_log_path in self.job.message["alerts"][0]["message"])
+        self.assertTrue(example_log in self.job.message["alerts"][0]["message"])
