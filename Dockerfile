@@ -18,6 +18,12 @@ RUN apt-get update \
         && cd /usr/bin \
         && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH \
         && cd /usr/bin/ridgeback \
+     # Install alternative ssl library
+        && wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb \
+        && dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb \
+      # Install libffi6 for TOIL
+        && wget http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb \
+        && dpkg -i libffi6_3.2.1-8_amd64.deb \
      # Install python packages
         && pip3 install --upgrade pip \
         && pip3 install python-ldap \
