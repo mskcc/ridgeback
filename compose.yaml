@@ -5,6 +5,8 @@ x-ridgeback_celery:
   image:  mskcc/ridgeback:${RIDGEBACK_VERSION}
   restart: always
   user: "${DOCKER_UID}:${DOCKER_GID}"
+  networks:
+    - voyager_net
   env_file: .env
   environment:
     - RIDGEBACK_DB_URL=ridgeback_postgres
@@ -94,6 +96,8 @@ services:
     image: postgres:17
     restart: on-failure
     user: "${DOCKER_UID}:${DOCKER_GID}"
+    networks:
+      - voyager_net
     volumes:
       - ./postgres/:/var/lib/postgresql/data/
     environment:
@@ -148,6 +152,8 @@ services:
     image: bitnami/memcached:1.6.37
     restart: on-failure
     user: "${DOCKER_UID}:${DOCKER_GID}"
+    networks:
+      - voyager_net
     expose:
       - "11211"
     healthcheck:
@@ -159,6 +165,8 @@ services:
     image: rabbitmq:4.0.6-management-alpine
     restart: always
     user: "${DOCKER_UID}:${DOCKER_GID}"
+    networks:
+      - voyager_net
     volumes:
       - ./rabbitmq/:/var/lib/rabbitmq/
       - ./logs/:/var/log/rabbitmq/
@@ -182,6 +190,8 @@ services:
     image:  mskcc/ridgeback:${RIDGEBACK_VERSION}
     restart: always
     user: "${DOCKER_UID}:${DOCKER_GID}"
+    networks:
+      - voyager_net
     env_file: .env
     environment:
       - RIDGEBACK_DB_URL=ridgeback_postgres
@@ -401,6 +411,8 @@ services:
     image: mskcc/voyager-compose-utils:1.0.0
     restart: always
     user: "${DOCKER_UID}:${DOCKER_GID}"
+    networks:
+      - voyager_net
     volumes:
       - ./logs:/logs
       - ${DB_BACKUP_PATH}:/db_backup
@@ -421,3 +433,7 @@ services:
       ridgeback_celery_command_queue:
         condition: service_healthy
         restart: false
+networks:
+  voyager_net:
+    name: voyager_network
+    driver: bridge
