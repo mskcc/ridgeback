@@ -7,6 +7,10 @@ x-ridgeback_celery:
   user: "${DOCKER_UID}:${DOCKER_GID}"
   networks:
     - voyager_net
+  group_add:
+    - ${DOCKER_GID}
+    - ${GID_FILE_1}
+    - ${GID_FILE_2}
   env_file: .env
   environment:
     - RIDGEBACK_DB_URL=ridgeback_postgres
@@ -44,13 +48,10 @@ x-ridgeback_celery:
       target: ${SLURM_LIBMUNGE_OBJECT}
       read_only: true
     - type: bind
-      source: /admin
-      target: /admin
+      source: ${CLUSTER_ADMIN_MOUNT}
+      target: ${CLUSTER_ADMIN_MOUNT}
       read_only: true
-  entrypoint: ["/bin/bash", "-c"]
-  post_start:
-    - command: groupadd -f -g ${DOCKER_GID} ridgeback_user
-      user: root
+  entrypoint: ["/bin/bash","-c"]
   healthcheck:
     test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status || exit 1"
     interval: 30s
