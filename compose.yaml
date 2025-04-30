@@ -1,7 +1,8 @@
-name: "Ridgeback Services"
+name: 'Ridgeback Services'
 
-x-ridgeback_celery: &ridgeback_celery
-  image: mskcc/ridgeback:${RIDGEBACK_VERSION}
+x-ridgeback_celery:
+  &ridgeback_celery
+  image:  mskcc/ridgeback:${RIDGEBACK_VERSION}
   restart: always
   user: "${DOCKER_UID}:${DOCKER_GID}"
   env_file: .env
@@ -81,7 +82,7 @@ services:
       - ${DB_BACKUP_PATH}:/db_backup
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - |
+    - |
         chown -R ${DOCKER_UID}:${DOCKER_GID} /postgres
         chown -R ${DOCKER_UID}:${DOCKER_GID} /logs
         chown -R ${DOCKER_UID}:${DOCKER_GID} /celery
@@ -137,11 +138,7 @@ services:
       - -c
       - max_parallel_maintenance_workers=4
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "sh -c 'pg_isready -U ${RIDGEBACK_DB_USERNAME} -d ${RIDGEBACK_DB_NAME}'",
-        ]
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${RIDGEBACK_DB_USERNAME} -d ${RIDGEBACK_DB_NAME}'"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -182,7 +179,7 @@ services:
     depends_on:
       - ridgeback_create_volumes
   ridgeback_webserver:
-    image: mskcc/ridgeback:${RIDGEBACK_VERSION}
+    image:  mskcc/ridgeback:${RIDGEBACK_VERSION}
     restart: always
     user: "${DOCKER_UID}:${DOCKER_GID}"
     env_file: .env
@@ -199,16 +196,15 @@ services:
       - ./server/:/ridgeback_staticfiles/
     ports:
       - ${RIDGEBACK_PORT}:${RIDGEBACK_PORT}
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: ["/bin/bash","-c"]
     command:
       - |
-        python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
-        echo "User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin','voyager@mskcc.org','${RIDGEBACK_DB_PASSWORD}')" | python3 ${RIDGEBACK_PATH}/manage.py shell_plus
-        python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
-        python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:${RIDGEBACK_PORT} >> /ridgeback/server/web_server.log 2>&1
+          python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
+          echo "User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin','voyager@mskcc.org','${RIDGEBACK_DB_PASSWORD}')" | python3 ${RIDGEBACK_PATH}/manage.py shell_plus
+          python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
+          python3 ${RIDGEBACK_PATH}/manage.py runserver 0.0.0.0:${RIDGEBACK_PORT} >> /ridgeback/server/web_server.log 2>&1
     healthcheck:
-      test:
-        ["CMD-SHELL", "curl -sSf http://localhost:${RIDGEBACK_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -sSf http://localhost:${RIDGEBACK_PORT}/ || exit 1"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -226,34 +222,29 @@ services:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate 
-        if ! command -v toil-cwl-runner  2>&1 >/dev/null
-        then
-          pip3 install --upgrade pip &&
-          pip3 install --force-reinstall 'setuptools<58.0.0' &&
-          pip3 install "cython<3.0.0" wheel &&
-          pip3 install "pyyaml==5.4.1" --no-build-isolation &&
-          pip3 install -r ${RIDGEBACK_PATH}/requirements.txt &&
-          pip3 install -r ${RIDGEBACK_PATH}/requirements-toil.txt
-        fi
+          if ! python3 -c "import toil"  2>&1 >/dev/null
+          then
+            pip3 install --upgrade pip &&
+            pip3 install --force-reinstall 'setuptools<58.0.0' &&
+            pip3 install "cython<3.0.0" wheel &&
+            pip3 install "pyyaml==5.4.1" --no-build-isolation &&
+            pip3 install -r ${RIDGEBACK_PATH}/requirements.txt &&
+            pip3 install -r ${RIDGEBACK_PATH}/requirements-toil.txt
+          fi
+ 
+          PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid
 
-        PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid
+          [ -e $$PIDFILE ] && rm $$PIDFILE
+          echo 'Running orchestrator beat...'
 
-        [ -e $$PIDFILE ] && rm $$PIDFILE
-        echo 'Running orchestrator beat...'
-
-        celery --workdir ${RIDGEBACK_PATH} \
-          -A orchestrator beat \
-          -l info \
-          -f /ridgeback/celery/logs/ridgeback_beat.log \
-          --pidfile $$PIDFILE \
-          -s /ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.celerybeat-schedule
+          celery --workdir ${RIDGEBACK_PATH} \
+            -A orchestrator beat \
+            -l info \
+            -f /ridgeback/celery/logs/ridgeback_beat.log \
+            --pidfile $$PIDFILE \
+            -s /ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.celerybeat-schedule
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "ps -p $(pgrep -F /ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid)",
-        ]
+      test: ["CMD-SHELL", "ps -p $(pgrep -F /ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid)"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -271,116 +262,117 @@ services:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
+          source ${RIDGEBACK_VENV}/bin/activate
 
-        PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}.pid
-        [ -e $$PIDFILE ] && rm $$PIDFILE
-        echo 'Running command queue worker...'
+          PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}.pid
+          [ -e $$PIDFILE ] && rm $$PIDFILE
+          echo 'Running command queue worker...'
 
-        celery --workdir ${RIDGEBACK_PATH} \
-          -A orchestrator worker \
-          -l info \
-          -Q ${RIDGEBACK_COMMAND_QUEUE} \
-          -f /ridgeback/celery/logs/${RIDGEBACK_COMMAND_QUEUE}.log \
-          --pidfile $$PIDFILE \
-          --concurrency=30 \
-          -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}
+          celery --workdir ${RIDGEBACK_PATH} \
+            -A orchestrator worker \
+            -l info \
+            -Q ${RIDGEBACK_COMMAND_QUEUE} \
+            -f /ridgeback/celery/logs/${RIDGEBACK_COMMAND_QUEUE}.log \
+            --pidfile $$PIDFILE \
+            --concurrency=30 \
+            -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}
   ridgeback_celery_action_queue:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
+          source ${RIDGEBACK_VENV}/bin/activate
 
-        PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}.pid
-        [ -e $$PIDFILE ] && rm $$PIDFILE
-        echo 'Running action queue worker...'
-
-        celery --workdir ${RIDGEBACK_PATH} \
-          -A orchestrator worker \
-          -l info \
-          -Q ${RIDGEBACK_ACTION_QUEUE} \
-          -f /ridgeback/celery/logs/${RIDGEBACK_ACTION_QUEUE}.log \
-          --pidfile $$PIDFILE \
-          --concurrency=10 \
-          -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}
+          PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}.pid
+          [ -e $$PIDFILE ] && rm $$PIDFILE
+          echo 'Running action queue worker...'
+          celery --workdir ${RIDGEBACK_PATH} \
+            -A orchestrator worker \
+            -l info \
+            -Q ${RIDGEBACK_ACTION_QUEUE} \
+            -f /ridgeback/celery/logs/${RIDGEBACK_ACTION_QUEUE}.log \
+            --pidfile $$PIDFILE \
+            --concurrency=10 \
+            -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}
   ridgeback_celery_check_status_queue:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
+          source ${RIDGEBACK_VENV}/bin/activate
 
-        PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid 
-        [ -e $$PIDFILE ] && rm $$PIDFILE
-        echo 'Running check status queue worker...'
-
-        celery --workdir ${RIDGEBACK_PATH} \
-          -A orchestrator worker \
-          -l info \
-          -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
-          -f /ridgeback/celery/logs/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
-          --pidfile $$PIDFILE \
-          --concurrency=10
+          PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid 
+          [ -e $$PIDFILE ] && rm $$PIDFILE
+          echo 'Running check status queue worker...'
+          
+          celery --workdir ${RIDGEBACK_PATH} \
+            -A orchestrator worker \
+            -l info \
+            -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
+            -f /ridgeback/celery/logs/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
+            --pidfile $$PIDFILE \
+            --concurrency=10
   ridgeback_celery_submit_job_queue:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
+          source ${RIDGEBACK_VENV}/bin/activate
 
-        PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid
-        [ -e $$PIDFILE ] && rm $$PIDFILE
-        echo 'Running submit job queue worker...'
-
-        celery --workdir ${RIDGEBACK_PATH} \
-          -A orchestrator worker \
-          -l info \
-          -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
-          -f /ridgeback/celery/logs/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
-          --pidfile $$PIDFILE \
-          --concurrency=5
+          PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid
+          [ -e $$PIDFILE ] && rm $$PIDFILE
+          echo 'Running submit job queue worker...'
+          
+          celery --workdir ${RIDGEBACK_PATH} \
+            -A orchestrator worker \
+            -l info \
+            -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
+            -f /ridgeback/celery/logs/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
+            --pidfile $$PIDFILE \
+            --concurrency=5
   ridgeback_celery_set_permission_queue:
     <<: *ridgeback_celery
     command:
-      - |
-        source ${RIDGEBACK_VENV}/bin/activate
+      - | 
+          source ${RIDGEBACK_VENV}/bin/activate
 
-        PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}.pid
-        [ -e $$PIDFILE ] && rm $$PIDFILE
-        echo 'Running set permission queue worker...'
+          PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}.pid
+          [ -e $$PIDFILE ] && rm $$PIDFILE
+          echo 'Running set permission queue worker...'
 
-         celery --workdir ${RIDGEBACK_PATH} \
-          -A orchestrator worker \
-          -l info \
-          -Q ${RIDGEBACK_SET_PERMISSIONS_QUEUE} \
-          -f /ridgeback/celery/logs/${RIDGEBACK_SET_PERMISSIONS_QUEUE}.log \
-          --pidfile $$PIDFILE \
-          --concurrency=10
+           celery --workdir ${RIDGEBACK_PATH} \
+            -A orchestrator worker \
+            -l info \
+            -Q ${RIDGEBACK_SET_PERMISSIONS_QUEUE} \
+            -f /ridgeback/celery/logs/${RIDGEBACK_SET_PERMISSIONS_QUEUE}.log \
+            --pidfile $$PIDFILE \
+            --concurrency=10
   ridgeback_celery_cleanup_queue:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
+          source ${RIDGEBACK_VENV}/bin/activate
 
-        PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE}.pid
-        [ -e $$PIDFILE ] && rm $$PIDFILE
-        echo 'Running cleanup queue worker...'
+          PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE}.pid
+          [ -e $$PIDFILE ] && rm $$PIDFILE
+          echo 'Running cleanup queue worker...'
 
-        celery --workdir ${RIDGEBACK_PATH} \
-          -A orchestrator worker \
-          -l info \
-          -Q ${RIDGEBACK_CLEANUP_QUEUE} \
-          -f /ridgeback/celery/logs/${RIDGEBACK_CLEANUP_QUEUE}.log \
-          --pidfile $$PIDFILE \
-          --concurrency=2
+          celery --workdir ${RIDGEBACK_PATH} \
+            -A orchestrator worker \
+            -l info \
+            -Q ${RIDGEBACK_CLEANUP_QUEUE} \
+            -f /ridgeback/celery/logs/${RIDGEBACK_CLEANUP_QUEUE}.log \
+            --pidfile $$PIDFILE \
+            --concurrency=2
   ridgeback_logrotate:
     image: mskcc/voyager-compose-utils:1.0.0
     restart: always
     user: "${DOCKER_UID}:${DOCKER_GID}"
+    networks:
+      - voyager_net
     volumes:
       - ./logs:/logs
       - ./logrotate/:/logrotate
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - |
+    - |
         mkdir -p /logs/archive
         cat > /logrotate/logrotate.conf <<EOF
         /logs/*.log
@@ -416,7 +408,7 @@ services:
       - PGPASSWORD=${RIDGEBACK_DB_USERNAME}
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - |
+    - |
         mkdir -p /db_backup/archive
         cat > /db_backup/db_backup.cron <<EOF
         ${DB_BACKUP_CRON} python3 /usr/bin/voyager-compose-utils/db_backup.py ridgeback_backup /db_backup/archive ${DB_BACKUP_MAX} pg_dump ridgeback_postgres 5432 ${RIDGEBACK_DB_NAME} ${RIDGEBACK_DB_USERNAME}
