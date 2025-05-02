@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from mock import patch, call
 import uuid
 from batch_systems.lsf_client.lsf_client import format_lsf_job_id
-from django.conf import settings
 from submitter.toil_submitter import ToilJobSubmitter
 
 MAX_RUNNING_JOBS = 3
