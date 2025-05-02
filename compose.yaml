@@ -27,6 +27,7 @@ x-ridgeback_celery:
     - ./celery/:/ridgeback/celery/
     - ${CLUSTER_FILESYSTEM_MOUNT}:${CLUSTER_FILESYSTEM_MOUNT}
     - ${CLUSTER_SCRATCH_MOUNT}:${CLUSTER_SCRATCH_MOUNT}
+    - ${CLUSTER_FILESYSTEM_SHARE_MOUNT}:${CLUSTER_FILESYSTEM_SHARE_MOUNT}
     - type: bind
       source: ${SLURM_ETC}
       target: ${SLURM_ETC}
@@ -187,7 +188,7 @@ services:
       retries: 3
     depends_on:
       - ridgeback_create_volumes
-  ridgeback_webserver:
+  ridgeback:
     image:  mskcc/ridgeback:${RIDGEBACK_VERSION}
     restart: always
     user: "${DOCKER_UID}:${DOCKER_GID}"
