@@ -199,7 +199,6 @@ class ToilJobSubmitter(JobSubmitter):
             expected_limit = max(1, int(self.tool_walltime / 3))
             hard_limit = self.tool_walltime
             args = self.batch_system.set_walltime(expected_limit, hard_limit)
-        args.extend(self._memlimit())
         return args
 
     def _service_queue(self):
