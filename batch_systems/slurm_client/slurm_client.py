@@ -96,11 +96,11 @@ class SLURMClient(BatchClient):
     def set_walltime(self, expected_limit, hard_limit):
         walltime_args = []
         if expected_limit:
-            walltime_args = walltime_args + [f"--time={expected_limit}"]
-        if hard_limit:
             self.logger.debug(
-                "Hard limits on submit are no supported, please check the cluster KillWait and OverTimeLimit params"
+                "Expected limits on submit are no supported, please check the cluster KillWait and OverTimeLimit params"
             )
+        if hard_limit:
+            walltime_args = [f"--time={hard_limit}"]
         return walltime_args
 
     def set_memlimit(self, mem_limit, default=None):

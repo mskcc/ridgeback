@@ -33,7 +33,7 @@ class BatchClient(object):
 
     def submit(self, command, job_args, stdout, job_id, env={}):
         """
-        Submit command to LSF and store log in stdout
+        Submit command to bath system and store log in stdout
 
         Args:
             command (list): command to submit

@@ -22,7 +22,6 @@ from orchestrator.exceptions import (
 
 
 logger = logging.getLogger(__name__)
-BATCH_SYSTEM = get_batch_system()
 
 
 def get_job_info_path(job_id):
@@ -55,7 +54,7 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
 
 def suspend_job(job):
     if Status(job.status).transition(Status.SUSPENDED):
-        job_suspended = BATCH_SYSTEM.suspend(str(job.id))
+        job_suspended = get_batch_system().suspend(str(job.id))
         if not job_suspended:
             raise RetryException("Failed to suspend job: %s" % str(job.id))
         job.update_status(Status.SUSPENDED)
@@ -75,7 +74,7 @@ def resume_job(job):
             log_prefix=job.log_prefix,
             app_name=job.metadata["pipeline_name"],
         )
-        job_resumed = BATCH_SYSTEM.resume(submitter.job_id)
+        job_resumed = get_batch_system().resume(submitter.job_id)
         if not job_resumed:
             raise RetryException("Failed to resume job: %s" % str(job.id))
         job.update_status(Status.RUNNING)
@@ -215,7 +214,7 @@ def prepare_job(job):
 
 def submit_job_to_batch_system(job, retries=0):
     if Status(job.status).transition(Status.SUBMITTED):
-        logger.info(f"Submitting job {str(job.id)} to {BATCH_SYSTEM.name}. Try {retries}")
+        logger.info(f"Submitting job {str(job.id)} to {get_batch_system().name}. Try {retries}")
         submitter = JobSubmitterFactory.factory(
             job.type,
             str(job.id),
@@ -232,7 +231,7 @@ def submit_job_to_batch_system(job, retries=0):
         )
         try:
             command_line, args, log_path, job_id, env = submitter.get_submit_command()
-            external_job_id = BATCH_SYSTEM.submit(command_line, args, log_path, job_id, env)
+            external_job_id = get_batch_system().submit(command_line, args, log_path, job_id, env)
         except Exception as f:
             if retries < 5:
                 logger.exception(str(f))
@@ -241,7 +240,7 @@ def submit_job_to_batch_system(job, retries=0):
                 logger.exception(str(f))
                 raise StopException(f"Failed to submit job to scheduler {str(job.id)} no more retries")
         else:
-            logger.info(f"Job {str(job.id)} submitted to {BATCH_SYSTEM.name} with id: {external_job_id}")
+            logger.info(f"Job {str(job.id)} submitted to {get_batch_system().name} with id: {external_job_id}")
             job.submitted_to_scheduler(external_job_id)
             # Keeping this for debugging purposes
             save_job_info(
@@ -305,7 +304,7 @@ def check_job_status(job):
     ):
         return
     try:
-        batch_system_status, batch_system_message = BATCH_SYSTEM.status(str(job.external_id))
+        batch_system_status, batch_system_message = get_batch_system().status(str(job.external_id))
     except FetchStatusException as e:
         # If failed to check status on batch system retry
         logger.exception(e)
@@ -466,7 +465,7 @@ def terminate_job(job):
             Status.SUSPENDED,
             Status.UNKNOWN,
         ):
-            job_killed = BATCH_SYSTEM.terminate(str(job.id))
+            job_killed = get_batch_system().terminate(str(job.id))
             if not job_killed:
                 raise RetryException("Failed to TERMINATE job %s" % str(job.id))
         job.terminate()
@@ -523,17 +522,21 @@ def full_cleanup_jobs(self):
 
 @shared_task(bind=True)
 def cleanup_completed_jobs(self):
-    cleanup_jobs(Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS, exclude=["input.json", BATCH_SYSTEM.logfileName])
+    cleanup_jobs(
+        Status.COMPLETED, settings.CLEANUP_COMPLETED_JOBS, exclude=["input.json", get_batch_system().logfileName]
+    )
 
 
 @shared_task(bind=True)
 def cleanup_failed_jobs(self):
-    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", BATCH_SYSTEM.logfileName])
+    cleanup_jobs(Status.FAILED, settings.CLEANUP_FAILED_JOBS, exclude=["input.json", get_batch_system().logfileName])
 
 
 @shared_task(bind=True)
 def cleanup_terminated_jobs(self):
-    cleanup_jobs(Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", BATCH_SYSTEM.logfileName])
+    cleanup_jobs(
+        Status.TERMINATED, settings.CLEANUP_TERMINATED_JOBS, exclude=["input.json", get_batch_system().logfileName]
+    )
 
 
 def cleanup_jobs(status, time_delta, exclude=[]):
