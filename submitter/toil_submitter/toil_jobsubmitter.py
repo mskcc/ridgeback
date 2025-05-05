@@ -38,9 +38,20 @@ class ToilJobSubmitter(JobSubmitter):
         log_dir=None,
         log_prefix="",
         app_name="NA",
+        root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
     ):
         JobSubmitter.__init__(
-            self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, log_prefix, app_name
+            self,
+            job_id,
+            app,
+            inputs,
+            walltime,
+            tool_walltime,
+            memlimit,
+            log_dir,
+            log_prefix,
+            app_name,
+            root_permissions,
         )
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
         if not dir_config:
@@ -173,7 +184,7 @@ class ToilJobSubmitter(JobSubmitter):
 
         if self.log_dir:
             if not os.path.exists(self.log_dir):
-                os.makedirs(self.log_dir, exist_ok=True)
+                os.makedirs(self.log_dir, mode=self.root_permissions, exist_ok=True)
 
         if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
             shutil.rmtree(self.job_store_dir)

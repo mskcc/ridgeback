@@ -20,6 +20,7 @@ class NextflowJobSubmitter(JobSubmitter):
         log_dir=None,
         log_prefix="",
         app_name="NA",
+        root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
     ):
         """
         :param job_id:
@@ -47,7 +48,17 @@ class NextflowJobSubmitter(JobSubmitter):
         :param resume_jobstore:
         """
         JobSubmitter.__init__(
-            self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir, log_prefix, app_name
+            self,
+            job_id,
+            app,
+            inputs,
+            walltime,
+            tool_walltime,
+            memlimit,
+            log_dir,
+            log_prefix,
+            app_name,
+            root_permissions,
         )
         self.resume_jobstore = resume_jobstore
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
@@ -232,7 +243,7 @@ class NextflowJobSubmitter(JobSubmitter):
 
         if self.log_dir:
             if not os.path.exists(self.log_dir):
-                os.makedirs(self.log_dir, exist_ok=True)
+                os.makedirs(self.log_dir, mode=self.root_permissions, exist_ok=True)
 
     def _command_line(self):
         profile = self.inputs["profile"]
