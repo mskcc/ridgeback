@@ -243,7 +243,8 @@ class NextflowJobSubmitter(JobSubmitter):
 
         if self.log_dir:
             if not os.path.exists(self.log_dir):
-                os.makedirs(self.log_dir, mode=self.root_permissions, exist_ok=True)
+                mode_int = int(self.root_permissions, 8)
+                os.makedirs(self.log_dir, mode=mode_int, exist_ok=True)
 
     def _command_line(self):
         profile = self.inputs["profile"]

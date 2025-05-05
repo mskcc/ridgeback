@@ -184,7 +184,8 @@ class ToilJobSubmitter(JobSubmitter):
 
         if self.log_dir:
             if not os.path.exists(self.log_dir):
-                os.makedirs(self.log_dir, mode=self.root_permissions, exist_ok=True)
+                mode_int = int(self.root_permissions, 8)
+                os.makedirs(self.log_dir, mode=mode_int, exist_ok=True)
 
         if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
             shutil.rmtree(self.job_store_dir)
