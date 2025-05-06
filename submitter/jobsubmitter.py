@@ -1,9 +1,20 @@
 from submitter.app import App
+from django.conf import settings
 
 
 class JobSubmitter(object):
     def __init__(
-        self, job_id, app, inputs, walltime, tool_walltime, memlimit, log_dir=None, log_prefix="", app_name="NA"
+        self,
+        job_id,
+        app,
+        inputs,
+        walltime,
+        tool_walltime,
+        memlimit,
+        log_dir=None,
+        log_prefix="",
+        app_name="NA",
+        root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
     ):
         self.app = App.factory(app)
         self.job_id = job_id
@@ -14,6 +25,7 @@ class JobSubmitter(object):
         self.log_dir = log_dir
         self.log_prefix = log_prefix
         self.app_name = app_name
+        self.root_permissions = root_permissions
 
     def prepare_to_submit(self):
         """
