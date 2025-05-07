@@ -7,7 +7,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from orchestrator.models import Status
 from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
-from batch_systems.lsf_client.lsf_client import format_lsf_job_id
+from batch_systems.batch_system import get_batch_system
 
 
 def translate_toil_to_model_status(status):
@@ -64,6 +64,12 @@ class ToilJobSubmitter(JobSubmitter):
         self.job_work_dir = os.path.join(dir_config["WORK_DIR_ROOT"], self.job_id)
         self.job_outputs_dir = root_dir
         self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
+        self.batch_system = get_batch_system()
+        self.batch_system_args_env = None
+        if settings.BATCH_SYSTEM == "LSF":
+            self.batch_system_args_env = "TOIL_LSF_ARGS"
+        elif settings.BATCH_SYSTEM == "SLURM":
+            self.batch_system_args_env = "TOIL_SLURM_ARGS"
 
     def prepare_to_submit(self):
         self._prepare_directories()
@@ -73,18 +79,15 @@ class ToilJobSubmitter(JobSubmitter):
 
     def get_submit_command(self):
         command_line = self._command_line()
-        log_path = os.path.join(self.job_work_dir, "lsf.log")
+        log_path = os.path.join(self.job_work_dir, self.batch_system.logfileName)
         env = dict()
-        if settings.LSF_SLA:
-            toil_lsf_args = "-sla %s %s %s" % (
-                settings.LSF_SLA,
-                " ".join(self._job_group()),
-                " ".join(self._tool_args()),
-            )
-        else:
-            toil_lsf_args = "%s %s" % (" ".join(self._job_group()), " ".join(self._tool_args()))
+        toil_batch_system_args = "%s %s %s" % (
+            " ".join(self._service_queue()),
+            " ".join(self._job_group()),
+            " ".join(self._tool_args()),
+        )
         env["JAVA_HOME"] = None
-        env["TOIL_LSF_ARGS"] = toil_lsf_args
+        env[self.batch_system_args_env] = toil_batch_system_args.strip()
         return command_line, self._leader_args(), log_path, self.job_id, env
 
     def get_commandline_status(self, cache):
@@ -139,18 +142,22 @@ class ToilJobSubmitter(JobSubmitter):
     def get_outputs(self):
         error_message = None
         result_json = None
-        lsf_log_path = os.path.join(self.job_work_dir, "lsf.log")
+        log_path = os.path.join(self.job_work_dir, self.batch_system.logfileName)
         try:
-            with open(lsf_log_path, "r") as f:
+            with open(log_path, "r") as f:
                 data = f.readlines()
                 data = "".join(data)
                 substring = data.split("\n{")[1]
-                result = ("{" + substring).split("-----------")[0]
+                if "-----------" in substring:
+                    result = ("{" + substring).split("-----------")[0]
+                else:
+                    result_segment = substring.split("}[")[0]
+                    result = "{" + result_segment + "}"
                 result_json = json.loads(result)
         except (IndexError, ValueError):
-            error_message = "Could not parse json from %s" % lsf_log_path
+            error_message = "Could not parse json from %s" % log_path
         except FileNotFoundError:
-            error_message = "Could not find %s" % lsf_log_path
+            error_message = "Could not find %s" % log_path
 
         if self.log_dir:
             output_log_name = f"{self.log_prefix}.output.json" if self.log_prefix else "output.json"
@@ -207,18 +214,20 @@ class ToilJobSubmitter(JobSubmitter):
         if self.tool_walltime:
             expected_limit = max(1, int(self.tool_walltime / 3))
             hard_limit = self.tool_walltime
-            args = ["-We", str(expected_limit), "-W", str(hard_limit)]
-        args.extend(self._memlimit())
+            args = self.batch_system.set_walltime(expected_limit, hard_limit)
         return args
 
+    def _service_queue(self):
+        return self.batch_system.set_service_queue()
+
     def _walltime(self):
-        return ["-W", str(self.walltime)] if self.walltime else []
+        return self.batch_system.set_walltime(None, self.walltime)
 
     def _memlimit(self):
-        return ["-M", self.memlimit] if self.memlimit else []
+        return self.batch_system.set_memlimit(self.memlimit)
 
     def _job_group(self):
-        return ["-g", format_lsf_job_id(self.job_id)]
+        return self.batch_system.set_group(self.job_id)
 
     def _command_line(self):
         single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
@@ -236,7 +245,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--logFile",
                 "toil_log.log",
                 "--batchSystem",
-                "lsf",
+                self.batch_system.name,
                 "--logLevel",
                 "DEBUG",
                 "--stats",
@@ -251,7 +260,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--preserve-environment",
                 "PATH",
                 "TMPDIR",
-                "TOIL_LSF_ARGS",
+                self.batch_system_args_env,
                 "CWL_SINGULARITY_CACHE",
                 "PWD",
                 "_JAVA_OPTIONS",
@@ -282,17 +291,15 @@ class ToilJobSubmitter(JobSubmitter):
                 str(settings.TOIL_STATE_POLLING_WAIT),
                 "--disable-user-provenance",
                 "--disable-host-provenance",
-                "--stats",
                 "--cleanWorkDir",
                 "onSuccess",
-                "--debug",
                 "--disableProgress",
                 "--doubleMem",
+                "True",
                 "--disableCaching",
                 "--preserve-environment",
                 "PATH",
                 "TMPDIR",
-                "TOIL_LSF_ARGS",
                 "CWL_SINGULARITY_CACHE",
                 "SINGULARITYENV_LC_ALL",
                 "PWD",
@@ -307,6 +314,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--not-strict",
                 "--runCwlInternalJobsOnWorkers",
                 "--realTimeLogging",
+                "True",
                 "--jobStore",
                 self.job_store_dir,
                 "--tmpdir-prefix",
@@ -317,6 +325,8 @@ class ToilJobSubmitter(JobSubmitter):
                 self.job_outputs_dir,
                 "--maxLocalJobs",
                 "500",
+                "--no-prepull",
+                "--reference-inputs",
             ]
         else:
             command_line = [
@@ -326,22 +336,21 @@ class ToilJobSubmitter(JobSubmitter):
                 "--logFile",
                 "toil_log.log",
                 "--batchSystem",
-                "lsf",
+                self.batch_system.name,
                 "--statePollingWait",
                 str(settings.TOIL_STATE_POLLING_WAIT),
                 "--disable-user-provenance",
                 "--disable-host-provenance",
-                "--stats",
                 "--cleanWorkDir",
                 "onSuccess",
-                "--debug",
                 "--disableProgress",
                 "--doubleMem",
+                "True",
                 "--disableCaching",
                 "--preserve-environment",
                 "PATH",
                 "TMPDIR",
-                "TOIL_LSF_ARGS",
+                self.batch_system_args_env,
                 "CWL_SINGULARITY_CACHE",
                 "SINGULARITYENV_LC_ALL",
                 "PWD",
@@ -356,6 +365,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--not-strict",
                 "--runCwlInternalJobsOnWorkers",
                 "--realTimeLogging",
+                "True",
                 "--jobStore",
                 self.job_store_dir,
                 "--tmpdir-prefix",
@@ -366,6 +376,8 @@ class ToilJobSubmitter(JobSubmitter):
                 self.job_outputs_dir,
                 "--maxLocalJobs",
                 "500",
+                "--no-prepull",
+                "--reference-inputs",
             ]
         if self.resume_jobstore:
             command_line.extend(["--restart", self.app_location])

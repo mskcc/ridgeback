@@ -1,26 +1,23 @@
 language: python
 sudo: required
+dist: jammy
 os:
   - linux
 services:
   - postgresql
 addons:
-  postgresql: "11"
+  postgresql: "14"
   apt:
     packages:
-    - postgresql-11
-    - postgresql-client-11
+      - postgresql-14
+      - postgresql-client-14
 python:
-  - "3.8"
+  - "3.10"
 before_install:
   - sudo apt-get update
-  - sudo apt-get --yes remove postgresql\*
-  - sudo apt-get install -y postgresql-11 postgresql-client-11
-  - sudo cp /etc/postgresql/{9.6,11}/main/pg_hba.conf
-  - sudo service postgresql restart 11
+  - sudo service postgresql restart 14
 install:
-  - psql -p 5433 -c 'create database travis_ci_test;' -U postgres
-  - pip install --force-reinstall 'setuptools<58.0.0'
+  - psql -p 5432 -c 'create database travis_ci_test;' -U postgres
   - pip install -r requirements.txt
   - pip install -r requirements-toil.txt
   - source travis_env.sh
@@ -31,4 +28,3 @@ script:
   - coverage report -m --fail-under=75
   - flake8
   - black --check .
-

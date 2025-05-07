@@ -105,53 +105,50 @@ Includecmd: no
         echo "ERROR: SINGULARITYENV_RIDGEBACK_CELERY_EVENT_QUEUE_PREFIX not set."
         exit 1
     fi
+    
+    ### SLURM env variables
+    if [ -z "$SLURM_BINDIR" ]; then
+        echo "WARNING environment variable SLURM_BINDIR is not defined, SLURM may not work"
+    fi
 
     ### LSF env variables
     if [ -z "$LSF_LIBDIR" ]; then
-        echo "ERROR environment variable LSF_LIBDIR is not defined, LSF will not work"
-        exit 1
+        echo "WARNING environment variable LSF_LIBDIR is not defined, LSF will not work"
     fi
 
     if [ -z "$LSF_SERVERDIR" ]; then
-        echo "ERROR environment variable LSF_SERVERDIR is not defined, LSF will not work"
-        exit 1
+        echo "WARNING environment variable LSF_SERVERDIR is not defined, LSF will not work"
     fi
 
     if [ -z "$LSF_ENVDIR" ]; then
-        echo "ERROR environment variable LSF_ENVDIR is not defined, LSF will not work"
-        exit 1
+        echo "WARNING environment variable LSF_ENVDIR is not defined, LSF will not work"
     fi
 
     if [ -z "$LSF_BINDIR" ]; then
-        echo "ERROR environment variable LSF_BINDIR is not defined, LSF will not work"
-        exit 1
+        echo "WARNING environment variable LSF_BINDIR is not defined, LSF will not work"
     fi
 
     if [ ! -d "$LSF_LIBDIR" ]; then
-        echo "ERROR $LSF_LIBDIR is not mounted or does not exist"
-        exit 1
+        echo "WARNING $LSF_LIBDIR is not mounted or does not exist"
     fi
 
     if [ ! -d "$LSF_SERVERDIR" ]; then
-        echo "ERROR $LSF_SERVERDIR is not mounted or does not exist"
-        exit 1
+        echo "WARNING $LSF_SERVERDIR is not mounted or does not exist"
     fi
 
     if [ ! -d "$LSF_ENVDIR" ]; then
-        echo "ERROR $LSF_ENVDIR is not mounted or does not exist"
-        exit 1
+        echo "WARNING $LSF_ENVDIR is not mounted or does not exist"
     fi
 
     if [ ! -d "$LSF_BINDIR" ]; then
-        echo "ERROR $LSF_BINDIR is not mounted or does not exist"
-        exit 1
+        echo "WARNING $LSF_BINDIR is not mounted or does not exist"
     fi
 
     RIDGEBACK_VENV_ACTIVATE=$RIDGEBACK_VENV/bin/activate
 
     echo "Activating venv $RIGEBACK_VENV"
     . $RIDGEBACK_VENV_ACTIVATE
-    export PATH=$LSF_BINDIR:$SINGULARITY_BIN_PATH:$PATH
+    export PATH=$SLURM_BINDIR:$LSF_BINDIR:$SINGULARITY_BIN_PATH:$PATH
 
     echo "Running orchestrator beat..."
     nohup celery --workdir ${RIDGEBACK_PATH} \

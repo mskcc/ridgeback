@@ -193,13 +193,15 @@ class Job(BaseModel):
     metadata = JSONField(blank=True, null=True, default=dict)
 
     def job_prepared(self, job_store_dir, job_work_dir, job_output_dir, log_path, log_prefix):
+        from batch_systems.batch_system import get_batch_system
+
         self.status = Status.PREPARED
         self.job_store_location = job_store_dir
         self.working_dir = job_work_dir
         self.output_directory = job_output_dir
         self.log_dir = log_path
         self.log_prefix = log_prefix
-        self.message["log"] = os.path.join(job_work_dir, "lsf.log")
+        self.message["log"] = os.path.join(job_work_dir, get_batch_system().logfileName)
         self.save(
             update_fields=[
                 "status",
@@ -266,7 +268,7 @@ class CommandLineToolJob(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     job_name = models.CharField(max_length=100)
-    job_id = models.CharField(max_length=20)
+    job_id = models.CharField(max_length=50)
     details = JSONField(blank=True, null=True)
 
     def get_aware_datetime(self, date_str):

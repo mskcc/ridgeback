@@ -11,13 +11,14 @@ import time
 import copy
 import json
 import glob
+import inspect
 from enum import IntEnum
 from datetime import datetime
 from json.decoder import JSONDecodeError
 from orchestrator.exceptions import StopException
 from toil.jobStores.fileJobStore import FileJobStore
+from toil.version import baseVersion
 from toil.toilState import ToilState as toil_state
-from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
 from toil.jobStores.abstractJobStore import NoSuchJobException, NoSuchJobStoreException, JobException
 
 
@@ -26,6 +27,13 @@ logger = logging.getLogger(__name__)
 WAITTIME = 10
 JITTER = 5
 ATTEMPTS = 5
+
+TOIL_MAJOR_VERSION = int(baseVersion[0])
+
+if TOIL_MAJOR_VERSION >= 8:
+    from toil.bus import replay_message_bus
+else:
+    from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
 
 
 def _get_method(file_job_store, method):
@@ -42,17 +50,24 @@ def _get_method(file_job_store, method):
 def _check_job_method(file_job_store):
     """
     TOIL Adapter function to check for job existence using method under diffrent
-    names from TOIL 5.4 and 3.21
+    names from TOIL versions 8.0, 5.4, and 3.21
     """
-    check_function = _get_method(file_job_store, "_checkJobStoreIdExists")
 
-    if check_function:
-        return check_function
+    default_check_function = _get_method(file_job_store, "_wait_for_exists")
 
-    fallback_function = _get_method(file_job_store, "_checkJobStoreId")
+    if default_check_function:
+        return default_check_function
+
+    fallback_function = _get_method(file_job_store, "_checkJobStoreIdExists")
 
     if fallback_function:
         return fallback_function
+
+    # What about second fallback? Ref - https://knowyourmeme.com/memes/second-breakfast
+    second_fallback_function = _get_method(file_job_store, "_checkJobStoreId")
+
+    if second_fallback_function:
+        return second_fallback_function
 
     raise Exception("Unable to check jobs, possible incompatibility with the current TOIL version")
 
@@ -60,7 +75,7 @@ def _check_job_method(file_job_store):
 def _check_retry_count(job):
     """
     TOIL Adapter function to check for the job retry count using attributes under
-    diffrent names from TOIL 5.4 and 3.21
+    diffrent names from TOIL versions 8.0, 5.4, and 3.21
     """
     if hasattr(job, "_remainingTryCount"):
         return getattr(job, "_remainingTryCount")
@@ -77,7 +92,7 @@ def _check_retry_count(job):
 def _check_job_stats(job):
     """
     TOIL Adapter function to check for job status using
-    the proper attributes from TOIL 5.4 and 3.21
+    the proper attributes from TOIL versions 8.0, 5.4, and 3.21
     """
     disk = None
     memory = None
@@ -108,6 +123,17 @@ def _get_job_stream_path(text):
     return None
 
 
+def _get_job_id(text):
+    """
+    TOIL helper function to parse the
+    job id path from text
+    """
+    job_id = re.search(r"kind\S*", text)
+    if job_id:
+        return job_id[0]
+    return None
+
+
 def _read_stats_file(stats_path):
     """
     TOIL Adapter function to read the stats file
@@ -124,11 +150,16 @@ def _read_stats_file(stats_path):
             jobs = stats_json.get("jobs", [])
             for single_worker, single_job in zip(worker_logs, jobs):
                 worker_text = single_worker.get("text", "")
-                job_stream = _get_job_stream_path(worker_text)
+                job_stream = None
+                job_id = None
+                if TOIL_MAJOR_VERSION >= 8:
+                    job_id = _get_job_id(worker_text)
+                else:
+                    job_stream = _get_job_stream_path(worker_text)
                 job_mem = single_job.get("memory")
                 job_cpu = single_job.get("clock")
-                if job_stream and job_mem and job_cpu:
-                    stats_info.append((job_stream, job_mem, job_cpu))
+                if (job_stream or job_id) and job_mem and job_cpu:
+                    stats_info.append((job_id, job_stream, job_mem, job_cpu))
     return stats_info
 
 
@@ -154,10 +185,13 @@ def _resume_job_store(job_store_path, total_attempts):
         raise Exception("Job store path %s not found" % job_store_path)
     read_only_job_store_obj = ReadOnlyFileJobStore(job_store_path, total_attempts)
     read_only_job_store_obj.resume()
-    read_only_job_store_obj.set_job_cache()
-    job_store_cache = read_only_job_store_obj.job_cache
-    root_job = _clean_job_store(read_only_job_store_obj, job_store_cache)
-    return read_only_job_store_obj, root_job
+    if TOIL_MAJOR_VERSION >= 8:
+        return read_only_job_store_obj, read_only_job_store_obj.load_root_job()
+    else:
+        read_only_job_store_obj.set_job_cache()
+        job_store_cache = read_only_job_store_obj.job_cache
+        root_job = _clean_job_store(read_only_job_store_obj, job_store_cache)
+        return read_only_job_store_obj, root_job
 
 
 def _load_job_store(job_store, root_job):
@@ -166,9 +200,12 @@ def _load_job_store(job_store, root_job):
     into a TOIL state object and avoid random filesystem
     issues
     """
-    job_store_cache = job_store.job_cache
-    toil_state_obj = toil_state(job_store, root_job, jobCache=job_store_cache)
-    return toil_state_obj
+    if TOIL_MAJOR_VERSION >= 8:
+        return None
+    else:
+        job_store_cache = job_store.job_cache
+        toil_state_obj = toil_state(job_store, root_job, jobCache=job_store_cache)
+        return toil_state_obj
 
 
 def _check_job_state(work_log_path, jobs_path):
@@ -191,6 +228,15 @@ def _check_job_state(work_log_path, jobs_path):
     return None
 
 
+def get_job_id_from_worker_log(worker_log_path):
+    if os.path.exists(worker_log_path):
+        with open(worker_log_path) as worker_log:
+            for single_line in worker_log:
+                if "Working on job" in single_line:
+                    return _get_job_id(single_line)
+    return None
+
+
 def _check_worker_logs(work_dir, work_log_to_job_id, jobs_path):
     """
     Check the work directory for worker logs and report
@@ -205,7 +251,10 @@ def _check_worker_logs(work_dir, work_log_to_job_id, jobs_path):
         if single_worker_log in work_log_to_job_id:
             job_id = work_log_to_job_id[single_worker_log]
         else:
-            job_id = _check_job_state(single_worker_log, jobs_path)
+            if TOIL_MAJOR_VERSION >= 8:
+                job_id = get_job_id_from_worker_log(single_worker_log)
+            else:
+                job_id = _check_job_state(single_worker_log, jobs_path)
         if job_id:
             worker_dict[job_id] = (single_worker_log, last_modified)
     return worker_dict
@@ -223,25 +272,11 @@ def _get_file_modification_time(file_path):
     return None
 
 
-def _get_current_jobs(toil_state_obj):
+def _get_bus_path(job_store):
     """
-    TOIL Adapter function to get updated jobs
-    from the toil_state_obj
+    TOIL helper function to get leader bus path, only supported for TOIL >= 8.0.0
     """
-    updated_jobs = toil_state_obj.updatedJobs
-    if not updated_jobs:
-        return []
-
-    job_list = []
-    if isinstance(updated_jobs, set):
-        for single_job in updated_jobs:
-            job_list.append(single_job[0])
-    elif isinstance(updated_jobs, dict):
-        for single_job in updated_jobs.values():
-            job_list.append(single_job[0])
-    else:
-        raise Exception("Unable to check TOIL state, possible incompatibility with the current TOIL version")
-    return job_list
+    return job_store.config.write_messages
 
 
 def _get_job_display_name(job):
@@ -249,27 +284,42 @@ def _get_job_display_name(job):
     TOIL adapter to get the display name of the job from TOIL job.
     Use the field job_name or display_name depending on the TOIL version
     Example:
-        job_name: file:///Users/kumarn1/work/ridgeback/tests/test_jobstores/
-                  test_cwl/sleep.cwl#simpleWorkflow/sleep/sleep
+        job_name: file:///Users/kumarn1/cwl/test_jobstore/sleep.cwl#simpleWorkflow/sleep/sleep
         returns "sleep"
     When id is not specified in the cwl it will return the name of the cwl
     Example:
-        job_name: file:///Users/kumarn1/work/ridgeback/tests/test_jobstores/
-                  test_cwl/sleep.cwl
+        job_name: file:///Users/kumarn1/cwl/test_jobstore/sleep.cwl
         returns "sleep"
     """
-    job_name = job.jobName
-    display_name = job.displayName
-    cwl_path = None
-    if "cwl" in job_name:
-        cwl_path = job_name
-    elif "cwl" in display_name:
-        cwl_path = display_name
+    if TOIL_MAJOR_VERSION >= 8:
+        display_name = None
+        unit_name = job.unitName
+        if not unit_name:
+            unit_name = job.displayName
+        if ".cwl" in unit_name:
+            display_name = unit_name.split(".")[-2]
+        elif "." in unit_name:
+            split_list = unit_name.split(".")
+            if split_list[-1].startswith("_"):
+                display_name = "".join(split_list[-2::])
+            else:
+                display_name = unit_name.split(".")[-1]
+        else:
+            display_name = unit_name
+        return display_name
     else:
-        raise Exception("Could not find name in possible values %s %s" % (job_name, display_name))
-    job_basename = os.path.basename(cwl_path)
-    display_name = os.path.splitext(job_basename)[0]
-    return display_name
+        job_name = job.jobName
+        display_name = job.displayName
+        cwl_path = None
+        if "cwl" in job_name:
+            cwl_path = job_name
+        elif "cwl" in display_name:
+            cwl_path = display_name
+        else:
+            raise Exception("Could not find name in possible values %s %s" % (job_name, display_name))
+        job_basename = os.path.basename(cwl_path)
+        display_name = os.path.splitext(job_basename)[0]
+        return display_name
 
 
 class ReadOnlyFileJobStore(FileJobStore):
@@ -292,8 +342,13 @@ class ReadOnlyFileJobStore(FileJobStore):
         Check if the job exists in the job store
         """
         check_function = _check_job_method(self)
+        max_tries = 0
+        args = inspect.getfullargspec(check_function).args
         try:
-            check_function(job_store_id)
+            if "maxTries" in args:
+                check_function(job_store_id, maxTries=max_tries)
+            else:
+                check_function(job_store_id)
             return True
         except NoSuchJobException:
             return False
@@ -301,11 +356,17 @@ class ReadOnlyFileJobStore(FileJobStore):
     def load(self, jobStoreID):
         if jobStoreID in self.job_cache:
             return self.job_cache[jobStoreID]
-        self.check_if_job_exists(jobStoreID)
-        job_file = self._getJobFileName(jobStoreID)
-        with open(job_file, "rb") as file_handle:
-            job = pickle.load(file_handle)
-        return job
+        if self.check_if_job_exists(jobStoreID):
+            if TOIL_MAJOR_VERSION >= 8:
+                job_file = self._get_job_file_name(jobStoreID)
+            else:
+                job_file = self._getJobFileName(jobStoreID)
+            try:
+                with open(job_file, "rb") as file_handle:
+                    job = pickle.load(file_handle)
+            except OSError:
+                return None
+            return job
 
     def set_job_cache(self):
         """
@@ -384,7 +445,6 @@ class ReadOnlyFileJobStore(FileJobStore):
         pass
 
     # pylint: enable=too-many-arguments
-
     def writeSharedFileStream(self, sharedFileName, isProtected=None, encoding=None, errors=None):
         pass
 
@@ -405,6 +465,9 @@ class ToolStatus(IntEnum):
     COMPLETED = 3
     FAILED = 4
     UNKNOWN = 5
+
+    def __str__(self):
+        return self.name
 
 
 class ToilTrack:
@@ -433,7 +496,6 @@ class ToilTrack:
         self.show_cwl_internal = show_cwl_internal
 
     # pylint: enable=too-many-instance-attributes
-
     def create_job_id(self, job_store_id, id_prefix_param=None, id_suffix_param=None):
         """
         Create a job id using the Id in the TOIL jobstore with
@@ -464,12 +526,12 @@ class ToilTrack:
         id_string = "%s-%s-%s" % (id_prefix, job_id, id_suffix)
         return id_string
 
-    def mark_job_as_failed(self, job_id, job_name, job):
+    def mark_job_as_failed(self, job_id, job):
         """
         Mark a job as failed
         """
         job_dict = self.jobs
-        if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
+        if not self.is_local_job(job):
             if job_id in job_dict:
                 job_dict[job_id]["status"] = ToolStatus.FAILED
                 if not job_dict[job_id]["finished"]:
@@ -481,6 +543,36 @@ class ToilTrack:
                     "name": display_name,
                     "disk": disk,
                     "status": ToolStatus.FAILED,
+                    "job_stream": None,
+                    "memory_req": memory,
+                    "cores_req": cores,
+                    "cpu_usage": [],
+                    "mem_usage": [],
+                    "started": datetime.now(),
+                    "submitted": datetime.now(),
+                    "last_modified": datetime.now(),
+                    "log_path": None,
+                    "finished": datetime.now(),
+                }
+                job_dict[job_id] = new_job
+
+    def mark_job_as_completed(self, job_id, job):
+        """
+        Mark a job as completed
+        """
+        job_dict = self.jobs
+        if not self.is_local_job(job):
+            if job_id in job_dict:
+                job_dict[job_id]["status"] = ToolStatus.COMPLETED
+                if not job_dict[job_id]["finished"]:
+                    job_dict[job_id]["finished"] = datetime.now()
+            else:
+                cores, disk, memory = _check_job_stats(job)
+                display_name = _get_job_display_name(job)
+                new_job = {
+                    "name": display_name,
+                    "disk": disk,
+                    "status": ToolStatus.COMPLETED,
                     "job_stream": None,
                     "memory_req": memory,
                     "cores_req": cores,
@@ -526,10 +618,13 @@ class ToilTrack:
         stats_file_list = job_store_obj.get_stats_files()
         for single_stats_path in stats_file_list:
             stats_info = _read_stats_file(single_stats_path)
-            for job_stream, job_mem, job_cpu in stats_info:
-                job_key = jobs_path.get(job_stream)
-                if job_key:
-                    self._update_job_stats(job_key, job_mem, job_cpu)
+            for job_id, job_stream, job_mem, job_cpu in stats_info:
+                if job_id:
+                    self._update_job_stats(job_id, job_mem, job_cpu)
+                else:
+                    job_key = jobs_path.get(job_stream)
+                    if job_key:
+                        self._update_job_stats(job_key, job_mem, job_cpu)
 
     def handle_failed_jobs(self, job_store):
         """
@@ -541,9 +636,11 @@ class ToilTrack:
             if retry_count is not None:
                 previous_suffix = self.total_attempts - (retry_count + 1)
                 jobstore_id = single_job.jobStoreID
-                job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_suffix)
-                job_name = single_job.jobName
-                self.mark_job_as_failed(job_id, job_name, single_job)
+                if TOIL_MAJOR_VERSION >= 8:
+                    job_id = jobstore_id
+                else:
+                    job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_suffix)
+                self.mark_job_as_failed(job_id, single_job)
 
     def handle_restarted_jobs(self, job_store):
         """
@@ -557,32 +654,92 @@ class ToilTrack:
             jobstore_id = single_job.jobStoreID
             previous_retry_count = self.total_attempts - (retry_count + 1)
             retry_job_ids[jobstore_id] = previous_retry_count
-            job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_retry_count)
+            if TOIL_MAJOR_VERSION >= 8:
+                job_id = jobstore_id
+            else:
+                job_id = self.create_job_id(jobstore_id, id_suffix_param=previous_retry_count)
             if job_id in job_dict and job_dict[job_id]["status"] != ToolStatus.FAILED:
-                job_name = single_job.jobName
-                self.mark_job_as_failed(job_id, job_name, single_job)
+                self.mark_job_as_failed(job_id, single_job)
 
-    def handle_current_jobs(self, toil_state_obj):
+    def set_job_stream(self, single_job, job_id):
+        job_stream = None
+        if single_job.command:
+            job_stream = _get_job_stream_path(single_job.command)
+        if not job_stream:
+            logger.debug("Could not find job_stream for job %s [%s]", single_job.job_name, job_id)
+        self.jobs_path[job_stream] = job_id
+        return job_stream
+
+    def is_local_job(self, job):
+        if TOIL_MAJOR_VERSION >= 8:
+            return job.local and self.show_cwl_internal
+        else:
+            return job.jobName in CWL_INTERNAL_JOBS and self.show_cwl_internal
+
+    def _get_current_jobs(self, toil_state_obj, job_store):
+        """
+        TOIL Adapter function to get updated jobs
+        from the toil_state_obj
+        """
+        job_list = []
+
+        if TOIL_MAJOR_VERSION >= 8:
+            message_bus = _get_bus_path(job_store)
+            if message_bus and os.path.exists(message_bus):
+                all_job_statuses = replay_message_bus(message_bus)
+                for job_status in all_job_statuses.values():
+                    if job_status.is_running():
+                        single_job = job_store.load(job_status.job_store_id)
+                        if single_job:
+                            job_list.append(single_job)
+                    elif job_status.exit_code == 0:
+                        single_job = job_store.load(job_status.job_store_id)
+                        if single_job:
+                            self.mark_job_as_completed(job_status.job_store_id, single_job)
+                    elif job_status.exit_code > 0:
+                        single_job = job_store.load(job_status.job_store_id)
+                        if single_job:
+                            self.mark_job_as_failed(job_status.job_store_id, single_job)
+                    else:
+                        pass
+
+            return job_list
+        else:
+            updated_jobs = toil_state_obj.updatedJobs
+            if not updated_jobs:
+                return []
+            if isinstance(updated_jobs, set):
+                for single_job in updated_jobs:
+                    job_list.append(single_job[0])
+            elif isinstance(updated_jobs, dict):
+                for single_job in updated_jobs.values():
+                    job_list.append(single_job[0])
+            else:
+                raise Exception("Unable to check TOIL state, possible incompatibility with the current TOIL version")
+            return job_list
+
+    def handle_current_jobs(self, toil_state_obj, job_store):
         """
         Check TOIL jobstore for current/new jobs, add new
         jobs, and collect stats on new jobs
         """
         jobs_dict = self.jobs
         current_jobs = []
-        for single_job in _get_current_jobs(toil_state_obj):
-            job_name = single_job.jobName
-            if job_name not in CWL_INTERNAL_JOBS or self.show_cwl_internal:
+        for single_job in self._get_current_jobs(toil_state_obj, job_store):
+            if not self.is_local_job(single_job):
                 cores, disk, memory = _check_job_stats(single_job)
                 jobstore_id = single_job.jobStoreID
-                job_id = self.create_job_id(jobstore_id)
+                if TOIL_MAJOR_VERSION >= 8:
+                    job_id = jobstore_id
+                else:
+                    job_id = self.create_job_id(jobstore_id)
                 current_jobs.append(job_id)
                 job_stream = None
-                if single_job.command:
-                    job_stream = _get_job_stream_path(single_job.command)
-                if not job_stream:
-                    logger.debug("Could not find job_stream for job %s [%s]", job_name, job_id)
-                if job_stream and job_id not in jobs_dict:
-                    self.jobs_path[job_stream] = job_id
+                if TOIL_MAJOR_VERSION < 8:
+                    job_stream = self.set_job_stream(single_job, job_store)
+                    if not job_stream:
+                        continue
+                if job_id not in jobs_dict:
                     display_name = _get_job_display_name(single_job)
                     new_job = {
                         "name": display_name,
@@ -623,16 +780,17 @@ class ToilTrack:
         worker_info = _check_worker_logs(self.work_dir, worker_log_to_job_dict, self.jobs_path)
         for single_job_id in worker_info:
             worker_log, last_modified = worker_info[single_job_id]
-            job_obj = job_dict[single_job_id]
-            if job_obj["status"] == ToolStatus.PENDING or job_obj["status"] == ToolStatus.UNKNOWN:
-                job_obj["status"] = ToolStatus.RUNNING
-            if not job_obj["started"]:
-                job_obj["started"] = datetime.now()
-            if last_modified:
-                job_obj["last_modified"] = last_modified
-                job_obj["log_path"] = worker_log
-            if worker_log not in worker_log_to_job_dict:
-                worker_log_to_job_dict[worker_log] = single_job_id
+            if single_job_id in job_dict:
+                job_obj = job_dict[single_job_id]
+                if job_obj["status"] == ToolStatus.PENDING or job_obj["status"] == ToolStatus.UNKNOWN:
+                    job_obj["status"] = ToolStatus.RUNNING
+                if not job_obj["started"]:
+                    job_obj["started"] = datetime.now()
+                if last_modified:
+                    job_obj["last_modified"] = last_modified
+                    job_obj["log_path"] = worker_log
+                if worker_log not in worker_log_to_job_dict:
+                    worker_log_to_job_dict[worker_log] = single_job_id
 
     def check_status(self):
         """
@@ -653,11 +811,11 @@ class ToilTrack:
         if not job_store.check_if_job_exists(root_job_id):
             logger.warning("Jobstore root not found, toil job may be finished or just starting")
         toil_state_obj = _load_job_store(job_store, root_job)
-        if not toil_state_obj:
+        if not toil_state_obj and TOIL_MAJOR_VERSION < 8:
             logger.warning("TOIL state is unexpectedly empty")
         self.handle_failed_jobs(job_store)
         self.handle_restarted_jobs(job_store)
-        current_jobs = self.handle_current_jobs(toil_state_obj)
+        current_jobs = self.handle_current_jobs(toil_state_obj, job_store)
         self.handle_finished_jobs(current_jobs)
         self.handle_running_jobs()
         self.check_stats(job_store)
@@ -678,6 +836,9 @@ def script_track_status(toil_track_obj):
         jobs_path = toil_track_obj.jobs_path
         jobs = toil_track_obj.jobs
         work_log_to_job_id = toil_track_obj.work_log_to_job_id
+        for single_job_id in jobs:
+            single_job = jobs[single_job_id]
+            single_job["status"] = str(single_job["status"])
         print(json.dumps(jobs, indent=4, sort_keys=True, default=str))
         time.sleep(4)
 
@@ -701,10 +862,10 @@ def main():
     """
 
     usage_str = """
-              USAGE:
-              toil_track_utils.py track [job_store_path] [work_dir_path]
-              toil_track_utils.py snapshot [job_store_path_1] [work_dir_path_1] [job_store_path_2] [work_dir_path_2]
-            """
+        USAGE:
+            toil_track_utils.py track [job_store_path] [work_dir_path]
+            toil_track_utils.py snapshot [job_store_path_1] [work_dir_path_1] [job_store_path_2] [work_dir_path_2]
+    """
 
     if len(sys.argv) not in [4, 6]:
         print(usage_str)
