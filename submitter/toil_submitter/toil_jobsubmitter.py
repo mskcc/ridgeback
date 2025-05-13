@@ -66,6 +66,7 @@ class ToilJobSubmitter(JobSubmitter):
         self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
         self.batch_system = get_batch_system()
         self.batch_system_args_env = None
+        self.single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
         if settings.BATCH_SYSTEM == "LSF":
             self.batch_system_args_env = "TOIL_LSF_ARGS"
         elif settings.BATCH_SYSTEM == "SLURM":
@@ -205,8 +206,11 @@ class ToilJobSubmitter(JobSubmitter):
             os.mkdir(self.job_tmp_dir)
 
     def _leader_args(self):
+        single_machine = any([w in self.app.github.lower() for w in self.single_machine_mode_workflows])
         args = self._walltime()
         args.extend(self._memlimit())
+        if single_machine:
+            args.extend(self._numtasks(7))
         return args
 
     def _tool_args(self):
@@ -226,12 +230,14 @@ class ToilJobSubmitter(JobSubmitter):
     def _memlimit(self):
         return self.batch_system.set_memlimit(self.memlimit)
 
+    def _numtasks(self, num_tasks):
+        return self.batch_system.set_num_tasks(num_tasks)
+
     def _job_group(self):
         return self.batch_system.set_group(self.job_id)
 
     def _command_line(self):
-        single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
-        single_machine = any([w in self.app.github.lower() for w in single_machine_mode_workflows])
+        single_machine = any([w in self.app.github.lower() for w in self.single_machine_mode_workflows])
         if settings.ACCESS_LEGACY_APP in self.app.github.lower():
             """
             Start ACCESS-specific code

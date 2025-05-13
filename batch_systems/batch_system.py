@@ -71,6 +71,13 @@ class BatchClient(object):
         mem_limit_args = []
         return mem_limit_args
 
+    def set_num_tasks(self, num_tasks, default=None):
+        """
+        Set the number of tasks for the batch job
+        """
+        num_task_args = []
+        return num_task_args
+
     def set_group(self, group_id):
         """
         Set the group args of the batch job

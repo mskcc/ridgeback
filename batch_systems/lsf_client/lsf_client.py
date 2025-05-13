@@ -105,6 +105,17 @@ class LSFClient(BatchClient):
             mem_limit_args = ["-M", mem_limit]
         return mem_limit_args
 
+    def set_num_tasks(self, num_tasks, default=None):
+        """
+        Set the number of tasks for the batch job
+        """
+        num_task_args = []
+        if default:
+            num_task_args = ["-n", default]
+        if num_tasks:
+            num_task_args = ["-n", num_tasks]
+        return num_task_args
+
     def set_group(self, group_id):
         group_id_args = []
         if group_id:

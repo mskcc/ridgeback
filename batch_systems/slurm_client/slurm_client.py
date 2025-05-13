@@ -111,6 +111,17 @@ class SLURMClient(BatchClient):
             mem_limit_args = [f"--mem={mem_limit}G"]
         return mem_limit_args
 
+    def set_num_tasks(self, num_tasks, default=None):
+        """
+        Set the number of tasks for the batch job
+        """
+        num_task_args = []
+        if default:
+            num_task_args = [f"--cpus-per-task={default}"]
+        if num_tasks:
+            num_task_args = [f"--cpus-per-task={num_tasks}"]
+        return num_task_args
+
     def set_group(self, group_id):
         group_id_args = []
         if group_id:
