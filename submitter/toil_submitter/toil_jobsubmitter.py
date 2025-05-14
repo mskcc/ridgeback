@@ -151,6 +151,9 @@ class ToilJobSubmitter(JobSubmitter):
                 substring = data.split("\n{")[1]
                 if "-----------" in substring:
                     result = ("{" + substring).split("-----------")[0]
+                elif "\n}\n" in substring:
+                    result_segment = substring.split("\n}\n")[0]
+                    result = "{" + result_segment + "}"
                 else:
                     result_segment = substring.split("}[")[0]
                     result = "{" + result_segment + "}"
