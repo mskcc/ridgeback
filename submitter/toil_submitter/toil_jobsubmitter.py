@@ -213,7 +213,7 @@ class ToilJobSubmitter(JobSubmitter):
         args = self._walltime()
         args.extend(self._memlimit())
         if single_machine:
-            args.extend(self._numtasks(7))
+            args.extend(self._numtasks(int(settings.SINGLE_MACHINE_CORES)))
         return args
 
     def _tool_args(self):
