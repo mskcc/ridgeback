@@ -335,7 +335,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--maxLocalJobs",
                 "500",
                 "--no-prepull",
-                "--bypass-file-store",
+                "--reference-inputs",
             ]
         else:
             command_line = [
@@ -386,7 +386,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--maxLocalJobs",
                 "500",
                 "--no-prepull",
-                "--bypass-file-store",
+                "--reference-inputs",
             ]
         if self.resume_jobstore:
             command_line.extend(["--restart", self.app_location])
