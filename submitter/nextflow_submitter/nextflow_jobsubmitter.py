@@ -100,7 +100,7 @@ class NextflowJobSubmitter(JobSubmitter):
         return args
 
     def _walltime(self):
-        return self.batch_system.set_walltime(self.walltime)
+        return self.batch_system.set_walltime(None, self.walltime)
 
     def _memlimit(self):
         return self.batch_system.set_memlimit(self.memlimit, default="20")
