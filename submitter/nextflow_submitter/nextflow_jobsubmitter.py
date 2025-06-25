@@ -209,14 +209,14 @@ class NextflowJobSubmitter(JobSubmitter):
         input_map = dict()
         inputs = self.inputs.get("inputs", [])
         for i in inputs:
-            input_map[i["name"]] = self._dump_input(i["name"], i["content"], self.job_work_dir)
+            input_map[i["name"]] = self._dump_input(i["name"], i["content"], i.get("extension",""), self.job_work_dir)
 
         config = self.inputs.get("config")
         if config:
             self._dump_config(config)
 
-    def _dump_input(self, name, content, root_dir):
-        file_path = os.path.join(root_dir, name)
+    def _dump_input(self, name, content, extension, root_dir):
+        file_path = os.path.join(root_dir, name, extension)
         with open(file_path, "w") as f:
             f.write(content)
         return file_path
