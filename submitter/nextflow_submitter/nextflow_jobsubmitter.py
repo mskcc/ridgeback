@@ -198,7 +198,7 @@ class NextflowJobSubmitter(JobSubmitter):
         inputs = self.inputs.get("inputs", [])
         input_map = dict()
         for i in inputs:
-            input_map[i["name"]] = os.path.join(self.job_work_dir, i["name"]) + i.get("extension","")
+            input_map[i["name"]] = os.path.join(self.job_work_dir, i["name"]) + i.get("extension", "")
         return input_map
 
     @property
@@ -209,7 +209,7 @@ class NextflowJobSubmitter(JobSubmitter):
         input_map = dict()
         inputs = self.inputs.get("inputs", [])
         for i in inputs:
-            input_map[i["name"]] = self._dump_input(i["name"], i["content"], i.get("extension",""), self.job_work_dir)
+            input_map[i["name"]] = self._dump_input(i["name"], i["content"], i.get("extension", ""), self.job_work_dir)
 
         config = self.inputs.get("config")
         if config:
