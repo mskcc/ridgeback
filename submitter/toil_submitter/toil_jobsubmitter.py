@@ -245,7 +245,7 @@ class ToilJobSubmitter(JobSubmitter):
             """
             Start ACCESS-specific code
             """
-            access_path = "PATH=/home/accessbot/miniconda3/envs/ACCESS_cmplx_geno_test/bin:{}"
+            access_path = "PATH=/usersoftware/core005/access/production/V1/micromamba/envs/ACCESS/bin:{}"
             path = access_path.format(os.environ.get("PATH"))
             command_line = [
                 path,
@@ -255,26 +255,32 @@ class ToilJobSubmitter(JobSubmitter):
                 "toil_log.log",
                 "--batchSystem",
                 self.batch_system.name,
-                "--logLevel",
-                "DEBUG",
-                "--stats",
+                "--disable-user-provenance",
+                "--disable-host-provenance",
                 "--cleanWorkDir",
                 "onSuccess",
                 "--disableCaching",
-                "--defaultMemory",
-                "10G",
-                "--retryCount",
-                "2",
-                "--disableChaining",
                 "--preserve-environment",
                 "PATH",
                 "TMPDIR",
-                self.batch_system_args_env,
-                "CWL_SINGULARITY_CACHE",
                 "PWD",
                 "_JAVA_OPTIONS",
                 "PYTHONPATH",
                 "TEMP",
+                self.batch_system_args_env,
+                "CWL_SINGULARITY_CACHE",
+                "SINGULARITYENV_LC_ALL",
+                "PWD",
+                "--disableChaining" "--maxCores",
+                "24",
+                "--jobStoreTimeout",
+                "600",
+                "--maxMemory",
+                "256G",
+                "--not-strict",
+                "--runCwlInternalJobsOnWorkers",
+                "--realTimeLogging",
+                "True",
                 "--jobStore",
                 self.job_store_dir,
                 "--tmpdir-prefix",
@@ -283,6 +289,8 @@ class ToilJobSubmitter(JobSubmitter):
                 self.job_work_dir,
                 "--outdir",
                 self.job_outputs_dir,
+                "--maxLocalJobs",
+                "500",
             ]
             """
             End ACCESS-specific code
