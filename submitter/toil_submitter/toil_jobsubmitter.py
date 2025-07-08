@@ -261,7 +261,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "onSuccess",
                 "--disableCaching",
                 "--preserve-environment",
-                "PATH", 
+                "PATH",
                 "TMPDIR",
                 "PWD",
                 "_JAVA_OPTIONS",
@@ -271,8 +271,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "CWL_SINGULARITY_CACHE",
                 "SINGULARITYENV_LC_ALL",
                 "PWD",
-                "--disableChaining"
-                "--maxCores",
+                "--disableChaining" "--maxCores",
                 "24",
                 "--jobStoreTimeout",
                 "600",
