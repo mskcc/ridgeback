@@ -1,1 +1,1 @@
-git+https://github.com/DataBiosphere/toil.git@releases/8.0.0#egg=toil[cwl]
+toil[cwl] @ git+https://github.com/DataBiosphere/toil.git@releases/8.0.0
