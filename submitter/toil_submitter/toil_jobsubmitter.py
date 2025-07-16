@@ -245,8 +245,7 @@ class ToilJobSubmitter(JobSubmitter):
             """
             Start ACCESS-specific code
             """
-            access_path = "PATH=/usersoftware/core005/access/production/V1/micromamba/envs/ACCESS/bin:{}"
-            path = access_path.format(os.environ.get("PATH"))
+            path = "PATH={0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
             command_line = [
                 path,
                 "toil-cwl-runner",
