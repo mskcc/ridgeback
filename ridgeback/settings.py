@@ -317,4 +317,6 @@ SKIP_THE_QUEUE_JOBS = ("ARGOS", "ACCESS_HEME", "ACCESS", "CMO-CH")
 
 # ACCESS LEGACY INFO
 ACCESS_LEGACY_APP = os.environ.get("ACCESS_LEGACY_APP", "access-pipeline")
-ACCESS_LEGACY_CONDA_ENV = os.environ.get("ACCESS_LEGACY_CONDA_ENV", "/usersoftware/core005/access/production/V1/micromamba/envs/ACCESS/bin")
+ACCESS_LEGACY_CONDA_ENV = os.environ.get(
+    "ACCESS_LEGACY_CONDA_ENV", "/usersoftware/core005/access/production/V1/micromamba/envs/ACCESS/bin"
+)
