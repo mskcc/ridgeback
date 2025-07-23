@@ -245,7 +245,7 @@ class ToilJobSubmitter(JobSubmitter):
             """
             Start ACCESS-specific code
             """
-            path = "PATH={0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
+            path = "env PATH={0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
             command_line = [
                 path,
                 "toil-cwl-runner",
