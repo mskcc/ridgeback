@@ -89,6 +89,9 @@ class ToilJobSubmitter(JobSubmitter):
         )
         env["JAVA_HOME"] = None
         env[self.batch_system_args_env] = toil_batch_system_args.strip()
+        if settings.ACCESS_LEGACY_APP in self.app.github.lower() and settings.BATCH_SYSTEM == "SLURM":
+            env["PATH"] = "{0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
+            env[self.batch_system_args_env] += "--export=ALL"
         return command_line, self._leader_args(), log_path, self.job_id, env
 
     def get_commandline_status(self, cache):
@@ -241,13 +244,11 @@ class ToilJobSubmitter(JobSubmitter):
 
     def _command_line(self):
         single_machine = any([w in self.app.github.lower() for w in self.single_machine_mode_workflows])
-        if settings.ACCESS_LEGACY_APP in self.app.github.lower():
+        if settings.ACCESS_LEGACY_APP in self.app.github.lower() and settings.BATCH_SYSTEM == "SLURM":
             """
             Start ACCESS-specific code
             """
-            path = "env PATH={0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
             command_line = [
-                path,
                 "toil-cwl-runner",
                 "--no-container",
                 "--logFile",
