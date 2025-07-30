@@ -17,6 +17,7 @@ class JobSubmitterFactory(object):
         log_dir=None,
         log_prefix="",
         app_name="NA",
+        user=None,
     ):
         if type == PipelineType.CWL:
             return ToilJobSubmitter(
@@ -31,6 +32,7 @@ class JobSubmitterFactory(object):
                 log_dir,
                 log_prefix,
                 app_name,
+                user,
             )
         elif type == PipelineType.NEXTFLOW:
             return NextflowJobSubmitter(
@@ -45,4 +47,5 @@ class JobSubmitterFactory(object):
                 log_dir,
                 log_prefix,
                 app_name,
+                user,
             )

@@ -11,6 +11,7 @@ from django.conf import settings
 from orchestrator.models import Status
 from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
 from batch_systems.batch_system import BatchClient
+from submitter.userswitcher import userswitch
 
 
 def format_lsf_job_id(job_id):
@@ -25,14 +26,16 @@ class LSFClient(BatchClient):
         logger (logging): logging module
     """
 
-    def __init__(self):
+    def __init__(self, user):
         """
         init function
         """
         self.logger = logging.getLogger("LSF_client")
         self.logfileName = "lsf.log"
         self.name = "lsf"
+        self.user = user
 
+    @userswitch
     def submit(self, command, job_args, stdout, job_id, env={}):
         """
         Submit command to LSF and store log in stdout
@@ -72,6 +75,7 @@ class LSFClient(BatchClient):
             )
         return self._parse_procid(process.stdout)
 
+    @userswitch
     def terminate(self, job_id):
         """
         Kill LSF job
@@ -250,6 +254,7 @@ class LSFClient(BatchClient):
                 return Status.UNKNOWN, error_message.strip()
         raise FetchStatusException(f"Failed to get status for job {external_job_id}")
 
+    @userswitch
     def status(self, external_job_id):
         """Parse LSF status
 
@@ -271,6 +276,7 @@ class LSFClient(BatchClient):
         status = self._parse_status(process.stdout, external_job_id)
         return status
 
+    @userswitch
     def suspend(self, job_id):
         """
         Suspend LSF job
@@ -286,6 +292,7 @@ class LSFClient(BatchClient):
             return True
         return False
 
+    @userswitch
     def resume(self, job_id):
         """
         Resume LSF job

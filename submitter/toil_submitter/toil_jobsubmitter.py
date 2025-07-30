@@ -8,6 +8,7 @@ from orchestrator.models import Status
 from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
 from batch_systems.batch_system import get_batch_system
+from submitter.userswitcher import userswitch
 
 
 def translate_toil_to_model_status(status):
@@ -39,6 +40,7 @@ class ToilJobSubmitter(JobSubmitter):
         log_prefix="",
         app_name="NA",
         root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
+        user=None,
     ):
         JobSubmitter.__init__(
             self,
@@ -52,6 +54,7 @@ class ToilJobSubmitter(JobSubmitter):
             log_prefix,
             app_name,
             root_permissions,
+            user,
         )
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
         if not dir_config:
@@ -179,6 +182,7 @@ class ToilJobSubmitter(JobSubmitter):
     def inputs_location(self):
         return os.path.join(self.job_work_dir, "input.json")
 
+    @userswitch
     def _dump_app_inputs(self):
         inputs_location = self.inputs_location
         with open(inputs_location, "w") as f:
@@ -188,25 +192,6 @@ class ToilJobSubmitter(JobSubmitter):
             inputs_log_location = os.path.join(self.log_dir, inputs_log_name)
             with open(inputs_log_location, "w") as f:
                 json.dump(self.inputs, f)
-
-    def _prepare_directories(self):
-        if not os.path.exists(self.job_work_dir):
-            os.mkdir(self.job_work_dir)
-
-        if self.log_dir:
-            if not os.path.exists(self.log_dir):
-                mode_int = int(self.root_permissions, 8)
-                os.makedirs(self.log_dir, mode=mode_int, exist_ok=True)
-
-        if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
-            shutil.rmtree(self.job_store_dir)
-
-        if self.resume_jobstore:
-            if not os.path.exists(self.resume_jobstore):
-                raise Exception("The job_store indicated to be resumed could not be found")
-
-        if not os.path.exists(self.job_tmp_dir):
-            os.mkdir(self.job_tmp_dir)
 
     def _leader_args(self):
         single_machine = any([w in self.app.github.lower() for w in self.single_machine_mode_workflows])

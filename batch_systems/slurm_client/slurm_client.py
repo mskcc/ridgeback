@@ -10,6 +10,7 @@ from django.conf import settings
 from orchestrator.models import Status
 from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
 from batch_systems.batch_system import BatchClient
+from submitter.userswitcher import userswitch
 
 
 class SLURMClient(BatchClient):
@@ -20,14 +21,16 @@ class SLURMClient(BatchClient):
         logger (logging): logging module
     """
 
-    def __init__(self):
+    def __init__(self, user):
         """
         init function
         """
         self.logger = logging.getLogger("SLURM_client")
         self.logfileName = "slurm.log"
         self.name = "slurm"
+        self.user = user
 
+    @userswitch
     def submit(self, command, job_args, stdout, job_id, env={}):
         """
         Submit command to SLURM and store log in stdout
@@ -76,6 +79,7 @@ class SLURMClient(BatchClient):
             )
         return self._parse_procid(process.stdout)
 
+    @userswitch
     def terminate(self, job_id):
         """
         Kill SLURM job
@@ -271,6 +275,7 @@ class SLURMClient(BatchClient):
 
         raise FetchStatusException(f"Failed to get status for job {external_job_id}")
 
+    @userswitch
     def status(self, external_job_id):
         """Parse SLURM status
 
@@ -286,6 +291,7 @@ class SLURMClient(BatchClient):
         status = self._parse_status(process.stdout, str(external_job_id))
         return status
 
+    @userswitch
     def _get_job_list(self, job_id):
         """Get slurm job ids in a group
 
@@ -306,6 +312,7 @@ class SLURMClient(BatchClient):
                 slurm_jobs.append(single_slurm_id)
         return slurm_jobs
 
+    @userswitch
     def suspend(self, job_id):
         """
         Suspend SLURM job
@@ -323,6 +330,7 @@ class SLURMClient(BatchClient):
             return True
         return False
 
+    @userswitch
     def resume(self, job_id):
         """
         Resume SLURM job

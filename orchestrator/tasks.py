@@ -19,6 +19,7 @@ from orchestrator.exceptions import (
     StopException,
     FetchStatusException,
 )
+from submitter.userswitcher import userswitch
 
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,8 @@ def get_job_info_path(job_id):
     return job_info_path
 
 
-def save_job_info(job_id, external_id, job_store_location, working_dir, output_directory, metadata={}):
+@userswitch
+def save_job_info(job, external_id, job_store_location, working_dir, output_directory, metadata={}):
     if os.path.exists(working_dir):
         job_info = {
             "external_id": external_id,
@@ -42,7 +44,7 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
             "output_directory": output_directory,
         }
         job_info.update(metadata)
-        job_info_path = get_job_info_path(job_id)
+        job_info_path = get_job_info_path(job.id)
         with open(job_info_path, "w") as job_info_file:
             json.dump({"meta": "run_info"}, job_info_file)
             job_info_file.write("\n")
@@ -54,7 +56,7 @@ def save_job_info(job_id, external_id, job_store_location, working_dir, output_d
 
 def suspend_job(job):
     if Status(job.status).transition(Status.SUSPENDED):
-        job_suspended = get_batch_system().suspend(str(job.id))
+        job_suspended = get_batch_system(job.user).suspend(str(job.id))
         if not job_suspended:
             raise RetryException("Failed to suspend job: %s" % str(job.id))
         job.update_status(Status.SUSPENDED)
@@ -73,6 +75,7 @@ def resume_job(job):
             log_dir=job.log_dir,
             log_prefix=job.log_prefix,
             app_name=job.metadata["pipeline_name"],
+            user=job.user,
         )
         job_resumed = get_batch_system().resume(submitter.job_id)
         if not job_resumed:
@@ -203,6 +206,7 @@ def prepare_job(job):
             log_dir=job.log_dir,
             log_prefix=job.log_prefix,
             app_name=job.metadata["pipeline_name"],
+            user=job.user,
         )
         try:
             job_store_dir, job_work_dir, job_output_dir, log_dir, log_prefix = submitter.prepare_to_submit()
@@ -228,10 +232,11 @@ def submit_job_to_batch_system(job, retries=0):
             log_dir=job.log_dir,
             log_prefix=job.log_prefix,
             app_name=job.metadata["pipeline_name"],
+            user=job.user,
         )
         try:
             command_line, args, log_path, job_id, env = submitter.get_submit_command()
-            external_job_id = get_batch_system().submit(command_line, args, log_path, job_id, env)
+            external_job_id = get_batch_system(job.user).submit(command_line, args, log_path, job_id, env)
         except Exception as f:
             if retries < 5:
                 logger.exception(str(f))
@@ -244,7 +249,7 @@ def submit_job_to_batch_system(job, retries=0):
             job.submitted_to_scheduler(external_job_id)
             # Keeping this for debugging purposes
             save_job_info(
-                str(job.id),
+                job,
                 external_job_id,
                 submitter.job_store_dir,
                 submitter.job_work_dir,
@@ -304,7 +309,7 @@ def check_job_status(job):
     ):
         return
     try:
-        batch_system_status, batch_system_message = get_batch_system().status(str(job.external_id))
+        batch_system_status, batch_system_message = get_batch_system(job.user).status(str(job.external_id))
     except FetchStatusException as e:
         # If failed to check status on batch system retry
         logger.exception(e)
@@ -333,6 +338,7 @@ def check_job_status(job):
                 log_dir=job.log_dir,
                 log_prefix=job.log_prefix,
                 app_name=job.metadata["pipeline_name"],
+                user=job.user,
             )
             outputs, error_message = submitter.get_outputs()
             if outputs:
@@ -465,12 +471,13 @@ def terminate_job(job):
             Status.SUSPENDED,
             Status.UNKNOWN,
         ):
-            job_killed = get_batch_system().terminate(str(job.id))
+            job_killed = get_batch_system(job.user).terminate(str(job.id))
             if not job_killed:
                 raise RetryException("Failed to TERMINATE job %s" % str(job.id))
         job.terminate()
 
 
+@userswitch
 def set_permission(job):
     failed_to_set = None
     dirs = job.root_dir.replace(job.base_dir, "").split("/")
@@ -560,15 +567,16 @@ def cleanup_folders(self, job_id, exclude, job_store=True, work_dir=True):
         logger.error("Job with id:%s not found" % job_id)
         return
     if job_store:
-        if clean_directory(job.job_store_location):
+        if clean_directory(job, job.job_store_location):
             job.job_store_clean_up = now()
     if work_dir:
-        if clean_directory(job.working_dir, exclude=exclude):
+        if clean_directory(job, job.working_dir, exclude=exclude):
             job.working_dir_clean_up = now()
     job.save()
 
 
-def clean_directory(path, exclude=[]):
+@userswitch
+def clean_directory(job, path, exclude=[]):
     with tempfile.TemporaryDirectory() as tmpdirname:
         for f in exclude:
             src = os.path.join(path, f)
@@ -617,6 +625,7 @@ def update_command_line_jobs(command_line_jobs, root):
             )
 
 
+@userswitch
 def check_status_of_command_line_jobs(job):
     submitter = JobSubmitterFactory.factory(
         job.type,
@@ -628,6 +637,7 @@ def check_status_of_command_line_jobs(job):
         log_dir=job.log_dir,
         log_prefix=job.log_prefix,
         app_name=job.metadata["pipeline_name"],
+        user=job.user,
     )
     track_cache_str = job.track_cache
     command_line_status = submitter.get_commandline_status(track_cache_str)

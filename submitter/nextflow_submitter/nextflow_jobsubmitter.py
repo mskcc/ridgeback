@@ -5,6 +5,7 @@ import json
 from django.conf import settings
 from submitter import JobSubmitter
 from batch_systems.batch_system import get_batch_system
+from submitter.userswitcher import userswitch
 
 
 class NextflowJobSubmitter(JobSubmitter):
@@ -22,6 +23,7 @@ class NextflowJobSubmitter(JobSubmitter):
         log_prefix="",
         app_name="NA",
         root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
+        user=None,
     ):
         """
         :param job_id:
@@ -60,6 +62,7 @@ class NextflowJobSubmitter(JobSubmitter):
             log_prefix,
             app_name,
             root_permissions,
+            user,
         )
         self.resume_jobstore = resume_jobstore
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
@@ -207,6 +210,7 @@ class NextflowJobSubmitter(JobSubmitter):
     def config_location(self):
         return os.path.join(self.job_work_dir, "nf.config")
 
+    @userswitch
     def _dump_app_inputs(self):
         input_map = dict()
         inputs = self.inputs.get("inputs", [])
@@ -228,25 +232,6 @@ class NextflowJobSubmitter(JobSubmitter):
         with open(file_path, "w") as f:
             f.write(config)
         return file_path
-
-    def _prepare_directories(self):
-        if not os.path.exists(self.job_work_dir):
-            os.mkdir(self.job_work_dir)
-
-        if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
-            shutil.rmtree(self.job_store_dir)
-
-        if self.resume_jobstore:
-            if not os.path.exists(self.resume_jobstore):
-                raise Exception("The jobstore indicated to be resumed could not be found")
-
-        if not os.path.exists(self.job_tmp_dir):
-            os.mkdir(self.job_tmp_dir)
-
-        if self.log_dir:
-            if not os.path.exists(self.log_dir):
-                mode_int = int(self.root_permissions, 8)
-                os.makedirs(self.log_dir, mode=mode_int, exist_ok=True)
 
     def _command_line(self):
         profile = self.inputs["profile"]

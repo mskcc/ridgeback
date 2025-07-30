@@ -1,5 +1,8 @@
+import os
+import shutil
 from submitter.app import App
 from django.conf import settings
+from submitter.userswitcher import userswitch
 
 
 class JobSubmitter(object):
@@ -15,6 +18,7 @@ class JobSubmitter(object):
         log_prefix="",
         app_name="NA",
         root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
+        user=None,
     ):
         self.app = App.factory(app)
         self.job_id = job_id
@@ -26,6 +30,7 @@ class JobSubmitter(object):
         self.log_prefix = log_prefix
         self.app_name = app_name
         self.root_permissions = root_permissions
+        self.user = user
 
     def prepare_to_submit(self):
         """
@@ -55,11 +60,35 @@ class JobSubmitter(object):
         :return: app location, inputs, location
         """
 
+    @userswitch
     def _prepare_directories(self):
         """
         Prepare execution directories
         :return:
         """
+
+        if not os.path.exists(self.job_work_dir):
+            os.mkdir(self.job_work_dir)
+        if self.user or self.group:
+            shutil.chown(
+                self.job_work_dir,
+            )
+
+        if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
+
+            shutil.rmtree(self.job_store_dir)
+
+        if self.resume_jobstore:
+            if not os.path.exists(self.resume_jobstore):
+                raise Exception("The jobstore indicated to be resumed could not be found")
+
+        if not os.path.exists(self.job_tmp_dir):
+            os.mkdir(self.job_tmp_dir)
+
+        if self.log_dir:
+            if not os.path.exists(self.log_dir):
+                mode_int = int(self.root_permissions, 8)
+                os.makedirs(self.log_dir, mode=mode_int, exist_ok=True)
 
     def _job_args(self):
         pass

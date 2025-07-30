@@ -1,16 +1,17 @@
 from django.conf import settings
+from getpass import getuser
 import logging
 
 
-def get_batch_system():
+def get_batch_system(user=getuser()):
     if settings.BATCH_SYSTEM == "LSF":
         from batch_systems.lsf_client.lsf_client import LSFClient
 
-        return LSFClient()
+        return LSFClient(user)
     elif settings.BATCH_SYSTEM == "SLURM":
         from batch_systems.slurm_client.slurm_client import SLURMClient
 
-        return SLURMClient()
+        return SLURMClient(user)
     else:
         raise Exception(f"Batch system {settings.BATCH_SYSTEM} not supported, please use either LSF or SLURM")
 
@@ -23,13 +24,14 @@ class BatchClient(object):
         logger (logging): logging module
     """
 
-    def __init__(self):
+    def __init__(self, user):
         """
         init function
         """
         self.logger = logging.getLogger("BATCH_client")
         self.logfileName = "batch.log"
         self.name = "batch"
+        self.user = user
 
     def submit(self, command, job_args, stdout, job_id, env={}):
         """
