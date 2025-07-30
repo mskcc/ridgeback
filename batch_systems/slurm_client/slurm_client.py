@@ -122,6 +122,15 @@ class SLURMClient(BatchClient):
             num_task_args = [f"--cpus-per-task={num_tasks}"]
         return num_task_args
 
+    def get_env_export_flag(self):
+        """
+        Flag to enable env propagation for the batch jobs
+
+        Returns:
+            str: CLI flag to enable env propagation
+        """
+        return "--export=ALL"
+
     def set_group(self, group_id):
         group_id_args = []
         if group_id:

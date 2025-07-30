@@ -116,6 +116,15 @@ class LSFClient(BatchClient):
             num_task_args = ["-n", num_tasks]
         return num_task_args
 
+    def get_env_export_flag(self):
+        """
+        Flag to enable env propagation for the batch jobs
+
+        Returns:
+            str: CLI flag to enable env propagation
+        """
+        return "-env all"
+
     def set_group(self, group_id):
         group_id_args = []
         if group_id:
