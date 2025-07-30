@@ -80,6 +80,14 @@ class BatchClient(object):
         num_task_args = []
         return num_task_args
 
+    def get_env_export_flag(self):
+        """
+        Flag to enable env propagation for the batch jobs
+
+        Returns:
+            str: CLI flag to enable env propagation
+        """
+
     def set_group(self, group_id):
         """
         Set the group args of the batch job

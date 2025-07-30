@@ -92,6 +92,9 @@ class ToilJobSubmitter(JobSubmitter):
         )
         env["JAVA_HOME"] = None
         env[self.batch_system_args_env] = toil_batch_system_args.strip()
+        if settings.ACCESS_LEGACY_APP in self.app.github.lower():
+            env["PATH"] = "{0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
+            env[self.batch_system_args_env] += self.batch_system.get_env_export_flag()
         return command_line, self._leader_args(), log_path, self.job_id, env
 
     def get_commandline_status(self, cache):
@@ -230,9 +233,7 @@ class ToilJobSubmitter(JobSubmitter):
             """
             Start ACCESS-specific code
             """
-            path = "env PATH={0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
             command_line = [
-                path,
                 "toil-cwl-runner",
                 "--no-container",
                 "--logFile",
@@ -252,20 +253,20 @@ class ToilJobSubmitter(JobSubmitter):
                 "PYTHONPATH",
                 "TEMP",
                 self.batch_system_args_env,
-                "CWL_SINGULARITY_CACHE",
-                "SINGULARITYENV_LC_ALL",
                 "PWD",
+                "TOIL_SLURM_ARGS",
                 "--disableChaining",
                 "--maxCores",
                 "24",
-                "--jobStoreTimeout",
-                "600",
                 "--maxMemory",
                 "256G",
+                "--defaultMemory",
+                "10G",
+                "--defaultDisk",
+                "20G",
                 "--not-strict",
                 "--runCwlInternalJobsOnWorkers",
                 "--realTimeLogging",
-                "True",
                 "--jobStore",
                 self.job_store_dir,
                 "--tmpdir-prefix",
