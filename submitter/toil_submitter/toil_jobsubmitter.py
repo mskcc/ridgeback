@@ -244,7 +244,7 @@ class ToilJobSubmitter(JobSubmitter):
 
     def _command_line(self):
         single_machine = any([w in self.app.github.lower() for w in self.single_machine_mode_workflows])
-        if settings.ACCESS_LEGACY_APP in self.app.github.lower() and settings.BATCH_SYSTEM == "SLURM":
+        if settings.ACCESS_LEGACY_APP in self.app.github.lower():
             """
             Start ACCESS-specific code
             """
@@ -268,14 +268,17 @@ class ToilJobSubmitter(JobSubmitter):
                 "PYTHONPATH",
                 "TEMP",
                 self.batch_system_args_env,
-                "CWL_SINGULARITY_CACHE",
-                "SINGULARITYENV_LC_ALL",
                 "PWD",
+                "TOIL_SLURM_ARGS",
                 "--disableChaining",
                 "--maxCores",
                 "24",
                 "--maxMemory",
                 "256G",
+                "--defaultMemory",
+                "10G",
+                "--defaultDisk",
+                "20G",
                 "--not-strict",
                 "--runCwlInternalJobsOnWorkers",
                 "--realTimeLogging",
