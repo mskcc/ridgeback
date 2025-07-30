@@ -7,6 +7,7 @@ from django.contrib.postgres.fields import JSONField
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
 from django.conf import settings
+from getpass import getuser
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,7 @@ class Job(BaseModel):
     base_dir = models.CharField(max_length=1000)
     root_dir = models.CharField(max_length=1000)
     root_permission = models.CharField(default=settings.OUTPUT_DEFAULT_PERMISSION, max_length=3)
+    user = models.CharField(default=getuser(), max_length=100)
     output_uid = models.IntegerField(default=settings.OUTPUT_DEFAULT_UID, editable=True)
     output_gid = models.IntegerField(default=settings.OUTPUT_DEFAULT_GID, editable=True)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
