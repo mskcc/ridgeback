@@ -1,11 +1,11 @@
 import os
-import shutil
 import hashlib
 import json
 from django.conf import settings
 from submitter import JobSubmitter
 from batch_systems.batch_system import get_batch_system
 from submitter.userswitcher import userswitch
+from getpass import getuser
 
 
 class NextflowJobSubmitter(JobSubmitter):
@@ -23,7 +23,7 @@ class NextflowJobSubmitter(JobSubmitter):
         log_prefix="",
         app_name="NA",
         root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
-        user=None,
+        user=getuser(),
     ):
         """
         :param job_id:

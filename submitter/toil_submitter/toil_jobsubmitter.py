@@ -1,6 +1,5 @@
 import os
 import json
-import shutil
 import copy
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
@@ -9,6 +8,7 @@ from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
 from batch_systems.batch_system import get_batch_system
 from submitter.userswitcher import userswitch
+from getpass import getuser
 
 
 def translate_toil_to_model_status(status):
@@ -40,7 +40,7 @@ class ToilJobSubmitter(JobSubmitter):
         log_prefix="",
         app_name="NA",
         root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
-        user=None,
+        user=getuser(),
     ):
         JobSubmitter.__init__(
             self,

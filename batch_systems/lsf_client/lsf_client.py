@@ -12,6 +12,7 @@ from orchestrator.models import Status
 from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
 from batch_systems.batch_system import BatchClient
 from submitter.userswitcher import userswitch
+from getpass import getuser
 
 
 def format_lsf_job_id(job_id):
@@ -26,7 +27,7 @@ class LSFClient(BatchClient):
         logger (logging): logging module
     """
 
-    def __init__(self, user):
+    def __init__(self, user=getuser()):
         """
         init function
         """

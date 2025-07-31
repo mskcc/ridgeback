@@ -24,7 +24,7 @@ class BatchClient(object):
         logger (logging): logging module
     """
 
-    def __init__(self, user):
+    def __init__(self, user=getuser()):
         """
         init function
         """

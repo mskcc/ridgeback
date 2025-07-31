@@ -3,6 +3,7 @@ import shutil
 from submitter.app import App
 from django.conf import settings
 from submitter.userswitcher import userswitch
+from getpass import getuser
 
 
 class JobSubmitter(object):
@@ -18,7 +19,7 @@ class JobSubmitter(object):
         log_prefix="",
         app_name="NA",
         root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
-        user=None,
+        user=getuser(),
     ):
         self.app = App.factory(app)
         self.job_id = job_id
