@@ -77,7 +77,7 @@ def resume_job(job):
             app_name=job.metadata["pipeline_name"],
             user=job.user,
         )
-        job_resumed = get_batch_system().resume(submitter.job_id)
+        job_resumed = get_batch_system(job.user).resume(submitter.job_id)
         if not job_resumed:
             raise RetryException("Failed to resume job: %s" % str(job.id))
         job.update_status(Status.RUNNING)
