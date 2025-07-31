@@ -6,10 +6,6 @@ x-ridgeback_celery: &ridgeback_celery
   user: "${DOCKER_UID}:${DOCKER_GID}"
   networks:
     - voyager_net
-  group_add:
-    - ${DOCKER_GID}
-    - ${GID_FILE_1}
-    - ${GID_FILE_2}
   post_start:
     - command:
         - /bin/bash
