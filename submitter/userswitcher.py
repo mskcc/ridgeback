@@ -21,7 +21,7 @@ def userscript():
             func_serialized, args, kwargs = marshal.loads(sys.stdin.buffer.read())
             func = dill.loads(func_serialized)
             output = func(*args, **kwargs)
-        except Exception as e:
+        except Exception:
             log.exception("Exception when running the function as another user")
             exception_raised = True
     script_tuple = (output, stdout_buffer.getvalue())
