@@ -37,7 +37,7 @@ def userswitch(func):
         # jobsubmitter/batchsystem objects will have the user attribute in self
         user = args[0].user
         if user == getuser():
-            return func(args, kwargs)
+            return func(*args, **kwargs)
         else:
             proc_command = ["dzdo", "-u", f"{user}", sys.executable, "-c", Path(__file__).absolute()]
             serialized_func = dill.dumps(func)
