@@ -11,6 +11,18 @@ x-ridgeback_celery:
     - ${DOCKER_GID}
     - ${GID_FILE_1}
     - ${GID_FILE_2}
+  post_start:
+    - command:
+        - /bin/bash
+        - -c
+        - |
+          for single_group in "${all_groups[@]}"; do
+            echo "groupadd -g ${!single_group[0]} ${!single_group[1]}"
+          done
+          for single_user in "${all_users[@]}"; do
+            echo "useradd --uid ${!single_user[0]} -m ${!single_user[1]} -G ${!single_user[2]}"
+          done
+      user: root
   env_file: .env
   environment:
     - RIDGEBACK_DB_URL=ridgeback_postgres
