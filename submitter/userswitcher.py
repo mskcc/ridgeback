@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 from functools import wraps
 from getpass import getuser
+from django.conf import settings
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def userswitch(func):
     def dzdo_wrapper(*args, **kwargs):
         # jobsubmitter/batchsystem objects will have the user attribute in self
         user = args[0].user
-        if user == getuser():
+        if user == getuser() or not settings.ENABLE_USER_SWITCH:
             return func(*args, **kwargs)
         else:
             proc_command = ["dzdo", "-u", f"{user}", sys.executable, "-c", Path(__file__).absolute()]
