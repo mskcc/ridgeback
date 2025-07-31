@@ -49,10 +49,6 @@ x-ridgeback_celery:
       target: ${SLURM_LIB_PATH}
       read_only: true
     - type: bind
-      source: ${SLURM_ETC_PASSWD}
-      target: ${SLURM_ETC_PASSWD}
-      read_only: true
-    - type: bind
       source: ${SLURM_MUNGE_VAR}
       target: ${SLURM_MUNGE_VAR}
       read_only: true
@@ -64,7 +60,39 @@ x-ridgeback_celery:
       source: ${CLUSTER_ADMIN_MOUNT}
       target: ${CLUSTER_ADMIN_MOUNT}
       read_only: true
-  entrypoint: ["/bin/bash","-c"]
+    - type: bind
+      source: ${USER_SOFTWARE_MOUNT}
+      target: ${USER_SOFTWARE_MOUNT}
+      read_only: true
+    - type: bind
+      source: ${CENTRIFYDC_PATH}
+      target: ${CENTRIFYDC_PATH}
+      read_only: true
+    - type: bind
+      source: ${CENTRIFYDC_DZDO_PATH}
+      target: ${CENTRIFYDC_DZDO_PATH}
+      read_only: true
+    - type: bind
+      source: ${CENTRIFYDC_ADINFO_PATH}
+      target: ${CENTRIFYDC_ADINFO_PATH}
+      read_only: true
+    - type: bind
+      source: ${CENTRIFYDC_ETC_PATH}
+      target: ${CENTRIFYDC_ETC_PATH}
+      read_only: true
+    - type: bind
+      source: ${CENTRIFYDC_VAR_PATH}
+      target: ${CENTRIFYDC_VAR_PATH}
+      read_only: true
+    - type: bind
+      source: ${CENTRIFYDC_NSSWITCH_PATH}
+      target: ${CENTRIFYDC_NSSWITCH_PATH}
+      read_only: true
+    - type: bind
+      source: ${CENTRIFYDC_LIBNSS_PATH}
+      target: ${CENTRIFYDC_LIBNSS_PATH}
+      read_only: true
+  entrypoint: ["/bin/bash", "-c"]
   healthcheck:
     test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status || exit 1"
     interval: 30s
