@@ -11,14 +11,27 @@ x-ridgeback_celery: &ridgeback_celery
         - /bin/bash
         - -c
         - |
-          for single_group in "${all_groups[@]}"; do
-            echo "groupadd -g ${!single_group[0]} ${!single_group[1]}"
+          sed -i 's/UID_MAX			60000/UID_MAX			6000000000/g' /etc/login.defs
+          sed -i 's/GID_MAX			60000/GID_MAX			6000000000/g' /etc/login.defs
+          sed -i 's/UID_MIN			 1000/UID_MIN			 100/g' /etc/login.defs
+          sed -i 's/GID_MIN			 1000/GID_MIN			 100/g' /etc/login.defs
+          getent group slurm &>/dev/null || groupadd -g ${SLURM_UID} slurm
+          getent group munge &>/dev/null || groupadd -g ${MUNGE_UID} munge
+          for single_group in ${all_groups}; do
+            single_group_items=($${!single_group[0]})
+            getent group $${single_group_items[1]} &>/dev/null || groupadd -g $${single_group_items[0]} $${single_group_items[1]}
           done
-          for single_user in "${all_users[@]}"; do
-            echo "useradd --uid ${!single_user[0]} -m ${!single_user[1]} -G ${!single_user[2]}"
+          id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m ${DOCKER_USERNAME} -G ${DOCKER_GROUPS}
+          id -u slurm &>/dev/null || useradd -s /bin/bash -d /var/lib/slurm --uid ${SLURM_UID} -m slurm -g slurm
+          id -u munge &>/dev/null || useradd -s /sbin/nologin -d ${SLURM_MUNGE_VAR} --uid ${MUNGE_UID} -m munge -g munge
+          for single_user in ${all_users}; do
+            single_user_items=($${!single_user[0]})
+            id -u $${single_user_items[1]} &>/dev/null || useradd -s /bin/bash --uid $${single_user_items[0]} -m $${single_user_items[1]} -G $${single_user_items[2]}
           done
       user: root
   env_file: .env
+  group_add:
+    - ${DOCKER_GROUPS}
   environment:
     - RIDGEBACK_DB_URL=ridgeback_postgres
     - RIDGEBACK_MEMCACHED_HOST=ridgeback_memcached
@@ -236,6 +249,8 @@ services:
     networks:
       - voyager_net
     env_file: .env
+    group_add:
+      - ${DOCKER_GROUPS}
     environment:
       - RIDGEBACK_DB_URL=ridgeback_postgres
       - RIDGEBACK_MEMCACHED_HOST=ridgeback_memcached
@@ -249,6 +264,21 @@ services:
       - ./server/:/ridgeback_staticfiles/
     ports:
       - ${RIDGEBACK_PORT}:${RIDGEBACK_PORT}
+    post_start:
+      - command:
+          - /bin/bash
+          - -c
+          - |
+            sed -i 's/UID_MAX			60000/UID_MAX			6000000000/g' /etc/login.defs
+            sed -i 's/GID_MAX			60000/GID_MAX			6000000000/g' /etc/login.defs
+            sed -i 's/UID_MIN			 1000/UID_MIN			 100/g' /etc/login.defs
+            sed -i 's/GID_MIN			 1000/GID_MIN			 100/g' /etc/login.defs
+            for single_group in ${all_groups}; do
+              single_group_items=($${!single_group[0]})
+              getent group $${single_group_items[1]} &>/dev/null || groupadd -g $${single_group_items[0]} $${single_group_items[1]}
+            done
+            id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m ${DOCKER_USERNAME} -G ${DOCKER_GROUPS}
+        user: root
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
