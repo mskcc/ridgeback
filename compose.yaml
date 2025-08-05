@@ -495,7 +495,7 @@ services:
       - ./logs:/logs
       - ${DB_BACKUP_PATH}:/db_backup
     environment:
-      - PGPASSWORD=${RIDGEBACK_DB_USERNAME}
+      - PGPASSWORD=${RIDGEBACK_DB_PASSWORD}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
