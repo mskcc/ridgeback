@@ -23,6 +23,15 @@ def message_default():
     return message_default_dict
 
 
+def get_default_for_job(model_field):
+    if model_field == "root_permission":
+        return settings.OUTPUT_DEFAULT_PERMISSION
+    elif model_field == "output_uid":
+        return settings.OUTPUT_DEFAULT_UID
+    elif model_field == "output_gid":
+        return settings.OUTPUT_DEFAULT_GID
+
+
 class Status(IntEnum):
     CREATED = 0
     PREPARED = 1
@@ -167,10 +176,10 @@ class Job(BaseModel):
     external_id = models.CharField(max_length=50, null=True, blank=True)
     base_dir = models.CharField(max_length=1000)
     root_dir = models.CharField(max_length=1000)
-    root_permission = models.CharField(default=settings.OUTPUT_DEFAULT_PERMISSION, max_length=3)
+    root_permission = models.CharField(default=get_default_for_job("root_permission"), max_length=3)
     user = models.CharField(default=getuser(), max_length=100)
-    output_uid = models.IntegerField(default=settings.OUTPUT_DEFAULT_UID, editable=True)
-    output_gid = models.IntegerField(default=settings.OUTPUT_DEFAULT_GID, editable=True)
+    output_uid = models.IntegerField(default=get_default_for_job("output_gid"), editable=True)
+    output_gid = models.IntegerField(default=get_default_for_job("output_gid"), editable=True)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
