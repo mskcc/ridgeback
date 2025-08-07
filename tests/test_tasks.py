@@ -282,9 +282,9 @@ class TestTasks(TestCase):
             app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
             root_dir = "test_root"
             resume_jobstore = None
-            walltime = 7200
-            tool_walltime = 24
-            walltime_hard = 24
+            walltime = "2:00:00"
+            tool_walltime = "1-00:00:00"
+            walltime_hard = "1-00:00:00"
             memlimit = 10
             inputs = {}
             expected_leader_args = "--time={} --mem={}G".format(walltime, memlimit)
