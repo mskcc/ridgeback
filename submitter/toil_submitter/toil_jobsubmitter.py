@@ -94,7 +94,9 @@ class ToilJobSubmitter(JobSubmitter):
         env[self.batch_system_args_env] = toil_batch_system_args.strip()
         if settings.ACCESS_LEGACY_APP in self.app.github.lower():
             env["PATH"] = "{0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
-            env[self.batch_system_args_env] += self.batch_system.get_env_export_flag()
+            env[self.batch_system_args_env] = " ".join(
+                [env[self.batch_system_args_env], self.batch_system.get_env_export_flag()]
+            )
         return command_line, self._leader_args(), log_path, self.job_id, env
 
     def get_commandline_status(self, cache):
