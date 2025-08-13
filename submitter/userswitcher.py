@@ -1,6 +1,5 @@
 import os
 import sys
-import marshal
 import subprocess
 import dill
 import contextlib
@@ -10,7 +9,6 @@ from pathlib import Path
 from functools import wraps
 from getpass import getuser
 import django
-import tempfile
 import json
 from django.conf import settings
 
@@ -86,7 +84,7 @@ def userswitch(func):
                 stderr = e.stderr
                 if stderr:
                     stderr_str = stderr.decode().strip()
-            except:
+            except Exception:
                 stdout_str = "NA"
             exception_message = f"""
             Error while userswitching:
