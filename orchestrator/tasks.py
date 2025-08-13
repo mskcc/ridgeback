@@ -167,6 +167,9 @@ def command_processor(self, command_dict):
         logger.error(f"Command {str(command.command_type)} failed. Not retrying. Exception {str(e)}")
         if command.command_type == CommandType.SUBMIT:
             reset_job_to_created(command.job_id)
+        elif command.command_type == CommandType.PREPARE:
+            job = Job.objects.get(id=command.job_id)
+            _fail(job,str(e))
 
 
 def reset_job_to_created(job_id):
@@ -211,7 +214,9 @@ def prepare_job(job):
         try:
             job_store_dir, job_work_dir, job_output_dir, log_dir, log_prefix = submitter.prepare_to_submit()
         except Exception as e:
-            raise RetryException(f"Failed to fetch status for job {str(job.id)} {e}")
+            if job.resume_job_store_location and not os.path.exists(job.resume_job_store_location):
+                raise StopException(f"Stopping job preparation, {e}")
+            raise RetryException(f"Failed to prepare the job {str(job.id)} {e}")
         else:
             job.job_prepared(job_store_dir, job_work_dir, job_output_dir, log_dir, log_prefix)
 
@@ -577,6 +582,8 @@ def cleanup_folders(self, job_id, exclude, job_store=True, work_dir=True):
 
 @userswitch
 def clean_directory(job, path, exclude=[]):
+    if not path:
+        return False
     with tempfile.TemporaryDirectory() as tmpdirname:
         for f in exclude:
             src = os.path.join(path, f)

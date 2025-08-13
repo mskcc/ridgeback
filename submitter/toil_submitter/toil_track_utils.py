@@ -804,6 +804,8 @@ class ToilTrack:
         except JobException:
             logger.warning("No job has been set as the root in this job store")
             return
+        except Exception:
+            raise StopException("This job was run by a version of TOIL that is not supported")
         if not root_job:
             logger.warning("RootJob couldn't be fetched")
             raise StopException("RootJob couldn't be fetched")
