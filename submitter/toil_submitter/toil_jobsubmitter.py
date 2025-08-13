@@ -53,8 +53,8 @@ class ToilJobSubmitter(JobSubmitter):
             log_dir,
             log_prefix,
             app_name,
-            root_permissions,
-            user,
+            root_permissions=root_permissions,
+            user=user,
         )
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
         if not dir_config:
@@ -78,9 +78,13 @@ class ToilJobSubmitter(JobSubmitter):
     def prepare_to_submit(self):
         self._prepare_directories()
         self._dump_app_inputs()
-        self.app.resolve(self.job_work_dir)
+        self.resolve_app()
         return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir, self.log_prefix
 
+    @userswitch
+    def resolve_app(self):
+        self.app.resolve(self.job_work_dir)
+    
     def get_submit_command(self):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, self.batch_system.logfileName)
