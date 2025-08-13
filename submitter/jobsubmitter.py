@@ -71,10 +71,7 @@ class JobSubmitter(object):
         if not os.path.exists(self.job_work_dir):
             os.mkdir(self.job_work_dir)
         if self.user:
-            shutil.chown(
-                self.job_work_dir,
-                user=self.user
-            )
+            shutil.chown(self.job_work_dir, user=self.user)
 
         if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
 

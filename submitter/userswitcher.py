@@ -18,8 +18,8 @@ log = logging.getLogger(__name__)
 
 
 def userscript():
-    
-    ridgeback_path = os.environ.get("RIDGEBACK_PATH","/usr/bin/ridgeback")
+
+    ridgeback_path = os.environ.get("RIDGEBACK_PATH", "/usr/bin/ridgeback")
     sys.path.append(ridgeback_path)
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ridgeback.settings")
     stdout_buffer = io.StringIO()
@@ -31,10 +31,10 @@ def userscript():
             env_str = sys.argv[1]
             env_json = json.loads(env_str)
             for single_env in env_json:
-                if single_env=='PATH':
+                if single_env == "PATH":
                     os.environ[single_env] = env_json[single_env]
                 else:
-                    os.environ.setdefault(single_env,env_json[single_env])
+                    os.environ.setdefault(single_env, env_json[single_env])
             django.setup()
             func_data = sys.stdin.buffer.read()
             func, args, kwargs = dill.loads(func_data)
@@ -64,7 +64,9 @@ def userswitch(func):
         try:
             job_func = dill.dumps((func, args, kwargs))
             env_str = json.dumps(current_env)
-            dzdo_process = subprocess.run(proc_command+[env_str], input=job_func, check=True, capture_output=True, env=current_env)
+            dzdo_process = subprocess.run(
+                proc_command + [env_str], input=job_func, check=True, capture_output=True, env=current_env
+            )
             output, stdout = dill.loads(dzdo_process.stdout)
             func_stdout = stdout.decode().strip()
             func_stderr = dzdo_process.stderr.decode().strip()

@@ -169,7 +169,7 @@ def command_processor(self, command_dict):
             reset_job_to_created(command.job_id)
         elif command.command_type == CommandType.PREPARE:
             job = Job.objects.get(id=command.job_id)
-            _fail(job,str(e))
+            _fail(job, str(e))
 
 
 def reset_job_to_created(job_id):

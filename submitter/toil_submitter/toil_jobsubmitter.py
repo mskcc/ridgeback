@@ -84,7 +84,7 @@ class ToilJobSubmitter(JobSubmitter):
     @userswitch
     def resolve_app(self):
         self.app.resolve(self.job_work_dir)
-    
+
     def get_submit_command(self):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, self.batch_system.logfileName)
