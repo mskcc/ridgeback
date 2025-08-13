@@ -61,8 +61,8 @@ class NextflowJobSubmitter(JobSubmitter):
             log_dir,
             log_prefix,
             app_name,
-            root_permissions,
-            user,
+            root_permissions=root_permissions,
+            user=user,
         )
         self.resume_jobstore = resume_jobstore
         dir_config = settings.PIPELINE_CONFIG.get(self.app_name)

@@ -171,9 +171,9 @@ def command_processor(self, command_dict):
 
 def reset_job_to_created(job_id):
     job = Job.objects.get(id=job_id)
-    clean_directory(job.job_store_location)
-    clean_directory(job.working_dir)
-    clean_directory(job.log_dir)
+    clean_directory(job, job.job_store_location)
+    clean_directory(job, job.working_dir)
+    clean_directory(job, job.log_dir)
     job.job_store_location = ""
     job.working_dir = ""
     job.status = Status.CREATED

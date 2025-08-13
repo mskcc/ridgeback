@@ -33,7 +33,7 @@ class JobSubmitterFactory(object):
                 log_dir,
                 log_prefix,
                 app_name,
-                user,
+                user=user,
             )
         elif type == PipelineType.NEXTFLOW:
             return NextflowJobSubmitter(
@@ -48,5 +48,5 @@ class JobSubmitterFactory(object):
                 log_dir,
                 log_prefix,
                 app_name,
-                user,
+                user=user,
             )
