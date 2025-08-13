@@ -31,7 +31,8 @@ x-ridgeback_celery: &ridgeback_celery
       user: root
   env_file: .env
   group_add:
-    - ${DOCKER_GROUPS}
+    - ${DOCKER_GROUP_1}
+    - ${DOCKER_GROUP_2}
   environment:
     - RIDGEBACK_DB_URL=ridgeback_postgres
     - RIDGEBACK_MEMCACHED_HOST=ridgeback_memcached
@@ -139,6 +140,7 @@ services:
       - |
         chown -R ${DOCKER_UID}:${DOCKER_GID} /postgres
         chown -R ${DOCKER_UID}:${DOCKER_GID} /logs
+        chmod -R 777 /logs
         chown -R ${DOCKER_UID}:${DOCKER_GID} /celery
         chown -R ${DOCKER_UID}:${DOCKER_GID} /rabbitmq
         chown -R ${DOCKER_UID}:${DOCKER_GID} /server
@@ -250,7 +252,8 @@ services:
       - voyager_net
     env_file: .env
     group_add:
-      - ${DOCKER_GROUPS}
+      - ${DOCKER_GROUP_1}
+      - ${DOCKER_GROUP_2}
     environment:
       - RIDGEBACK_DB_URL=ridgeback_postgres
       - RIDGEBACK_MEMCACHED_HOST=ridgeback_memcached
