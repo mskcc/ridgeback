@@ -147,7 +147,7 @@ services:
         chown -R ${DOCKER_UID}:${DOCKER_GID} /logrotate
         chown -R ${DOCKER_UID}:${DOCKER_GID} /db_backup
   ridgeback_postgres:
-    image: postgres:17
+    image: postgres:17-trixie
     restart: on-failure
     user: "${DOCKER_UID}:${DOCKER_GID}"
     networks:
