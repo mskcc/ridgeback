@@ -1,4 +1,4 @@
-name: "Ridgeback Services"
+name: "Ridgeback Services ${RIDGEBACK_DEPLOYMENT}"
 
 x-ridgeback_celery: &ridgeback_celery
   image: mskcc/ridgeback:${RIDGEBACK_VERSION}
@@ -51,6 +51,7 @@ x-ridgeback_celery: &ridgeback_celery
     - ${CLUSTER_FILESYSTEM_SHARE_MOUNT}:${CLUSTER_FILESYSTEM_SHARE_MOUNT}
     - ${CLUSTER_FILESYSTEM_COLLAB}:${CLUSTER_FILESYSTEM_COLLAB}
     - ${CLUSTER_FILESYSTEM_TEST}:${CLUSTER_FILESYSTEM_TEST}
+    - ${CLUSTER_CODE_PATH:-/dev/null}:${CLUSTER_CODE_PATH:-/dev/null}
     - type: bind
       source: ${SLURM_ETC}
       target: ${SLURM_ETC}
@@ -265,6 +266,8 @@ services:
     volumes:
       - ./logs/:/ridgeback/server/
       - ./server/:/ridgeback_staticfiles/
+      - ${CLUSTER_FILESYSTEM_MOUNT}:${CLUSTER_FILESYSTEM_MOUNT}
+      - ${CLUSTER_CODE_PATH:-/dev/null}:${CLUSTER_CODE_PATH:-/dev/null}
     ports:
       - ${RIDGEBACK_PORT}:${RIDGEBACK_PORT}
     post_start:
@@ -516,5 +519,5 @@ services:
         restart: false
 networks:
   voyager_net:
-    name: voyager_network
+    name: voyager_network_${RIDGEBACK_DEPLOYMENT}
     driver: bridge
