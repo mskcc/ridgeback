@@ -30,7 +30,6 @@ RUN apt-get update \
         && pip3 install --use-pep517 -r requirements.txt \
         && pip3 install --use-pep517 -r requirements-toil.txt \
     # Clean up image
-        && apt-get -y purge --auto-remove build-essential \
         && rm -rf /var/lib/apt/lists/*
 
 
