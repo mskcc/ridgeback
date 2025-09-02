@@ -33,7 +33,7 @@ RUN apt-get update \
         && apt-get -y purge --auto-remove build-essential \
         && apt-get -y purge --auto-remove openssh-client \
     # For venv setup
-	&& apt-get install -y libpq-dev \
+	&& apt-get install -y ca-certificates libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
 
