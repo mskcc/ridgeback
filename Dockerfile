@@ -31,12 +31,9 @@ RUN apt-get update \
         && pip3 install --use-pep517 -r requirements-toil.txt \
     # Clean up image
         && apt-get -y purge --auto-remove build-essential \
-        && apt-get -y --no-install-recommends install openssh-client \
+        && apt-get -y purge --auto-remove openssh-client \
     # For venv setup
-	&& apt-get -y install software-properties-common \
-	&& add-apt-repository ppa:deadsnakes/ppa -y \
-	&& apt update \
-	&& apt-get install -y python3.11-dev libpq-dev \
+	&& apt-get install -y libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
 
