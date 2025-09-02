@@ -33,7 +33,9 @@ RUN apt-get update \
         && apt-get -y purge --auto-remove build-essential \
         && apt-get -y --no-install-recommends install openssh-client \
     # For venv setup
-	&& apt-get install -y python3-dev libpq-dev \
+	&& add-apt-repository ppa:deadsnakes/ppa -y \
+	&& apt update \
+	&& apt-get install -y python3.11-dev libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
 
