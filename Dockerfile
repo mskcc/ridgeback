@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 LABEL maintainer="Nikhil Kumar (kumarn1@mskcc.org)" \
       version.image="1.0.0" \
@@ -32,6 +32,8 @@ RUN apt-get update \
     # Clean up image
         && apt-get -y purge --auto-remove build-essential \
         && apt-get -y --no-install-recommends install openssh-client \
+    # For venv setup
+	&& apt-get -y python3.11-dev libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
 
