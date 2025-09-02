@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 LABEL maintainer="Nikhil Kumar (kumarn1@mskcc.org)" \
       version.image="1.0.0" \
@@ -13,7 +13,7 @@ RUN apt-get update \
      # Install dependencies
         && apt-get -y --no-install-recommends install \
             wget curl libldap2-dev libsasl2-dev procps libssl-dev libxml2-dev libxslt-dev \
-            libpq-dev gawk nodejs git build-essential \
+            libpq-dev gawk nodejs git build-essential openssh-client \
      # Install Ridgeback
         && cd /usr/bin \
         && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH \
@@ -31,9 +31,6 @@ RUN apt-get update \
         && pip3 install --use-pep517 -r requirements-toil.txt \
     # Clean up image
         && apt-get -y purge --auto-remove build-essential \
-        && apt-get -y purge --auto-remove openssh-client \
-    # For venv setup
-	&& apt-get install -y ca-certificates libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
 
