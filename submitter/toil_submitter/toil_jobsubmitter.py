@@ -161,14 +161,15 @@ class ToilJobSubmitter(JobSubmitter):
                 data = f.readlines()
                 data = "".join(data)
                 substring = data.split("\n{")[1]
+                # Keep original opening brace
+                result = "{" + substring
                 if "-----------" in substring:
-                    result = ("{" + substring).split("-----------")[0]
-                elif "\n}\n" in substring:
-                    result_segment = substring.split("\n}\n")[0]
-                    result = "{" + result_segment + "}"
+                    # Handle the special marker case
+                    result = result[: result.rfind("-----------")]
                 else:
-                    result_segment = substring.split("}[")[0]
-                    result = "{" + result_segment + "}"
+                    last_brace_idx = result.rfind("}")
+                    result = result[: last_brace_idx + 1]
+                # Now it's safe to parse
                 result_json = json.loads(result)
         except (IndexError, ValueError):
             error_message = "Could not parse json from %s" % log_path
