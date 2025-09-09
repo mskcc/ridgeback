@@ -273,7 +273,6 @@ class ToilJobSubmitter(JobSubmitter):
                 "20G",
                 "--not-strict",
                 "--runCwlInternalJobsOnWorkers",
-                "--realTimeLogging",
                 "--jobStore",
                 self.job_store_dir,
                 "--tmpdir-prefix",
