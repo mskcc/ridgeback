@@ -70,7 +70,6 @@ class SLURMClient(BatchClient):
             sbatch_command,
             check=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
             universal_newlines=True,
             cwd=work_dir,
             env=current_env,
