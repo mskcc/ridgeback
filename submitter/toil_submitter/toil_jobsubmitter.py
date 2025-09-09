@@ -242,6 +242,7 @@ class ToilJobSubmitter(JobSubmitter):
             """
             command_line = [
                 "toil-cwl-runner",
+                "--logLevel=INFO",
                 "--no-container",
                 "--logFile",
                 "toil_log.log",
