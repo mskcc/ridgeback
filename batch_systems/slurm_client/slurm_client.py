@@ -28,7 +28,6 @@ class SLURMClient(BatchClient):
         """
         self.logger = logging.getLogger("SLURM_client")
         self.logfileName = "slurm.log"
-        self.errorlogfileName = "slurm_error.log"
         self.name = "slurm"
         self.user = user
 
@@ -145,8 +144,8 @@ class SLURMClient(BatchClient):
 
     def set_stdout_file(self, stdout_file):
         if stdout_file:
-            return [f"--output={stdout_file}", f"--error={self.errorlogfileName}"]
-        return [f"--output={self.logfileName}", f"--error={self.errorlogfileName}"]
+            return [f"--output={stdout_file}"]
+        return [f"--output={self.logfileName}"]
 
     def set_service_queue(self):
         service_queue_args = []
