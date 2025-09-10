@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import copy
 from django.conf import settings
@@ -161,6 +162,7 @@ class ToilJobSubmitter(JobSubmitter):
                 data = f.readlines()
                 data = "".join(data)
                 substring = data.split("\n{")[1]
+                substring = re.sub(r"is.*mskcc\.org.*Successfully deleted the job store.*\)\r?\n", "", substring)
                 # Keep original opening brace
                 result = "{" + substring
                 if "-----------" in substring:
