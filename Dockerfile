@@ -30,8 +30,8 @@ RUN apt-get update \
      # Install python packages
         && pip3 install --upgrade pip \
         && pip3 install python-ldap \
-        && pip3 install --use-pep517 -r requirements.txt \
-        && pip3 install --use-pep517 -r requirements-toil.txt \
+        && pip3 install --use-pep517 -r /usr/bin/ridgeback/requirements.txt \
+        && pip3 install --use-pep517 -r /usr/bin/ridgeback/requirements-toil.txt \
     # Clean up image
         && rm -rf /var/lib/apt/lists/*
 
