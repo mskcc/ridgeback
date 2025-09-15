@@ -51,6 +51,10 @@ x-ridgeback_celery: &ridgeback_celery
     - ${CLUSTER_FILESYSTEM_SHARE_MOUNT}:${CLUSTER_FILESYSTEM_SHARE_MOUNT}
     - ${CLUSTER_FILESYSTEM_COLLAB}:${CLUSTER_FILESYSTEM_COLLAB}
     - ${CLUSTER_FILESYSTEM_TEST}:${CLUSTER_FILESYSTEM_TEST}
+    - ${CLUSTER_PYTHON_MOUNT}:${CLUSTER_PYTHON_MOUNT}
+    - ${CLUSTER_PYTHON_LIBSO_MOUNT}:${CONTAINER_PYTHON_LIBSO_MOUNT}
+    - ${CLUSTER_PYTHON_LIB_MOUNT}:${CLUSTER_PYTHON_LIB_MOUNT}
+    - ${CLUSTER_PYTHON_INCLUDE_MOUNT}:${CLUSTER_PYTHON_INCLUDE_MOUNT}
     - ${CLUSTER_CODE_PATH:-/dev/null}:${CLUSTER_CODE_PATH:-/dev/null}
     - type: bind
       source: ${SLURM_ETC}
@@ -312,14 +316,16 @@ services:
     <<: *ridgeback_celery
     command:
       - |
+        source ${RIDGEBACK_VENV}/bin/activate
+
         if ! python3 -c "import toil"  2>&1 >/dev/null
         then
           pip3 install --upgrade pip &&
           pip3 install --force-reinstall 'setuptools<58.0.0' &&
           pip3 install "cython<3.0.0" wheel &&
           pip3 install "pyyaml==5.4.1" --no-build-isolation &&
-          pip3 install -r ${RIDGEBACK_PATH}/requirements.txt &&
-          pip3 install -r ${RIDGEBACK_PATH}/requirements-toil.txt
+          pip3 install --use-pep517 -r ${RIDGEBACK_PATH}/requirements.txt &&
+          pip3 install --use-pep517 -r ${RIDGEBACK_PATH}/requirements-toil.txt
         fi
 
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid
@@ -340,7 +346,7 @@ services:
           "ps -p $(pgrep -F /ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid)",
         ]
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
     depends_on:
       ridgeback_postgres:
