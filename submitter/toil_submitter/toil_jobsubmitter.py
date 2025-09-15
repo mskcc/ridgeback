@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import copy
 from django.conf import settings
@@ -161,14 +162,16 @@ class ToilJobSubmitter(JobSubmitter):
                 data = f.readlines()
                 data = "".join(data)
                 substring = data.split("\n{")[1]
+                substring = re.sub(r"is.*mskcc\.org.*Successfully deleted the job store.*\)\r?\n", "", substring)
+                # Keep original opening brace
+                result = "{" + substring
                 if "-----------" in substring:
-                    result = ("{" + substring).split("-----------")[0]
-                elif "\n}\n" in substring:
-                    result_segment = substring.split("\n}\n")[0]
-                    result = "{" + result_segment + "}"
+                    # Handle the special marker case
+                    result = result[: result.rfind("-----------")]
                 else:
-                    result_segment = substring.split("}[")[0]
-                    result = "{" + result_segment + "}"
+                    last_brace_idx = result.rfind("}")
+                    result = result[: last_brace_idx + 1]
+                # Now it's safe to parse
                 result_json = json.loads(result)
         except (IndexError, ValueError):
             error_message = "Could not parse json from %s" % log_path
@@ -241,6 +244,7 @@ class ToilJobSubmitter(JobSubmitter):
             """
             command_line = [
                 "toil-cwl-runner",
+                "--logLevel=INFO",
                 "--no-container",
                 "--logFile",
                 "toil_log.log",
@@ -272,7 +276,6 @@ class ToilJobSubmitter(JobSubmitter):
                 "20G",
                 "--not-strict",
                 "--runCwlInternalJobsOnWorkers",
-                "--realTimeLogging",
                 "--jobStore",
                 self.job_store_dir,
                 "--tmpdir-prefix",
