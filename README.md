@@ -1,6 +1,6 @@
 # Ridgeback
 
-API for running Toil jobs.
+API for running Toil and Nextflow jobs.
 Supports LSF, SLURM, and singleMachine mode
 
 ## Filebeat
