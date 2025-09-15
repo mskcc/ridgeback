@@ -376,6 +376,11 @@ services:
           --pidfile $$PIDFILE \
           --concurrency=30 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}
+    healthcheck:
+      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE} || exit 1"
+      interval: 30s
+      timeout: 3s
+      retries: 3
   ridgeback_celery_action_queue:
     <<: *ridgeback_celery
     command:
@@ -393,6 +398,11 @@ services:
           --pidfile $$PIDFILE \
           --concurrency=10 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}
+    healthcheck:
+      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE} || exit 1"
+      interval: 30s
+      timeout: 3s
+      retries: 3
   ridgeback_celery_check_status_queue:
     <<: *ridgeback_celery
     command:
@@ -409,7 +419,13 @@ services:
           -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --concurrency=10
+          --concurrency=10 \
+          -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE}
+    healthcheck:
+      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE} || exit 1"
+      interval: 30s
+      timeout: 3s
+      retries: 3
   ridgeback_celery_submit_job_queue:
     <<: *ridgeback_celery
     command:
@@ -426,7 +442,13 @@ services:
           -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --concurrency=5
+          --concurrency=5 \
+          -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE}
+    healthcheck:
+      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE} || exit 1"
+      interval: 30s
+      timeout: 3s
+      retries: 3
   ridgeback_celery_set_permission_queue:
     <<: *ridgeback_celery
     command:
@@ -443,7 +465,13 @@ services:
           -Q ${RIDGEBACK_SET_PERMISSIONS_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_SET_PERMISSIONS_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --concurrency=10
+          --concurrency=10 \
+          -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}
+    healthcheck:
+      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE} || exit 1"
+      interval: 30s
+      timeout: 3s
+      retries: 3
   ridgeback_celery_cleanup_queue:
     <<: *ridgeback_celery
     command:
@@ -460,7 +488,13 @@ services:
           -Q ${RIDGEBACK_CLEANUP_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_CLEANUP_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --concurrency=2
+          --concurrency=2 \
+          -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE}
+    healthcheck:
+      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE} || exit 1"
+      interval: 30s
+      timeout: 3s
+      retries: 3
   ridgeback_logrotate:
     image: mskcc/voyager-compose-utils:1.0.0
     restart: always
@@ -487,9 +521,14 @@ services:
         }
         EOF
         cat > /logrotate/logrotate.cron <<EOF
-        ${LOGROTATE_CRON} logrotate --state /logrotate/logrotate.status /logrotate/logrotate.conf
+        ${LOGROTATE_CRON} logrotate --state /logrotate/logrotate.status /logrotate/logrotate.conf && touch /logs/last_completed_logrotate_cron
         EOF
         supercronic /logrotate/logrotate.cron >> /logs/logrotate_cron.log 2>&1
+    healthcheck:
+      test: "find /logs/last_completed_logrotate_cron -type f -mtime -2 | read"
+      interval: 12h
+      timeout: 5h
+      retries: 3
     depends_on:
       ridgeback_celery_beat:
         condition: service_healthy
@@ -513,9 +552,14 @@ services:
       - |
         mkdir -p /db_backup/archive
         cat > /db_backup/db_backup.cron <<EOF
-        ${DB_BACKUP_CRON} python3 /usr/bin/voyager-compose-utils/db_backup.py ridgeback_backup /db_backup/archive ${DB_BACKUP_MAX} pg_dump ridgeback_postgres 5432 ${RIDGEBACK_DB_NAME} ${RIDGEBACK_DB_USERNAME}
+        ${DB_BACKUP_CRON} python3 /usr/bin/voyager-compose-utils/db_backup.py ridgeback_backup /db_backup/archive ${DB_BACKUP_MAX} pg_dump ridgeback_postgres 5432 ${RIDGEBACK_DB_NAME} ${RIDGEBACK_DB_USERNAME} && touch /logs/last_completed_db_backup_cron
         EOF
         supercronic /db_backup/db_backup.cron >> /logs/db_backup_cron.log 2>&1
+    healthcheck:
+      test: "find /logs/last_completed_db_backup_cron -type f -mtime -2 | read"
+      interval: 12h
+      timeout: 5h
+      retries: 3
     depends_on:
       ridgeback_celery_beat:
         condition: service_healthy
