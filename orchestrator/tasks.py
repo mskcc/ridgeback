@@ -352,7 +352,6 @@ def check_job_status(job):
             else:
                 _fail(job, error_message)
                 command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
-
         elif batch_system_status in (Status.FAILED,):
             _fail(job, batch_system_message)
 
