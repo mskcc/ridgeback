@@ -496,7 +496,7 @@ services:
       timeout: 3s
       retries: 3
   ridgeback_logrotate:
-    image: mskcc/voyager-compose-utils:1.0.0
+    image: mskcc/voyager-compose-utils:1.0.1
     restart: always
     user: "${DOCKER_UID}:${DOCKER_GID}"
     networks:
@@ -537,7 +537,7 @@ services:
         condition: service_healthy
         restart: false
   ridgeback_db_backup:
-    image: mskcc/voyager-compose-utils:1.0.0
+    image: mskcc/voyager-compose-utils:1.0.1
     restart: always
     user: "${DOCKER_UID}:${DOCKER_GID}"
     networks:
