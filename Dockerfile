@@ -1,8 +1,13 @@
 FROM python:3.10-slim
 
-LABEL maintainer="Nikhil Kumar (kumarn1@mskcc.org)" \
-      version.image="1.0.0" \
-      source.ridgeback="https://github.com/mskcc/ridgeback"
+LABEL org.opencontainers.image.vendor="MSKCC" \
+      org.opencontainers.image.authors="Nikhil Kumar (kumarn1@mskcc.org)" \
+      org.opencontainers.image.created="2025-09-15T16:04:00Z" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.source="https://github.com/mskcc/ridgeback" \
+      org.opencontainers.image.title="Ridgeback" \
+      org.opencontainers.image.description="API for running Toil and Nextflow jobs, supports LSF, SLURM, and singleMachine mode"
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PIP_ROOT_USER_ACTION ignore
@@ -15,9 +20,7 @@ RUN apt-get update \
             wget curl libldap2-dev libsasl2-dev procps libssl-dev libxml2-dev libxslt-dev \
             libpq-dev gawk nodejs git build-essential openssh-client \
      # Install Ridgeback
-        && cd /usr/bin \
-        && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH \
-        && cd /usr/bin/ridgeback \
+        && git clone https://github.com/mskcc/ridgeback --branch $RIDGEBACK_BRANCH /usr/bin/ridgeback\
      # Install alternative ssl library
         && wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb \
         && dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb \
