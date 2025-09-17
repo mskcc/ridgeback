@@ -71,8 +71,7 @@ def userswitch(func):
             if func_stdout:
                 log.info(func_stdout)
             if func_stderr:
-                log.info(func_stderr)
-            log.error(func_stderr)
+                log.error(func_stderr)
             return output
         except subprocess.CalledProcessError as e:
             stdout_str = ""
