@@ -263,6 +263,11 @@ PIPELINE_CONFIG = {
         "WORK_DIR_ROOT": os.environ["ACCESS_HEME_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["ACCESS_HEME_TMP_DIR_ROOT"],
     },
+    "MICROBIOME": {
+        "JOB_STORE_ROOT": os.environ["MICROBIOME_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["MICROBIOME_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["MICROBIOME_TMP_DIR_ROOT"],
+    },
     "NA": {
         "JOB_STORE_ROOT": os.environ["DEFAULT_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["DEFAULT_WORK_DIR_ROOT"],
