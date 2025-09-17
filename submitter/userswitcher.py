@@ -77,13 +77,13 @@ def userswitch(func):
             stdout_str = ""
             stderr_str = ""
             try:
-                output, stdout = dill.loads(e.output)
-                if stdout:
-                    stdout_str = stdout.decode().strip()
                 stderr = e.stderr
                 if stderr:
                     stderr_str = stderr.decode().strip()
-            except Exception:
+                output, stdout = dill.loads(e.output)
+                if stdout:
+                    stdout_str = stdout.decode().strip()
+            except Exception as error:
                 stdout_str = "NA"
             exception_message = f"""
             Error while userswitching:
