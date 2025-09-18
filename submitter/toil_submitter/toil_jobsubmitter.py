@@ -153,6 +153,7 @@ class ToilJobSubmitter(JobSubmitter):
 
         return job_safe, track_cache_safe
 
+    @userswitch
     def get_outputs(self):
         error_message = None
         result_json = None

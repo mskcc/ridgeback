@@ -86,6 +86,7 @@ class NextflowJobSubmitter(JobSubmitter):
         self._dump_app_inputs()
         return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir, self.log_prefix
 
+    @userswitch
     def get_submit_command(self):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, self.batch_system.logfileName)
@@ -159,6 +160,7 @@ class NextflowJobSubmitter(JobSubmitter):
         }
         return file_obj
 
+    @userswitch
     def get_outputs(self):
         error_message = None
         result = list()
