@@ -81,6 +81,9 @@ jobs:
       ACCESS_HEME_JOB_STORE_ROOT: /sample_path
       ACCESS_HEME_WORK_DIR_ROOT: /sample_path
       ACCESS_HEME_TMP_DIR_ROOT: /sample_path
+      MICROBIOME_JOB_STORE_ROOT: /sample_path
+      MICROBIOME_WORK_DIR_ROOT: /sample_path
+      MICROBIOME_TMP_DIR_ROOT: /sample_path
       DEFAULT_JOB_STORE_ROOT: /sample_path
       DEFAULT_WORK_DIR_ROOT: /sample_path
       DEFAULT_TMP_DIR_ROOT: /sample_path
