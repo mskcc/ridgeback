@@ -237,6 +237,8 @@ class NextflowJobSubmitter(JobSubmitter):
 
     def _command_line(self):
         profile = self.inputs["profile"]
+        if not profile:
+            profile = "''"
         params = self.inputs.get("params", {})
         command_line = [
             settings.NEXTFLOW,
