@@ -46,7 +46,6 @@ jobs:
 
       #lsf env variables
       RIDGEBACK_LSF_WALLTIME: 10:00
-      RIDGEBACK_LSF_SLA: SLA
 
       #celery env variables
       CELERY_LOG_PATH: /sample_path
@@ -69,21 +68,28 @@ jobs:
       ARGOS_JOB_STORE_ROOT: /sample_path
       ARGOS_WORK_DIR_ROOT: /sample_path
       ARGOS_TMP_DIR_ROOT: /sample_path
+      ARGOS_PARTITION: sample_SLA
       TEMPO_JOB_STORE_ROOT: /sample_path
       TEMPO_WORK_DIR_ROOT: /sample_path
       TEMPO_TMP_DIR_ROOT: /sample_path
+      TEMPO_PARTITION: sample_SLA
       ACCESS_JOB_STORE_ROOT: /sample_path
       ACCESS_WORK_DIR_ROOT: /sample_path
       ACCESS_TMP_DIR_ROOT: /sample_path
+      ACCESS_PARTITION: sample_SLA
       CMO_CH_JOB_STORE_ROOT: /sample_path
       CMO_CH_WORK_DIR_ROOT: /sample_path
       CMO_CH_TMP_DIR_ROOT: /sample_path
+      CMO_CH_PARTITION: sample_SLA
       ACCESS_HEME_JOB_STORE_ROOT: /sample_path
       ACCESS_HEME_WORK_DIR_ROOT: /sample_path
       ACCESS_HEME_TMP_DIR_ROOT: /sample_path
+      ACCESS_HEME_PARTITION: sample_SLA
       MICROBIOME_JOB_STORE_ROOT: /sample_path
       MICROBIOME_WORK_DIR_ROOT: /sample_path
       MICROBIOME_TMP_DIR_ROOT: /sample_path
+      MICROBIOME_PARTITION: sample_SLA
       DEFAULT_JOB_STORE_ROOT: /sample_path
       DEFAULT_WORK_DIR_ROOT: /sample_path
       DEFAULT_TMP_DIR_ROOT: /sample_path
+      DEFAULT_PARTITION: sample_SLA
