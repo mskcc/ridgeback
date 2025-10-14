@@ -190,7 +190,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 RABBITMQ_USERNAME = os.environ.get("RIDGEBACK_RABBITMQ_USERNAME", "guest")
 RABBITMQ_PASSWORD = os.environ.get("RIDGEBACK_RABBITMQ_PASSWORD", "guest")
 RABBITMQ_URL = os.environ.get("RIDGEBACK_RABBITMQ_URL", "localhost")
-ENABLE_USER_SWITCH = True if os.environ.get("RIDGEBACK_ENABLE_USER_SWITCH", "True") != "False" else False
+ENABLE_USER_SWITCH = True if os.environ.get("RIDGEBACK_ENABLE_USER_SWITCH", "true") != "false" else False
 
 CELERY_BROKER_URL = os.environ.get(
     "CELERY_BROKER_URL",
