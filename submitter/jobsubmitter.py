@@ -4,6 +4,7 @@ from submitter.app import App
 from django.conf import settings
 from submitter.userswitcher import userswitch
 from getpass import getuser
+from batch_systems.batch_system import get_batch_system
 
 
 class JobSubmitter(object):
@@ -12,6 +13,8 @@ class JobSubmitter(object):
         job_id,
         app,
         inputs,
+        root_dir,
+        resume_jobstore,
         walltime,
         tool_walltime,
         memlimit,
@@ -32,6 +35,21 @@ class JobSubmitter(object):
         self.app_name = app_name
         self.root_permissions = root_permissions
         self.user = user
+        self.pipeline_config = None
+        self.partition_isolated = None
+        pipeline_config = settings.PIPELINE_CONFIG.get(self.app_name)
+        if not self.pipeline_config:
+            self.pipeline_config = settings.PIPELINE_CONFIG["NA"]
+        self.resume_jobstore = resume_jobstore
+        if resume_jobstore:
+            self.job_store_dir = resume_jobstore
+        else:
+            self.job_store_dir = os.path.join(pipeline_config["JOB_STORE_ROOT"], self.job_id)
+        self.partition = pipeline_config["PARTITION"]
+        self.job_work_dir = os.path.join(pipeline_config["WORK_DIR_ROOT"], self.job_id)
+        self.job_outputs_dir = root_dir
+        self.job_tmp_dir = os.path.join(pipeline_config["TMP_DIR_ROOT"], self.job_id)
+        self.batch_system = get_batch_system()
 
     def prepare_to_submit(self):
         """

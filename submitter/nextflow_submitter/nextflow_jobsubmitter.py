@@ -55,6 +55,8 @@ class NextflowJobSubmitter(JobSubmitter):
             job_id,
             app,
             inputs,
+            root_dir,
+            resume_jobstore,
             walltime,
             tool_walltime,
             memlimit,
@@ -64,22 +66,10 @@ class NextflowJobSubmitter(JobSubmitter):
             root_permissions=root_permissions,
             user=user,
         )
-        self.resume_jobstore = resume_jobstore
-        dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
         if self.app.nfcore_template:
             self.cli_output_name = "--outdir"
         else:
             self.cli_output_name = "--outDir"
-        if not dir_config:
-            dir_config = settings.PIPELINE_CONFIG["NA"]
-        if resume_jobstore:
-            self.job_store_dir = resume_jobstore
-        else:
-            self.job_store_dir = os.path.join(dir_config["JOB_STORE_ROOT"], self.job_id)
-        self.job_work_dir = os.path.join(dir_config["WORK_DIR_ROOT"], self.job_id)
-        self.job_outputs_dir = root_dir
-        self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
-        self.batch_system = get_batch_system()
 
     def prepare_to_submit(self):
         self._prepare_directories()
@@ -96,6 +86,7 @@ class NextflowJobSubmitter(JobSubmitter):
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
         env["NXF_CACHE_DIR"] = self.job_store_dir
+        env["NXF_SLURM_PARTITION"] = self.partition
         return command_line, self._leader_args(), log_path, self.job_id, env
 
     def _leader_args(self):

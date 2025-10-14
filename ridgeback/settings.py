@@ -242,45 +242,48 @@ PIPELINE_CONFIG = {
         "JOB_STORE_ROOT": os.environ["ARGOS_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["ARGOS_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["ARGOS_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("ARGOS_PARTITION", None),
     },
     "TEMPO": {
         "JOB_STORE_ROOT": os.environ["TEMPO_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["TEMPO_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["TEMPO_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("TEMPO_PARTITION", None),
     },
     "ACCESS": {
         "JOB_STORE_ROOT": os.environ["ACCESS_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["ACCESS_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["ACCESS_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("ACCESS_PARTITION", None),
     },
     "CMO-CH": {
         "JOB_STORE_ROOT": os.environ["CMO_CH_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["CMO_CH_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["CMO_CH_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("CMO_CH_PARTITION", None),
     },
     "ACCESS_HEME": {
         "JOB_STORE_ROOT": os.environ["ACCESS_HEME_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["ACCESS_HEME_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["ACCESS_HEME_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("ACCESS_HEME_PARTITION", None),
     },
     "MICROBIOME": {
         "JOB_STORE_ROOT": os.environ["MICROBIOME_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["MICROBIOME_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["MICROBIOME_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("MICROBIOME_PARTITION", None),
     },
     "NA": {
         "JOB_STORE_ROOT": os.environ["DEFAULT_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["DEFAULT_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["DEFAULT_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("DEFAULT_PARTITION", None),
     },
 }
 # Batch System settings
 
 BATCH_SYSTEM = os.environ.get("RIDGEBACK_BATCH_SYSTEM", "LSF")
-
-# SLURM settings
-
-SLURM_PARTITION = os.environ.get("RIDGEBACK_SLURM_PARTITION", None)
 
 # LSF settings
 

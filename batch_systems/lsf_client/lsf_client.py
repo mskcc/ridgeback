@@ -37,7 +37,7 @@ class LSFClient(BatchClient):
         self.user = user
 
     @userswitch
-    def submit(self, command, job_args, stdout, job_id, env={}):
+    def submit(self, command, job_args, stdout, job_id, partition, env={}):
         """
         Submit command to LSF and store log in stdout
 
@@ -46,13 +46,18 @@ class LSFClient(BatchClient):
             job_args (list): Additional options for leader bsub
             stdout (str): log file path
             job_id (str): job_id
+            partition (str): the batch system partition to use
             env (dict): Environment variables
 
         Returns:
             int: lsf job id
         """
         bsub_command = (
-            ["bsub"] + self.set_service_queue() + self.set_group(job_id) + self.set_stdout_file(stdout) + job_args
+            ["bsub"]
+            + self.set_service_queue(partition)
+            + self.set_group(job_id)
+            + self.set_stdout_file(stdout)
+            + job_args
         )
         bsub_command.extend(command)
         current_env = os.environ.copy()
@@ -142,10 +147,13 @@ class LSFClient(BatchClient):
         else:
             return ["-oo", self.logfileName]
 
-    def set_service_queue(self):
+    def set_service_queue(self, partition):
+        """
+        Set the service queue parameter
+        """
         service_queue_args = []
-        if settings.LSF_SLA:
-            service_queue_args = ["-sla", settings.LSF_SLA]
+        if partition:
+            service_queue_args = ["-sla", partition]
         return service_queue_args
 
     def _parse_bjobs(self, bjobs_output_str):

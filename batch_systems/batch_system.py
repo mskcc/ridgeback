@@ -33,7 +33,7 @@ class BatchClient(object):
         self.name = "batch"
         self.user = user
 
-    def submit(self, command, job_args, stdout, job_id, env={}):
+    def submit(self, command, job_args, stdout, job_id, partition, env={}):
         """
         Submit command to bath system and store log in stdout
 
@@ -42,6 +42,7 @@ class BatchClient(object):
             job_args (list): Additional options for leader job
             stdout (str): log file path
             job_id (str): job_id
+            partition (str): the batch system partition to use
             env (dict): Environment variables
 
         Returns:
@@ -101,7 +102,7 @@ class BatchClient(object):
         """
         return []
 
-    def set_service_queue(self):
+    def set_service_queue(self, partition):
         """
         Set the service queue parameter
         """

@@ -48,6 +48,8 @@ class ToilJobSubmitter(JobSubmitter):
             job_id,
             app,
             inputs,
+            root_dir,
+            resume_jobstore,
             walltime,
             tool_walltime,
             memlimit,
@@ -57,18 +59,7 @@ class ToilJobSubmitter(JobSubmitter):
             root_permissions=root_permissions,
             user=user,
         )
-        dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
-        if not dir_config:
-            dir_config = settings.PIPELINE_CONFIG["NA"]
-        self.resume_jobstore = resume_jobstore
-        if resume_jobstore:
-            self.job_store_dir = resume_jobstore
-        else:
-            self.job_store_dir = os.path.join(dir_config["JOB_STORE_ROOT"], self.job_id)
-        self.job_work_dir = os.path.join(dir_config["WORK_DIR_ROOT"], self.job_id)
-        self.job_outputs_dir = root_dir
-        self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
-        self.batch_system = get_batch_system()
+
         self.batch_system_args_env = None
         self.single_machine_mode_workflows = ["nucleo_qc", "argos-qc"]
         if settings.BATCH_SYSTEM == "LSF":
@@ -223,7 +214,7 @@ class ToilJobSubmitter(JobSubmitter):
         return args
 
     def _service_queue(self):
-        return self.batch_system.set_service_queue()
+        return self.partition
 
     def _walltime(self):
         return self.batch_system.set_walltime(None, self.walltime)

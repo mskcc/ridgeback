@@ -32,7 +32,7 @@ class SLURMClient(BatchClient):
         self.user = user
 
     @userswitch
-    def submit(self, command, job_args, stdout, job_id, env={}):
+    def submit(self, command, job_args, stdout, job_id, partition, env={}):
         """
         Submit command to SLURM and store log in stdout
 
@@ -41,6 +41,7 @@ class SLURMClient(BatchClient):
             job_args (list): Additional options for leader sbatch
             stdout (str): log file path
             job_id (str): job_id
+            partition (str): the batch system partition to use
             env (dict): Environment variables
 
         Returns:
@@ -52,7 +53,7 @@ class SLURMClient(BatchClient):
 
         sbatch_command = (
             ["sbatch"]
-            + self.set_service_queue()
+            + self.set_service_queue(partition)
             + self.set_group(job_id)
             + self.set_stdout_file(stdout)
             + job_args
@@ -147,10 +148,10 @@ class SLURMClient(BatchClient):
             return [f"--output={stdout_file}"]
         return [f"--output={self.logfileName}"]
 
-    def set_service_queue(self):
+    def set_service_queue(self, partition):
         service_queue_args = []
-        if settings.SLURM_PARTITION:
-            service_queue_args = [f"--partition={settings.SLURM_PARTITION}"]
+        if partition:
+            service_queue_args = [f"--partition={partition}"]
         return service_queue_args
 
     def _parse_sacct(self, sacct_output_str, external_job_id):
