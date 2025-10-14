@@ -83,7 +83,7 @@ def userswitch(func):
                 output, stdout = dill.loads(e.output)
                 if stdout:
                     stdout_str = stdout.decode().strip()
-            except Exception as error:
+            except Exception:
                 stdout_str = "NA"
             exception_message = f"""
             Error while userswitching:

@@ -6,7 +6,6 @@ import os
 import re
 import subprocess
 import logging
-from django.conf import settings
 from orchestrator.models import Status
 from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
 from batch_systems.batch_system import BatchClient

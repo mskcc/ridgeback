@@ -3,7 +3,6 @@ import hashlib
 import json
 from django.conf import settings
 from submitter import JobSubmitter
-from batch_systems.batch_system import get_batch_system
 from submitter.userswitcher import userswitch
 from getpass import getuser
 

@@ -7,7 +7,6 @@ from django.core.serializers.json import DjangoJSONEncoder
 from orchestrator.models import Status
 from submitter import JobSubmitter
 from .toil_track_utils import ToilTrack, ToolStatus
-from batch_systems.batch_system import get_batch_system
 from submitter.userswitcher import userswitch
 from getpass import getuser
 

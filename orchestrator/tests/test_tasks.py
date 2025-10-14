@@ -554,7 +554,7 @@ class TasksTest(TestCase):
                 }
             },
             external_id="ext_id",
-            working_dir=f"/toil/work/dir/root",
+            working_dir="/toil/work/dir/root",
             status=Status.SUBMITTED,
             metadata={"pipeline_name": "TEST"},
         )
