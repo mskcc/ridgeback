@@ -214,7 +214,10 @@ class ToilJobSubmitter(JobSubmitter):
         return args
 
     def _service_queue(self):
-        return self.partition
+        service_queue_args = []
+        if self.partition:
+            service_queue_args = ["-sla", self.partition]
+        return service_queue_args
 
     def _walltime(self):
         return self.batch_system.set_walltime(None, self.walltime)
