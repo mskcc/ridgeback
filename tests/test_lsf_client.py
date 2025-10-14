@@ -68,7 +68,7 @@ class TestLSFClient(TestCase):
         submit_process_obj.stdout = self.submit_response
         submit_process_obj.returncode = 0
         submit_process.return_value = submit_process_obj
-        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
+        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, settings.LSF_SLA, {})
         expected_command = (
             ["bsub", "-sla", settings.LSF_SLA, "-g", self.example_lsf_id, "-oo", stdout_file] + args + command
         )
@@ -87,7 +87,7 @@ class TestLSFClient(TestCase):
         submit_process_obj.stdout = self.submit_response_please_wait
         submit_process_obj.returncode = 0
         submit_process.return_value = submit_process_obj
-        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
+        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, settings.LSF_SLA, {})
         self.assertEqual(lsf_id, self.example_id)
 
     @patch("subprocess.run")

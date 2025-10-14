@@ -90,7 +90,12 @@ class TestToil(TestCase):
         copytree(work_dir, new_work_dir)
         with override_settings(
             PIPELINE_CONFIG={
-                "NA": {"JOB_STORE_ROOT": tmp_jobstore, "WORK_DIR_ROOT": tmp_work_dir, "TMP_DIR_ROOT": "/tmp"}
+                "NA": {
+                    "JOB_STORE_ROOT": tmp_jobstore,
+                    "WORK_DIR_ROOT": tmp_work_dir,
+                    "TMP_DIR_ROOT": "/tmp",
+                    "PARTITION": "test_partition",
+                }
             }
         ):
             check_status_of_command_line_jobs(self.job)

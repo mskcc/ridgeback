@@ -38,8 +38,8 @@ class JobSubmitter(object):
         self.pipeline_config = None
         self.partition_isolated = None
         pipeline_config = settings.PIPELINE_CONFIG.get(self.app_name)
-        if not self.pipeline_config:
-            self.pipeline_config = settings.PIPELINE_CONFIG["NA"]
+        if not pipeline_config:
+            pipeline_config = settings.PIPELINE_CONFIG["NA"]
         self.resume_jobstore = resume_jobstore
         if resume_jobstore:
             self.job_store_dir = resume_jobstore
