@@ -86,6 +86,8 @@ class ToilJobSubmitter(JobSubmitter):
             " ".join(self._tool_args()),
         )
         env["JAVA_HOME"] = None
+        env["TMP"] = self.job_tmp_dir
+        env["TMPDIR"] = self.job_tmp_dir
         env[self.batch_system_args_env] = toil_batch_system_args.strip()
         if settings.ACCESS_LEGACY_APP in self.app.github.lower():
             env["PATH"] = "{0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
