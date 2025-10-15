@@ -214,7 +214,9 @@ class NextflowJobSubmitter(JobSubmitter):
             self._dump_config(config)
 
     def _dump_input(self, name, content, extension, root_dir):
-        file_path = os.path.join(root_dir, name) + extension
+        file_path = os.path.join(root_dir, name)
+        if extension:
+            file_path = file_path + extension
         with open(file_path, "w") as f:
             f.write(content)
         return file_path
