@@ -233,6 +233,7 @@ class NextflowJobSubmitter(JobSubmitter):
 
     def _command_line(self):
         profile = self.inputs["profile"]
+        config = self.inputs.get("config")
         if not profile:
             profile = "''"
         params = self.inputs.get("params", {})
@@ -251,7 +252,7 @@ class NextflowJobSubmitter(JobSubmitter):
         ]
         for k, v in self.inputs_location.items():
             command_line.extend(["--%s" % k, v])
-        if self.config_location:
+        if config:
             command_line.extend(["-c", self.config_location])
         if params:
             for k, v in params.items():
