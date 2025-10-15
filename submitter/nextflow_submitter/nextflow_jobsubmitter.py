@@ -195,7 +195,11 @@ class NextflowJobSubmitter(JobSubmitter):
         inputs = self.inputs.get("inputs", [])
         input_map = dict()
         for i in inputs:
-            input_map[i["name"]] = os.path.join(self.job_work_dir, i["name"]) + i.get("extension", "")
+            file_path = os.path.join(self.job_work_dir, i["name"])
+            extension = i.get("extension", "")
+            if extension:
+                file_path = file_path + extension
+            input_map[i["name"]] = file_path
         return input_map
 
     @property
