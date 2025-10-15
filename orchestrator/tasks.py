@@ -238,8 +238,8 @@ def submit_job_to_batch_system(job, retries=0):
             user=job.user,
         )
         try:
-            command_line, args, log_path, job_id, env = submitter.get_submit_command()
-            external_job_id = get_batch_system(job.user).submit(command_line, args, log_path, job_id, env)
+            command_line, args, log_path, job_id, partition, env = submitter.get_submit_command()
+            external_job_id = get_batch_system(job.user).submit(command_line, args, log_path, job_id, partition, env)
         except Exception as f:
             if retries < 5:
                 logger.exception(str(f))

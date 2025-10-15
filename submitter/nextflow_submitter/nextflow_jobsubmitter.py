@@ -86,7 +86,7 @@ class NextflowJobSubmitter(JobSubmitter):
         env["TMPDIR"] = self.job_tmp_dir
         env["NXF_CACHE_DIR"] = self.job_store_dir
         env["NXF_SLURM_PARTITION"] = self.partition
-        return command_line, self._leader_args(), log_path, self.job_id, env
+        return command_line, self._leader_args(), log_path, self.job_id, self.partition, env
 
     def _leader_args(self):
         args = self._walltime()

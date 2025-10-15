@@ -92,7 +92,7 @@ class ToilJobSubmitter(JobSubmitter):
             env[self.batch_system_args_env] = " ".join(
                 [env[self.batch_system_args_env], self.batch_system.get_env_export_flag()]
             )
-        return command_line, self._leader_args(), log_path, self.job_id, env
+        return command_line, self._leader_args(), log_path, self.job_id, self.partition, env
 
     def get_commandline_status(self, cache):
         """
@@ -213,10 +213,7 @@ class ToilJobSubmitter(JobSubmitter):
         return args
 
     def _service_queue(self):
-        service_queue_args = []
-        if self.partition:
-            service_queue_args = ["-sla", self.partition]
-        return service_queue_args
+        return self.batch_system.set_service_queue(self.partition)
 
     def _walltime(self):
         return self.batch_system.set_walltime(None, self.walltime)

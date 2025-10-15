@@ -59,7 +59,7 @@ class JobSubmitter(object):
 
     def get_submit_command(self):
         """
-        return: command_line, args, log_path, job_id, env_map
+        return: command_line, args, log_path, job_id, partition, env_map
         """
         pass
 
