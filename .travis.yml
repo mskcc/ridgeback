@@ -12,7 +12,7 @@ addons:
       - postgresql-14
       - postgresql-client-14
 python:
-  - "3.10"
+  - "3.9"
 before_install:
   - sudo apt-get update
   - sudo service postgresql restart 14
