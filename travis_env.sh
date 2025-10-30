@@ -3,7 +3,7 @@
 export RIDGEBACK_DB_NAME=travis_ci_test
 export RIDGEBACK_DB_USERNAME=postgres
 export RIDGEBACK_DB_PASSWORD=
-export RIDGEBACK_DB_PORT=5433
+export RIDGEBACK_DB_PORT=5432
 
 ### Set general env variable
 
