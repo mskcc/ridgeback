@@ -506,7 +506,7 @@ def set_permission(job):
                         logger.debug(f"Setting permissions for {path}")
                         os.chmod(path, permission_octal)
         except Exception:
-            logger.error(f"Failed to set permissions for directory {permissions_dir}")
+            logger.exception(f"Failed to set permissions for directory {permissions_dir}")
             failed_to_set = True
             continue
         else:
