@@ -291,6 +291,18 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
+        source ${RIDGEBACK_VENV}/bin/activate
+
+        if ! python3 -c "import toil"  2>&1 >/dev/null
+        then
+          pip3 install --upgrade pip &&
+          pip3 install --force-reinstall 'setuptools<58.0.0' &&
+          pip3 install "cython<3.0.0" wheel &&
+          pip3 install "pyyaml==5.4.1" --no-build-isolation &&
+          pip3 install --use-pep517 -r ${RIDGEBACK_PATH}/requirements.txt &&
+          pip3 install --use-pep517 -r ${RIDGEBACK_PATH}/requirements-toil.txt
+        fi
+
         python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
         echo "User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin','voyager@mskcc.org','${RIDGEBACK_DB_PASSWORD}')" | python3 ${RIDGEBACK_PATH}/manage.py shell_plus
         python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
@@ -316,16 +328,6 @@ services:
     command:
       - |
         source ${RIDGEBACK_VENV}/bin/activate
-
-        if ! python3 -c "import toil"  2>&1 >/dev/null
-        then
-          pip3 install --upgrade pip &&
-          pip3 install --force-reinstall 'setuptools<58.0.0' &&
-          pip3 install "cython<3.0.0" wheel &&
-          pip3 install "pyyaml==5.4.1" --no-build-isolation &&
-          pip3 install --use-pep517 -r ${RIDGEBACK_PATH}/requirements.txt &&
-          pip3 install --use-pep517 -r ${RIDGEBACK_PATH}/requirements-toil.txt
-        fi
 
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid
 
@@ -355,6 +357,9 @@ services:
         condition: service_healthy
         restart: false
       ridgeback_rabbitmq:
+        condition: service_healthy
+        restart: false
+      ridgeback:
         condition: service_healthy
         restart: false
   ridgeback_celery_command_queue:
