@@ -108,10 +108,10 @@ class LSFClient(BatchClient):
 
     def set_memlimit(self, mem_limit, default=None):
         mem_limit_args = []
-        if default:
-            mem_limit = ["-M", default]
         if mem_limit:
-            mem_limit_args = ["-M", mem_limit]
+            return ["-M", mem_limit]
+        if default:
+            mem_limit_args = ["-M", default]
         return mem_limit_args
 
     def set_num_tasks(self, num_tasks, default=None):

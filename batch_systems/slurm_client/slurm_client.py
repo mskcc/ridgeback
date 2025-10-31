@@ -110,10 +110,10 @@ class SLURMClient(BatchClient):
 
     def set_memlimit(self, mem_limit, default=None):
         mem_limit_args = []
-        if default:
-            return [f"--mem={default}G"]
         if mem_limit:
-            mem_limit_args = [f"--mem={mem_limit}G"]
+            return [f"--mem={mem_limit}G"]
+        if default:
+            mem_limit_args = [f"--mem={default}G"]
         return mem_limit_args
 
     def set_num_tasks(self, num_tasks, default=None):
