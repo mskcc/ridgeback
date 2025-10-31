@@ -201,9 +201,11 @@ class ToilJobSubmitter(JobSubmitter):
     def _leader_args(self):
         single_machine = any([w in self.app.github.lower() for w in self.single_machine_mode_workflows])
         args = self._walltime()
-        args.extend(self._memlimit())
         if single_machine:
             args.extend(self._numtasks(int(settings.SINGLE_MACHINE_CORES)))
+            if not self.memlimit:
+                self.memlimit = settings.SINGLE_MACHINE_MEMORY
+        args.extend(self._memlimit())
         return args
 
     def _tool_args(self):
@@ -221,7 +223,7 @@ class ToilJobSubmitter(JobSubmitter):
         return self.batch_system.set_walltime(None, self.walltime)
 
     def _memlimit(self):
-        return self.batch_system.set_memlimit(self.memlimit)
+        return self.batch_system.set_memlimit(self.memlimit, default="5")
 
     def _numtasks(self, num_tasks):
         return self.batch_system.set_num_tasks(num_tasks)
