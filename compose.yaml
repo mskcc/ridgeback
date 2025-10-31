@@ -44,12 +44,10 @@ x-ridgeback_celery: &ridgeback_celery
     - PATH=${PATH}:/usr/batchsystem/bin
   volumes:
     - ${SLURM_BIN_PATH}:/usr/batchsystem/bin
-    - ./logs/:/ridgeback/celery/logs/
-    - ./celery/:/ridgeback/celery/
+    - logs_path:/ridgeback/celery/logs/
+    - celery_path:/ridgeback/celery/
     - ${CLUSTER_FILESYSTEM_MOUNT}:${CLUSTER_FILESYSTEM_MOUNT}
     - ${CLUSTER_SCRATCH_MOUNT}:${CLUSTER_SCRATCH_MOUNT}
-    - ${CLUSTER_FILESYSTEM_SHARE_MOUNT}:${CLUSTER_FILESYSTEM_SHARE_MOUNT}
-    - ${CLUSTER_FILESYSTEM_COLLAB}:${CLUSTER_FILESYSTEM_COLLAB}
     - ${CLUSTER_FILESYSTEM_TEST}:${CLUSTER_FILESYSTEM_TEST}
     - ${CLUSTER_PYTHON_MOUNT}:${CLUSTER_PYTHON_MOUNT}
     - ${CLUSTER_PYTHON_LIBSO_MOUNT}:${CONTAINER_PYTHON_LIBSO_MOUNT}
@@ -133,13 +131,13 @@ services:
     image: alpine:3.8
     restart: no
     volumes:
-      - ./postgres:/postgres
-      - ./logs:/logs
-      - ./celery:/celery
-      - ./rabbitmq:/rabbitmq
-      - ./server/:/server
-      - ./logrotate/:/logrotate
-      - ${DB_BACKUP_PATH}:/db_backup
+      - postgres_path:/postgres
+      - logs_path:/logs
+      - celery_path:/celery
+      - rabbitmq_path:/rabbitmq
+      - server_path:/server
+      - logrotate_path:/logrotate
+      - db_backup_path:/db_backup
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -158,7 +156,7 @@ services:
     networks:
       - voyager_net
     volumes:
-      - ./postgres/:/var/lib/postgresql/data/
+      - postgres_path:/var/lib/postgresql/data/
     environment:
       - POSTGRES_USER=${RIDGEBACK_DB_USERNAME}
       - POSTGRES_PASSWORD=${RIDGEBACK_DB_PASSWORD}
@@ -232,8 +230,8 @@ services:
     networks:
       - voyager_net
     volumes:
-      - ./rabbitmq/:/var/lib/rabbitmq/
-      - ./logs/:/var/log/rabbitmq/
+      - rabbitmq_path:/var/lib/rabbitmq/
+      - logs_path:/var/log/rabbitmq/
     ports:
       - ${RIDGEBACK_RABBITMQ_MANAGEMENT_PORT}:15672
     expose:
@@ -269,8 +267,8 @@ services:
       - RIDGEBACK_RABBITMQ_PORT=5672
       - RIDGEBACK_LOG_PATH=/ridgeback/server/django_server.log
     volumes:
-      - ./logs/:/ridgeback/server/
-      - ./server/:/ridgeback_staticfiles/
+      - logs_path:/ridgeback/server/
+      - server_path:/ridgeback_staticfiles/
       - ${CLUSTER_FILESYSTEM_MOUNT}:${CLUSTER_FILESYSTEM_MOUNT}
       - ${CLUSTER_CODE_PATH:-/dev/null}:${CLUSTER_CODE_PATH:-/dev/null}
     ports:
@@ -503,8 +501,8 @@ services:
     networks:
       - voyager_net
     volumes:
-      - ./logs:/logs
-      - ./logrotate/:/logrotate
+      - logs_path:/logs
+      - logrotate_path:/logrotate
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -544,8 +542,8 @@ services:
     networks:
       - voyager_net
     volumes:
-      - ./logs:/logs
-      - ${DB_BACKUP_PATH}:/db_backup
+      - logs_path:/logs
+      - db_backup_path:/db_backup
     environment:
       - PGPASSWORD=${RIDGEBACK_DB_PASSWORD}
     entrypoint: ["/bin/sh", "-c"]
@@ -568,6 +566,49 @@ services:
       ridgeback_celery_command_queue:
         condition: service_healthy
         restart: false
+volumes:
+  postgres_path:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "${RIDGEBACK_POSTGRES_PATH}"
+  logs_path:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "${RIDGEBACK_LOGS_PATH}"
+  celery_path:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "${RIDGEBACK_CELERY_PATH}"
+  rabbitmq_path:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "${RIDGEBACK_RABITMQ_PATH}"
+  server_path:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "${RIDGEBACK_SERVER_PATH}"
+  logrotate_path:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "${RIDGEBACK_LOGROTATE_PATH}"
+  db_backup_path:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "${RIDGEBACK_DB_BACKUP_PATH}"
 networks:
   voyager_net:
     name: voyager_network_${RIDGEBACK_DEPLOYMENT}
