@@ -10,6 +10,7 @@ from functools import wraps
 from getpass import getuser
 import django
 import json
+import zlib
 from django.conf import settings
 
 log = logging.getLogger(__name__)
@@ -26,7 +27,8 @@ def userscript():
     output = None
     with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
         try:
-            env_str = sys.argv[1]
+            env_str_encode = sys.argv[1]
+            env_str = zlib.decompress(env_str_encode).decode()
             env_json = json.loads(env_str)
             for single_env in env_json:
                 if single_env == "PATH":
@@ -62,8 +64,9 @@ def userswitch(func):
         try:
             job_func = dill.dumps((func, args, kwargs))
             env_str = json.dumps(current_env)
+            env_str_encode = zlib.compress(env_str.encode())
             dzdo_process = subprocess.run(
-                proc_command + [env_str], input=job_func, check=True, capture_output=True, env=current_env
+                proc_command + [env_str_encode], input=job_func, check=True, capture_output=True, env=current_env
             )
             output, stdout = dill.loads(dzdo_process.stdout)
             func_stdout = stdout.decode().strip()
