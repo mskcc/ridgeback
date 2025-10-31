@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 def userscript():
 
-    ridgeback_path = os.environ.get("RIDGEBACK_PATH", "/usr/bin/ridgeback")
+    ridgeback_path = os.environ.get("RIDGEBACK_PATH")
     sys.path.append(ridgeback_path)
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ridgeback.settings")
     stdout_buffer = io.StringIO()
