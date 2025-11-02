@@ -1,10 +1,10 @@
 import os
-import shutil
 import hashlib
 import json
 from django.conf import settings
 from submitter import JobSubmitter
-from batch_systems.batch_system import get_batch_system
+from submitter.userswitcher import userswitch
+from getpass import getuser
 
 
 class NextflowJobSubmitter(JobSubmitter):
@@ -22,6 +22,7 @@ class NextflowJobSubmitter(JobSubmitter):
         log_prefix="",
         app_name="NA",
         root_permissions=settings.OUTPUT_DEFAULT_PERMISSION,
+        user=getuser(),
     ):
         """
         :param job_id:
@@ -53,36 +54,28 @@ class NextflowJobSubmitter(JobSubmitter):
             job_id,
             app,
             inputs,
+            root_dir,
+            resume_jobstore,
             walltime,
             tool_walltime,
             memlimit,
             log_dir,
             log_prefix,
             app_name,
-            root_permissions,
+            root_permissions=root_permissions,
+            user=user,
         )
-        self.resume_jobstore = resume_jobstore
-        dir_config = settings.PIPELINE_CONFIG.get(self.app_name)
         if self.app.nfcore_template:
             self.cli_output_name = "--outdir"
         else:
             self.cli_output_name = "--outDir"
-        if not dir_config:
-            dir_config = settings.PIPELINE_CONFIG["NA"]
-        if resume_jobstore:
-            self.job_store_dir = resume_jobstore
-        else:
-            self.job_store_dir = os.path.join(dir_config["JOB_STORE_ROOT"], self.job_id)
-        self.job_work_dir = os.path.join(dir_config["WORK_DIR_ROOT"], self.job_id)
-        self.job_outputs_dir = root_dir
-        self.job_tmp_dir = os.path.join(dir_config["TMP_DIR_ROOT"], self.job_id)
-        self.batch_system = get_batch_system()
 
     def prepare_to_submit(self):
         self._prepare_directories()
         self._dump_app_inputs()
         return self.job_store_dir, self.job_work_dir, self.job_outputs_dir, self.log_dir, self.log_prefix
 
+    @userswitch
     def get_submit_command(self):
         command_line = self._command_line()
         log_path = os.path.join(self.job_work_dir, self.batch_system.logfileName)
@@ -92,7 +85,8 @@ class NextflowJobSubmitter(JobSubmitter):
         env["PATH"] = env["JAVA_HOME"] + "bin:" + os.environ["PATH"]
         env["TMPDIR"] = self.job_tmp_dir
         env["NXF_CACHE_DIR"] = self.job_store_dir
-        return command_line, self._leader_args(), log_path, self.job_id, env
+        env["NXF_SLURM_PARTITION"] = self.partition
+        return command_line, self._leader_args(), log_path, self.job_id, self.partition, env
 
     def _leader_args(self):
         args = self._walltime()
@@ -100,7 +94,7 @@ class NextflowJobSubmitter(JobSubmitter):
         return args
 
     def _walltime(self):
-        return self.batch_system.set_walltime(self.walltime)
+        return self.batch_system.set_walltime(None, self.walltime)
 
     def _memlimit(self):
         return self.batch_system.set_memlimit(self.memlimit, default="20")
@@ -156,6 +150,7 @@ class NextflowJobSubmitter(JobSubmitter):
         }
         return file_obj
 
+    @userswitch
     def get_outputs(self):
         error_message = None
         result = list()
@@ -200,25 +195,32 @@ class NextflowJobSubmitter(JobSubmitter):
         inputs = self.inputs.get("inputs", [])
         input_map = dict()
         for i in inputs:
-            input_map[i["name"]] = os.path.join(self.job_work_dir, i["name"])
+            file_path = os.path.join(self.job_work_dir, i["name"])
+            extension = i.get("extension", "")
+            if extension:
+                file_path = file_path + extension
+            input_map[i["name"]] = file_path
         return input_map
 
     @property
     def config_location(self):
         return os.path.join(self.job_work_dir, "nf.config")
 
+    @userswitch
     def _dump_app_inputs(self):
         input_map = dict()
         inputs = self.inputs.get("inputs", [])
         for i in inputs:
-            input_map[i["name"]] = self._dump_input(i["name"], i["content"], self.job_work_dir)
+            input_map[i["name"]] = self._dump_input(i["name"], i["content"], i.get("extension", ""), self.job_work_dir)
 
         config = self.inputs.get("config")
         if config:
             self._dump_config(config)
 
-    def _dump_input(self, name, content, root_dir):
+    def _dump_input(self, name, content, extension, root_dir):
         file_path = os.path.join(root_dir, name)
+        if extension:
+            file_path = file_path + extension
         with open(file_path, "w") as f:
             f.write(content)
         return file_path
@@ -229,27 +231,11 @@ class NextflowJobSubmitter(JobSubmitter):
             f.write(config)
         return file_path
 
-    def _prepare_directories(self):
-        if not os.path.exists(self.job_work_dir):
-            os.mkdir(self.job_work_dir)
-
-        if os.path.exists(self.job_store_dir) and not self.resume_jobstore:
-            shutil.rmtree(self.job_store_dir)
-
-        if self.resume_jobstore:
-            if not os.path.exists(self.resume_jobstore):
-                raise Exception("The jobstore indicated to be resumed could not be found")
-
-        if not os.path.exists(self.job_tmp_dir):
-            os.mkdir(self.job_tmp_dir)
-
-        if self.log_dir:
-            if not os.path.exists(self.log_dir):
-                mode_int = int(self.root_permissions, 8)
-                os.makedirs(self.log_dir, mode=mode_int, exist_ok=True)
-
     def _command_line(self):
         profile = self.inputs["profile"]
+        config = self.inputs.get("config")
+        if not profile:
+            profile = "''"
         params = self.inputs.get("params", {})
         command_line = [
             settings.NEXTFLOW,
@@ -266,7 +252,7 @@ class NextflowJobSubmitter(JobSubmitter):
         ]
         for k, v in self.inputs_location.items():
             command_line.extend(["--%s" % k, v])
-        if self.config_location:
+        if config:
             command_line.extend(["-c", self.config_location])
         if params:
             for k, v in params.items():

@@ -1,5 +1,6 @@
 from orchestrator.models import PipelineType
 from submitter import NextflowJobSubmitter, ToilJobSubmitter
+from getpass import getuser
 
 
 class JobSubmitterFactory(object):
@@ -17,6 +18,7 @@ class JobSubmitterFactory(object):
         log_dir=None,
         log_prefix="",
         app_name="NA",
+        user=getuser(),
     ):
         if type == PipelineType.CWL:
             return ToilJobSubmitter(
@@ -31,6 +33,7 @@ class JobSubmitterFactory(object):
                 log_dir,
                 log_prefix,
                 app_name,
+                user=user,
             )
         elif type == PipelineType.NEXTFLOW:
             return NextflowJobSubmitter(
@@ -45,4 +48,5 @@ class JobSubmitterFactory(object):
                 log_dir,
                 log_prefix,
                 app_name,
+                user=user,
             )

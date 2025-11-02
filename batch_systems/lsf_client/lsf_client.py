@@ -7,10 +7,11 @@ import re
 import subprocess
 import json
 import logging
-from django.conf import settings
 from orchestrator.models import Status
 from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
 from batch_systems.batch_system import BatchClient
+from submitter.userswitcher import userswitch
+from getpass import getuser
 
 
 def format_lsf_job_id(job_id):
@@ -25,15 +26,17 @@ class LSFClient(BatchClient):
         logger (logging): logging module
     """
 
-    def __init__(self):
+    def __init__(self, user=getuser()):
         """
         init function
         """
         self.logger = logging.getLogger("LSF_client")
         self.logfileName = "lsf.log"
         self.name = "lsf"
+        self.user = user
 
-    def submit(self, command, job_args, stdout, job_id, env={}):
+    @userswitch
+    def submit(self, command, job_args, stdout, job_id, partition, env={}):
         """
         Submit command to LSF and store log in stdout
 
@@ -42,13 +45,18 @@ class LSFClient(BatchClient):
             job_args (list): Additional options for leader bsub
             stdout (str): log file path
             job_id (str): job_id
+            partition (str): the batch system partition to use
             env (dict): Environment variables
 
         Returns:
             int: lsf job id
         """
         bsub_command = (
-            ["bsub"] + self.set_service_queue() + self.set_group(job_id) + self.set_stdout_file(stdout) + job_args
+            ["bsub"]
+            + self.set_service_queue(partition)
+            + self.set_group(job_id)
+            + self.set_stdout_file(stdout)
+            + job_args
         )
         bsub_command.extend(command)
         current_env = os.environ.copy()
@@ -72,6 +80,7 @@ class LSFClient(BatchClient):
             )
         return self._parse_procid(process.stdout)
 
+    @userswitch
     def terminate(self, job_id):
         """
         Kill LSF job
@@ -99,10 +108,10 @@ class LSFClient(BatchClient):
 
     def set_memlimit(self, mem_limit, default=None):
         mem_limit_args = []
-        if default:
-            mem_limit = ["-M", default]
         if mem_limit:
-            mem_limit_args = ["-M", mem_limit]
+            return ["-M", mem_limit]
+        if default:
+            mem_limit_args = ["-M", default]
         return mem_limit_args
 
     def set_num_tasks(self, num_tasks, default=None):
@@ -116,6 +125,15 @@ class LSFClient(BatchClient):
             num_task_args = ["-n", num_tasks]
         return num_task_args
 
+    def get_env_export_flag(self):
+        """
+        Flag to enable env propagation for the batch jobs
+
+        Returns:
+            str: CLI flag to enable env propagation
+        """
+        return "-env all"
+
     def set_group(self, group_id):
         group_id_args = []
         if group_id:
@@ -128,10 +146,13 @@ class LSFClient(BatchClient):
         else:
             return ["-oo", self.logfileName]
 
-    def set_service_queue(self):
+    def set_service_queue(self, partition):
+        """
+        Set the service queue parameter
+        """
         service_queue_args = []
-        if settings.LSF_SLA:
-            service_queue_args = ["-sla", settings.LSF_SLA]
+        if partition:
+            service_queue_args = ["-sla", partition]
         return service_queue_args
 
     def _parse_bjobs(self, bjobs_output_str):
@@ -250,6 +271,7 @@ class LSFClient(BatchClient):
                 return Status.UNKNOWN, error_message.strip()
         raise FetchStatusException(f"Failed to get status for job {external_job_id}")
 
+    @userswitch
     def status(self, external_job_id):
         """Parse LSF status
 
@@ -271,6 +293,7 @@ class LSFClient(BatchClient):
         status = self._parse_status(process.stdout, external_job_id)
         return status
 
+    @userswitch
     def suspend(self, job_id):
         """
         Suspend LSF job
@@ -286,6 +309,7 @@ class LSFClient(BatchClient):
             return True
         return False
 
+    @userswitch
     def resume(self, job_id):
         """
         Resume LSF job

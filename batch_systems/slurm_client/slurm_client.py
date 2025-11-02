@@ -6,10 +6,11 @@ import os
 import re
 import subprocess
 import logging
-from django.conf import settings
 from orchestrator.models import Status
 from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
 from batch_systems.batch_system import BatchClient
+from submitter.userswitcher import userswitch
+from getpass import getuser
 
 
 class SLURMClient(BatchClient):
@@ -20,15 +21,17 @@ class SLURMClient(BatchClient):
         logger (logging): logging module
     """
 
-    def __init__(self):
+    def __init__(self, user=getuser()):
         """
         init function
         """
         self.logger = logging.getLogger("SLURM_client")
         self.logfileName = "slurm.log"
         self.name = "slurm"
+        self.user = user
 
-    def submit(self, command, job_args, stdout, job_id, env={}):
+    @userswitch
+    def submit(self, command, job_args, stdout, job_id, partition, env={}):
         """
         Submit command to SLURM and store log in stdout
 
@@ -37,6 +40,7 @@ class SLURMClient(BatchClient):
             job_args (list): Additional options for leader sbatch
             stdout (str): log file path
             job_id (str): job_id
+            partition (str): the batch system partition to use
             env (dict): Environment variables
 
         Returns:
@@ -48,7 +52,7 @@ class SLURMClient(BatchClient):
 
         sbatch_command = (
             ["sbatch"]
-            + self.set_service_queue()
+            + self.set_service_queue(partition)
             + self.set_group(job_id)
             + self.set_stdout_file(stdout)
             + job_args
@@ -76,6 +80,7 @@ class SLURMClient(BatchClient):
             )
         return self._parse_procid(process.stdout)
 
+    @userswitch
     def terminate(self, job_id):
         """
         Kill SLURM job
@@ -105,10 +110,10 @@ class SLURMClient(BatchClient):
 
     def set_memlimit(self, mem_limit, default=None):
         mem_limit_args = []
-        if default:
-            mem_limit = [f"--mem={default}G"]
         if mem_limit:
-            mem_limit_args = [f"--mem={mem_limit}G"]
+            return [f"--mem={mem_limit}G"]
+        if default:
+            mem_limit_args = [f"--mem={default}G"]
         return mem_limit_args
 
     def set_num_tasks(self, num_tasks, default=None):
@@ -122,6 +127,15 @@ class SLURMClient(BatchClient):
             num_task_args = [f"--cpus-per-task={num_tasks}"]
         return num_task_args
 
+    def get_env_export_flag(self):
+        """
+        Flag to enable env propagation for the batch jobs
+
+        Returns:
+            str: CLI flag to enable env propagation
+        """
+        return "--export=ALL"
+
     def set_group(self, group_id):
         group_id_args = []
         if group_id:
@@ -133,10 +147,10 @@ class SLURMClient(BatchClient):
             return [f"--output={stdout_file}"]
         return [f"--output={self.logfileName}"]
 
-    def set_service_queue(self):
+    def set_service_queue(self, partition):
         service_queue_args = []
-        if settings.SLURM_PARTITION:
-            service_queue_args = [f"--partition={settings.SLURM_PARTITION}"]
+        if partition:
+            service_queue_args = [f"--partition={partition}"]
         return service_queue_args
 
     def _parse_sacct(self, sacct_output_str, external_job_id):
@@ -271,6 +285,7 @@ class SLURMClient(BatchClient):
 
         raise FetchStatusException(f"Failed to get status for job {external_job_id}")
 
+    @userswitch
     def status(self, external_job_id):
         """Parse SLURM status
 
@@ -286,6 +301,7 @@ class SLURMClient(BatchClient):
         status = self._parse_status(process.stdout, str(external_job_id))
         return status
 
+    @userswitch
     def _get_job_list(self, job_id):
         """Get slurm job ids in a group
 
@@ -306,6 +322,7 @@ class SLURMClient(BatchClient):
                 slurm_jobs.append(single_slurm_id)
         return slurm_jobs
 
+    @userswitch
     def suspend(self, job_id):
         """
         Suspend SLURM job
@@ -323,6 +340,7 @@ class SLURMClient(BatchClient):
             return True
         return False
 
+    @userswitch
     def resume(self, job_id):
         """
         Resume SLURM job

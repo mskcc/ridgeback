@@ -190,6 +190,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 RABBITMQ_USERNAME = os.environ.get("RIDGEBACK_RABBITMQ_USERNAME", "guest")
 RABBITMQ_PASSWORD = os.environ.get("RIDGEBACK_RABBITMQ_PASSWORD", "guest")
 RABBITMQ_URL = os.environ.get("RIDGEBACK_RABBITMQ_URL", "localhost")
+ENABLE_USER_SWITCH = True if os.environ.get("RIDGEBACK_ENABLE_USER_SWITCH", "true") != "false" else False
 
 CELERY_BROKER_URL = os.environ.get(
     "CELERY_BROKER_URL",
@@ -241,40 +242,48 @@ PIPELINE_CONFIG = {
         "JOB_STORE_ROOT": os.environ["ARGOS_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["ARGOS_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["ARGOS_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("ARGOS_PARTITION", None),
     },
     "TEMPO": {
         "JOB_STORE_ROOT": os.environ["TEMPO_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["TEMPO_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["TEMPO_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("TEMPO_PARTITION", None),
     },
     "ACCESS": {
         "JOB_STORE_ROOT": os.environ["ACCESS_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["ACCESS_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["ACCESS_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("ACCESS_PARTITION", None),
     },
     "CMO-CH": {
         "JOB_STORE_ROOT": os.environ["CMO_CH_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["CMO_CH_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["CMO_CH_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("CMO_CH_PARTITION", None),
     },
     "ACCESS_HEME": {
         "JOB_STORE_ROOT": os.environ["ACCESS_HEME_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["ACCESS_HEME_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["ACCESS_HEME_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("ACCESS_HEME_PARTITION", None),
+    },
+    "MICROBIOME": {
+        "JOB_STORE_ROOT": os.environ["MICROBIOME_JOB_STORE_ROOT"],
+        "WORK_DIR_ROOT": os.environ["MICROBIOME_WORK_DIR_ROOT"],
+        "TMP_DIR_ROOT": os.environ["MICROBIOME_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("MICROBIOME_PARTITION", None),
     },
     "NA": {
         "JOB_STORE_ROOT": os.environ["DEFAULT_JOB_STORE_ROOT"],
         "WORK_DIR_ROOT": os.environ["DEFAULT_WORK_DIR_ROOT"],
         "TMP_DIR_ROOT": os.environ["DEFAULT_TMP_DIR_ROOT"],
+        "PARTITION": os.environ.get("DEFAULT_PARTITION", None),
     },
 }
 # Batch System settings
 
 BATCH_SYSTEM = os.environ.get("RIDGEBACK_BATCH_SYSTEM", "LSF")
-
-# SLURM settings
-
-SLURM_PARTITION = os.environ.get("RIDGEBACK_SLURM_PARTITION", None)
 
 # LSF settings
 
@@ -285,8 +294,10 @@ LSF_SLA = os.environ.get("RIDGEBACK_LSF_SLA", None)
 
 CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
-TOIL_MAX_CORES = os.environ.get("RIDGEBACK_TOIL_MAX_CORES", "24")
+TOIL_MAX_CORES = os.environ.get("RIDGEBACK_TOIL_MAX_CORES", "40")
 TOIL_DEFAULT_MEMORY = os.environ.get("RIDGEBACK_TOIL_DEFAULT_MEMORY", "8G")
+SINGLE_MACHINE_CORES = os.environ.get("RIDGEBACK_SINGLE_MACHINE_CORES", 16)
+SINGLE_MACHINE_MEMORY = os.environ.get("RIDGEBACK_SINGLE_MACHINE_MEMORY", 25)
 
 # Nextflow settings
 
@@ -316,3 +327,8 @@ SKIP_THE_QUEUE_JOBS = ("ARGOS", "ACCESS_HEME", "ACCESS", "CMO-CH")
 
 # ACCESS LEGACY INFO
 ACCESS_LEGACY_APP = os.environ.get("ACCESS_LEGACY_APP", "access-pipeline")
+ACCESS_LEGACY_CONDA_ENV = os.environ.get(
+    "ACCESS_LEGACY_CONDA_ENV", "/usersoftware/core005/access/production/V1/micromamba/envs/ACCESS/bin"
+)
+
+# SHELL_PLUS = "ipython"

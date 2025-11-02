@@ -554,12 +554,13 @@ class TasksTest(TestCase):
                 }
             },
             external_id="ext_id",
+            working_dir="/toil/work/dir/root",
             status=Status.SUBMITTED,
             metadata={"pipeline_name": "TEST"},
         )
         with self.settings(PIPELINE_CONFIG=PIPELINE_CONFIG):
             res = get_job_info_path(str(job.id))
-            self.assertEqual(res, f"/toil/work/dir/root/{str(job.id)}/.run.info")
+            self.assertEqual(res, f"{str(job.working_dir)}/.run.info")
 
     def test_permission(self):
         with tempfile.TemporaryDirectory() as temp_path:

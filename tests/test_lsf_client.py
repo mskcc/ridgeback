@@ -68,10 +68,26 @@ class TestLSFClient(TestCase):
         submit_process_obj.stdout = self.submit_response
         submit_process_obj.returncode = 0
         submit_process.return_value = submit_process_obj
+        partition = "test_partition"
+        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, partition, {})
+        expected_command = ["bsub", "-sla", partition, "-g", self.example_lsf_id, "-oo", stdout_file] + args + command
+        self.assertEqual(lsf_id, self.example_id)
+        self.assertEqual(submit_process.call_args[0][0], expected_command)
+
+    @patch("subprocess.run")
+    def test_submit_no_sla(self, submit_process):
+        """
+        Test LSF submit with no sla
+        """
+        command = ["ls"]
+        args = []
+        stdout_file = "stdout.txt"
+        submit_process_obj = Mock()
+        submit_process_obj.stdout = self.submit_response
+        submit_process_obj.returncode = 0
+        submit_process.return_value = submit_process_obj
         lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
-        expected_command = (
-            ["bsub", "-sla", settings.LSF_SLA, "-g", self.example_lsf_id, "-oo", stdout_file] + args + command
-        )
+        expected_command = ["bsub", "-g", self.example_lsf_id, "-oo", stdout_file] + args + command
         self.assertEqual(lsf_id, self.example_id)
         self.assertEqual(submit_process.call_args[0][0], expected_command)
 
@@ -87,7 +103,7 @@ class TestLSFClient(TestCase):
         submit_process_obj.stdout = self.submit_response_please_wait
         submit_process_obj.returncode = 0
         submit_process.return_value = submit_process_obj
-        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, {})
+        lsf_id = self.lsf_client.submit(command, args, stdout_file, self.example_job_id, settings.LSF_SLA, {})
         self.assertEqual(lsf_id, self.example_id)
 
     @patch("subprocess.run")

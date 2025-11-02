@@ -16,6 +16,7 @@ from batch_systems.lsf_client.lsf_client import format_lsf_job_id
 from submitter.toil_submitter import ToilJobSubmitter
 
 MAX_RUNNING_JOBS = 3
+DEFAULT_MEMLIMIT = 5
 
 
 class TestTasks(TestCase):
@@ -148,7 +149,7 @@ class TestTasks(TestCase):
             tool_walltime = 24
             memlimit = None
             inputs = {}
-            expected_job_args = "-W {}".format(walltime)
+            expected_job_args = "-W {} -M {}".format(walltime, DEFAULT_MEMLIMIT)
             jobsubmitterObject = ToilJobSubmitter(
                 job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
             )
@@ -166,7 +167,7 @@ class TestTasks(TestCase):
             tool_walltime = 24
             memlimit = None
             inputs = {}
-            expected_job_args = "--time={}".format(walltime)
+            expected_job_args = "--time={} --mem={}G".format(walltime, DEFAULT_MEMLIMIT)
             jobsubmitterObject = ToilJobSubmitter(
                 job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
             )
@@ -213,6 +214,24 @@ class TestTasks(TestCase):
             tool_args = " ".join([str(single_arg) for single_arg in tool_args_list])
             self.assertEqual(tool_args, expected_tool_args)
 
+    def test_job_args_default_memlimit_lsf(self):
+        with override_settings(BATCH_SYSTEM="LSF"):
+            job_id = str(uuid.uuid4())
+            app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
+            root_dir = "test_root"
+            resume_jobstore = None
+            walltime = None
+            tool_walltime = None
+            memlimit = None
+            inputs = {}
+            expected_leader_args = "-M {}".format(DEFAULT_MEMLIMIT)
+            jobsubmitterObject = ToilJobSubmitter(
+                job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
+            )
+            leader_args_list = jobsubmitterObject._leader_args()
+            leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
+            self.assertEqual(leader_args, expected_leader_args)
+
     def test_job_args_memlimit_lsf(self):
         with override_settings(BATCH_SYSTEM="LSF"):
             job_id = str(uuid.uuid4())
@@ -242,6 +261,24 @@ class TestTasks(TestCase):
             memlimit = 10
             inputs = {}
             expected_leader_args = "--mem={}G".format(memlimit)
+            jobsubmitterObject = ToilJobSubmitter(
+                job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
+            )
+            leader_args_list = jobsubmitterObject._leader_args()
+            leader_args = " ".join([str(single_arg) for single_arg in leader_args_list])
+            self.assertEqual(leader_args, expected_leader_args)
+
+    def test_job_args_default_memlimit_slurm(self):
+        with override_settings(BATCH_SYSTEM="SLURM"):
+            job_id = str(uuid.uuid4())
+            app = {"github": {"repository": "awesome_repo", "entrypoint": "test.cwl"}}
+            root_dir = "test_root"
+            resume_jobstore = None
+            walltime = None
+            tool_walltime = None
+            memlimit = None
+            inputs = {}
+            expected_leader_args = "--mem={}G".format(DEFAULT_MEMLIMIT)
             jobsubmitterObject = ToilJobSubmitter(
                 job_id, app, inputs, root_dir, resume_jobstore, walltime, tool_walltime, memlimit
             )

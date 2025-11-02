@@ -1,16 +1,17 @@
 from django.conf import settings
+from getpass import getuser
 import logging
 
 
-def get_batch_system():
+def get_batch_system(user=getuser()):
     if settings.BATCH_SYSTEM == "LSF":
         from batch_systems.lsf_client.lsf_client import LSFClient
 
-        return LSFClient()
+        return LSFClient(user)
     elif settings.BATCH_SYSTEM == "SLURM":
         from batch_systems.slurm_client.slurm_client import SLURMClient
 
-        return SLURMClient()
+        return SLURMClient(user)
     else:
         raise Exception(f"Batch system {settings.BATCH_SYSTEM} not supported, please use either LSF or SLURM")
 
@@ -23,15 +24,16 @@ class BatchClient(object):
         logger (logging): logging module
     """
 
-    def __init__(self):
+    def __init__(self, user=getuser()):
         """
         init function
         """
         self.logger = logging.getLogger("BATCH_client")
         self.logfileName = "batch.log"
         self.name = "batch"
+        self.user = user
 
-    def submit(self, command, job_args, stdout, job_id, env={}):
+    def submit(self, command, job_args, stdout, job_id, partition, env={}):
         """
         Submit command to bath system and store log in stdout
 
@@ -40,6 +42,7 @@ class BatchClient(object):
             job_args (list): Additional options for leader job
             stdout (str): log file path
             job_id (str): job_id
+            partition (str): the batch system partition to use
             env (dict): Environment variables
 
         Returns:
@@ -78,6 +81,14 @@ class BatchClient(object):
         num_task_args = []
         return num_task_args
 
+    def get_env_export_flag(self):
+        """
+        Flag to enable env propagation for the batch jobs
+
+        Returns:
+            str: CLI flag to enable env propagation
+        """
+
     def set_group(self, group_id):
         """
         Set the group args of the batch job
@@ -91,7 +102,7 @@ class BatchClient(object):
         """
         return []
 
-    def set_service_queue(self):
+    def set_service_queue(self, partition):
         """
         Set the service queue parameter
         """
