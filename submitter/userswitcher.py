@@ -28,7 +28,7 @@ def userscript():
     with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
         try:
             env_path = sys.argv[1]
-            with open(env_path, "r") as env_file:
+            with open(env_path, "r", encoding="utf8") as env_file:
                 env_json = json.load(env_file)
             for single_env in env_json:
                 if single_env == "PATH":
@@ -63,7 +63,7 @@ def userswitch(func):
             proc_command = ["dzdo", "--login", "-u", f"{user}", sys.executable, Path(__file__).absolute()]
         try:
             job_func = dill.dumps((func, args, kwargs))
-            with tempfile.NamedTemporaryFile(mode="w+", dir="/tmp") as tmp_env_file:
+            with tempfile.NamedTemporaryFile(mode="w+", dir="/tmp", encoding="utf8") as tmp_env_file:
                 os.chmod(tmp_env_file.name, 0o755)
                 json.dump(current_env, tmp_env_file)
                 dzdo_process = subprocess.run(
