@@ -29,7 +29,7 @@ def userscript():
         try:
             env_path = sys.argv[1]
             with open(env_path, "r") as env_file:
-                env_json = json.loads(env_file)
+                env_json = json.load(env_file)
             for single_env in env_json:
                 if single_env == "PATH":
                     os.environ[single_env] = env_json[single_env]
