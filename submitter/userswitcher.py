@@ -63,7 +63,7 @@ def userswitch(func):
             proc_command = ["dzdo", "--login", "-u", f"{user}", sys.executable, Path(__file__).absolute()]
         try:
             job_func = dill.dumps((func, args, kwargs))
-            with tempfile.NamedTemporaryFile(mode="w+") as tmp_env_file:
+            with tempfile.NamedTemporaryFile(mode="w+", dir="/tmp") as tmp_env_file:
                 os.chmod(tmp_env_file.name, 0o755)
                 json.dump(current_env, tmp_env_file)
                 dzdo_process = subprocess.run(
