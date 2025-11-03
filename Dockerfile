@@ -19,6 +19,9 @@ RUN apt-get update \
      # Install alternative ssl library
         && wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb \
         && dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb \
+      # Install libffi6 for local python commands
+        && wget http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb \
+        && dpkg -i libffi6_3.2.1-8_amd64.deb \
     # Clean up image
         && rm -rf /var/lib/apt/lists/*
 
