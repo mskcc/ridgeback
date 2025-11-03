@@ -10,7 +10,7 @@ from functools import wraps
 from getpass import getuser
 import django
 import json
-import zlib
+import tempfile
 from django.conf import settings
 
 log = logging.getLogger(__name__)
@@ -27,9 +27,9 @@ def userscript():
     output = None
     with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
         try:
-            env_str_encode = sys.argv[1]
-            env_str = zlib.decompress(env_str_encode).decode()
-            env_json = json.loads(env_str)
+            env_path = sys.argv[1]
+            with open(env_path, "r") as env_file:
+                env_json = json.loads(env_file)
             for single_env in env_json:
                 if single_env == "PATH":
                     os.environ[single_env] = env_json[single_env]
@@ -63,19 +63,20 @@ def userswitch(func):
             proc_command = ["dzdo", "--login", "-u", f"{user}", sys.executable, Path(__file__).absolute()]
         try:
             job_func = dill.dumps((func, args, kwargs))
-            env_str = json.dumps(current_env)
-            env_str_encode = zlib.compress(env_str.encode())
-            dzdo_process = subprocess.run(
-                proc_command + [env_str_encode], input=job_func, check=True, capture_output=True, env=current_env
-            )
-            output, stdout = dill.loads(dzdo_process.stdout)
-            func_stdout = stdout.decode().strip()
-            func_stderr = dzdo_process.stderr.decode().strip()
-            if func_stdout:
-                log.info(func_stdout)
-            if func_stderr:
-                log.error(func_stderr)
-            return output
+            with tempfile.NamedTemporaryFile(mode="w+") as tmp_env_file:
+                os.chmod(tmp_env_file.name, 0o755)
+                json.dump(current_env, tmp_env_file)
+                dzdo_process = subprocess.run(
+                    proc_command + [tmp_env_file.name], input=job_func, check=True, capture_output=True, env=current_env
+                )
+                output, stdout = dill.loads(dzdo_process.stdout)
+                func_stdout = stdout.decode().strip()
+                func_stderr = dzdo_process.stderr.decode().strip()
+                if func_stdout:
+                    log.info(func_stdout)
+                if func_stderr:
+                    log.error(func_stderr)
+                return output
         except subprocess.CalledProcessError as e:
             stdout_str = ""
             stderr_str = ""
