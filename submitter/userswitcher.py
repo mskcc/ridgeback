@@ -16,10 +16,6 @@ log = logging.getLogger(__name__)
 
 
 def userscript():
-
-    ridgeback_path = os.environ.get("RIDGEBACK_PATH")
-    sys.path.append(ridgeback_path)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ridgeback.settings")
     stdout_buffer = io.StringIO()
     stderr_buffer = io.StringIO()
     exception_raised = False
@@ -34,6 +30,9 @@ def userscript():
                     os.environ[single_env] = env_dict[single_env]
                 else:
                     os.environ.setdefault(single_env, env_dict[single_env])
+            ridgeback_path = env_dict["RIDGEBACK_PATH"]
+            sys.path.append(ridgeback_path)
+            os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ridgeback.settings")
             django.setup()
             func_data = sys.stdin.buffer.read()
             func, args, kwargs = dill.loads(func_data)
