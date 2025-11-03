@@ -107,7 +107,7 @@ x-ridgeback_celery: &ridgeback_celery
       read_only: true
   entrypoint: ["/bin/bash", "-c"]
   healthcheck:
-    test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status || exit 1"
+    test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status || exit 1"
     interval: 30s
     timeout: 3s
     retries: 3
@@ -387,7 +387,7 @@ services:
           --concurrency=30 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}
     healthcheck:
-      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE} || exit 1"
+      test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE} || exit 1"
       interval: 30s
       timeout: 3s
       retries: 3
@@ -411,7 +411,7 @@ services:
           --concurrency=10 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}
     healthcheck:
-      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE} || exit 1"
+      test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE} || exit 1"
       interval: 30s
       timeout: 3s
       retries: 3
@@ -434,7 +434,7 @@ services:
           --concurrency=10 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE}
     healthcheck:
-      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE} || exit 1"
+      test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE} || exit 1"
       interval: 30s
       timeout: 3s
       retries: 3
@@ -457,7 +457,7 @@ services:
           --concurrency=5 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE}
     healthcheck:
-      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE} || exit 1"
+      test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE} || exit 1"
       interval: 30s
       timeout: 3s
       retries: 3
@@ -480,7 +480,7 @@ services:
           --concurrency=10 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}
     healthcheck:
-      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE} || exit 1"
+      test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE} || exit 1"
       interval: 30s
       timeout: 3s
       retries: 3
@@ -503,7 +503,7 @@ services:
           --concurrency=2 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE}
     healthcheck:
-      test: "source ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE} || exit 1"
+      test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE} || exit 1"
       interval: 30s
       timeout: 3s
       retries: 3
