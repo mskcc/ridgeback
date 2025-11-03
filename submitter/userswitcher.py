@@ -9,7 +9,6 @@ from pathlib import Path
 from functools import wraps
 from getpass import getuser
 import django
-import json
 import tempfile
 from django.conf import settings
 
@@ -29,12 +28,12 @@ def userscript():
         try:
             env_path = sys.argv[1]
             with open(env_path, "r", encoding="utf8") as env_file:
-                env_json = json.load(env_file)
-            for single_env in env_json:
+                env_dict = dill.load(env_file)
+            for single_env in env_dict:
                 if single_env == "PATH":
-                    os.environ[single_env] = env_json[single_env]
+                    os.environ[single_env] = env_dict[single_env]
                 else:
-                    os.environ.setdefault(single_env, env_json[single_env])
+                    os.environ.setdefault(single_env, env_dict[single_env])
             django.setup()
             func_data = sys.stdin.buffer.read()
             func, args, kwargs = dill.loads(func_data)
@@ -65,7 +64,7 @@ def userswitch(func):
             job_func = dill.dumps((func, args, kwargs))
             with tempfile.NamedTemporaryFile(mode="w+", dir="/tmp", encoding="utf8") as tmp_env_file:
                 os.chmod(tmp_env_file.name, 0o755)
-                json.dump(current_env, tmp_env_file)
+                dill.dump(current_env, tmp_env_file)
                 dzdo_process = subprocess.run(
                     proc_command + [tmp_env_file.name], input=job_func, check=True, capture_output=True, env=current_env
                 )
