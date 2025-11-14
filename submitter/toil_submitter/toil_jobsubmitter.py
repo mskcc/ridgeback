@@ -90,10 +90,7 @@ class ToilJobSubmitter(JobSubmitter):
         env["TMPDIR"] = self.job_tmp_dir
         env[self.batch_system_args_env] = toil_batch_system_args.strip()
         if settings.ACCESS_LEGACY_APP in self.app.github.lower():
-            env["PATH"] = "{0}:{1}".format(settings.ACCESS_LEGACY_CONDA_ENV, os.environ.get("PATH"))
-            env[self.batch_system_args_env] = " ".join(
-                [env[self.batch_system_args_env], self.batch_system.get_env_export_flag()]
-            )
+            env["PATH"] = f"{settings.ACCESS_LEGACY_CONDA_ENV}:{os.environ.get('PATH')}"
         return command_line, self._leader_args(), log_path, self.job_id, self.partition, env
 
     def get_commandline_status(self, cache):
@@ -233,59 +230,7 @@ class ToilJobSubmitter(JobSubmitter):
 
     def _command_line(self):
         single_machine = any([w in self.app.github.lower() for w in self.single_machine_mode_workflows])
-        if settings.ACCESS_LEGACY_APP in self.app.github.lower():
-            """
-            Start ACCESS-specific code
-            """
-            command_line = [
-                "toil-cwl-runner",
-                "--logLevel=INFO",
-                "--no-container",
-                "--logFile",
-                "toil_log.log",
-                "--batchSystem",
-                self.batch_system.name,
-                "--disable-user-provenance",
-                "--disable-host-provenance",
-                "--cleanWorkDir",
-                "onSuccess",
-                "--disableCaching",
-                "--preserve-environment",
-                "PATH",
-                "TMPDIR",
-                "PWD",
-                "_JAVA_OPTIONS",
-                "PYTHONPATH",
-                "TEMP",
-                self.batch_system_args_env,
-                "PWD",
-                "TOIL_SLURM_ARGS",
-                "--disableChaining",
-                "--maxCores",
-                "24",
-                "--maxMemory",
-                "256G",
-                "--defaultMemory",
-                "10G",
-                "--defaultDisk",
-                "20G",
-                "--not-strict",
-                "--runCwlInternalJobsOnWorkers",
-                "--jobStore",
-                self.job_store_dir,
-                "--tmpdir-prefix",
-                self.job_tmp_dir,
-                "--workDir",
-                self.job_work_dir,
-                "--outdir",
-                self.job_outputs_dir,
-                "--maxLocalJobs",
-                "500",
-            ]
-            """
-            End ACCESS-specific code
-            """
-        elif single_machine:
+        if single_machine:
             command_line = [
                 settings.CWLTOIL,
                 "--singularity",
