@@ -44,7 +44,7 @@ All workers share the anchor `x-ridgeback_celery` for common settings (image, us
 
 All depend on PostgreSQL, Memcached, RabbitMQ, and `ridgeback_celery_beat` for health.
 
-### 5. Auxiliary Services
+### 3. Auxiliary Services
 
 | Service               | Image                               | Purpose                                     |
 | --------------------- | ----------------------------------- | ------------------------------------------- |
@@ -53,7 +53,7 @@ All depend on PostgreSQL, Memcached, RabbitMQ, and `ridgeback_celery_beat` for h
 
 Both depend on the beat and command‑queue workers.
 
-### 6. Network
+### 4. Network
 
 - **`voyager_net`** – Bridge network shared by all services and also [Beagle](https://github.com/mskcc/beagle)
 
