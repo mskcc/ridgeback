@@ -1,4 +1,4 @@
-# Ridgeback Docker‑Compose Overview
+# Ridgeback Docker Compose Overview
 
 This document explains the `compose.yml` configuration used to run Ridgeback. It covers each service, its purpose, key environment variables, and how the components interact.
 
