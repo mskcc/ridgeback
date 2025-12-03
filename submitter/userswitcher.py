@@ -10,9 +10,29 @@ from functools import wraps
 from getpass import getuser
 import django
 import tempfile
+import psutil
+import signal
+import atexit
+
 from django.conf import settings
 
 log = logging.getLogger(__name__)
+
+
+def kill_proc_tree():
+    current_pid = os.getpid()
+    sig = signal.SIGTERM
+    main = psutil.Process(current_pid)
+    children = main.children(recursive=True)
+    for child in children:
+        try:
+            child.send_signal(sig)
+        except psutil.NoSuchProcess:
+            pass
+    psutil.wait_procs(children, timeout=5)
+
+
+atexit.register(kill_proc_tree)
 
 
 def userscript():
@@ -65,7 +85,13 @@ def userswitch(func):
                 os.chmod(tmp_env_file.name, 0o755)
                 dill.dump(current_env, tmp_env_file)
                 dzdo_process = subprocess.run(
-                    proc_command + [tmp_env_file.name], input=job_func, check=True, capture_output=True, env=current_env
+                    proc_command + [tmp_env_file.name],
+                    input=job_func,
+                    check=True,
+                    capture_output=True,
+                    env=current_env,
+                    start_new_session=True,
+                    timeout=43200,
                 )
                 output, stdout = dill.loads(dzdo_process.stdout)
                 func_stdout = stdout.decode().strip()
@@ -75,6 +101,26 @@ def userswitch(func):
                 if func_stderr:
                     log.error(func_stderr)
                 return output
+        except subprocess.TimeoutExpired as timout_err:
+            stdout_str = ""
+            stderr_str = ""
+            try:
+                stderr = timout_err.stderr
+                if stderr:
+                    stderr_str = stderr.decode().strip()
+                output, stdout = dill.loads(timout_err.output)
+                if stdout:
+                    stdout_str = stdout.decode().strip()
+            except Exception:
+                stdout_str = "NA"
+            exception_message = f"""
+            Timeout error while userswitching:
+            USER: {user}
+            Timeout after {timout_err.timeout} seconds.
+            Output: {stdout_str}
+            Error: {stderr_str}
+            """
+            raise Exception(exception_message)
         except subprocess.CalledProcessError as e:
             stdout_str = ""
             stderr_str = ""
@@ -101,6 +147,8 @@ def userswitch(func):
             {e.filename} not found.
             """
             raise Exception(exception_message)
+        finally:
+            kill_proc_tree()
 
     return dzdo_wrapper
 
