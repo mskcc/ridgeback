@@ -109,7 +109,7 @@ x-ridgeback_celery: &ridgeback_celery
   healthcheck:
     test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status || exit 1"
     interval: 30s
-    timeout: 3s
+    timeout: 10s
     retries: 3
   depends_on:
     ridgeback_postgres:
@@ -204,7 +204,7 @@ services:
           "sh -c 'pg_isready -U ${RIDGEBACK_DB_USERNAME} -d ${RIDGEBACK_DB_NAME}'",
         ]
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
     depends_on:
       - ridgeback_create_volumes
@@ -220,7 +220,7 @@ services:
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "11211"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
   ridgeback_rabbitmq:
     image: rabbitmq:4.0.6-management-alpine
@@ -243,7 +243,7 @@ services:
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_running"]
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
     depends_on:
       - ridgeback_create_volumes
@@ -315,7 +315,7 @@ services:
       test:
         ["CMD-SHELL", "curl -sSf http://localhost:${RIDGEBACK_PORT}/ || exit 1"]
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
     depends_on:
       ridgeback_postgres:
@@ -387,9 +387,9 @@ services:
           --concurrency=30 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}
     healthcheck:
-      test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE} || exit 1"
+      test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}"
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
   ridgeback_celery_action_queue:
     <<: *ridgeback_celery
@@ -413,7 +413,7 @@ services:
     healthcheck:
       test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE} || exit 1"
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
   ridgeback_celery_check_status_queue:
     <<: *ridgeback_celery
@@ -436,7 +436,7 @@ services:
     healthcheck:
       test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE} || exit 1"
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
   ridgeback_celery_submit_job_queue:
     <<: *ridgeback_celery
@@ -459,7 +459,7 @@ services:
     healthcheck:
       test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE} || exit 1"
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
   ridgeback_celery_set_permission_queue:
     <<: *ridgeback_celery
@@ -482,7 +482,7 @@ services:
     healthcheck:
       test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE} || exit 1"
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
   ridgeback_celery_cleanup_queue:
     <<: *ridgeback_celery
@@ -505,7 +505,7 @@ services:
     healthcheck:
       test: ". ${RIDGEBACK_VENV}/bin/activate; celery --workdir ${RIDGEBACK_PATH} -A orchestrator status -d celery@ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE} || exit 1"
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
   ridgeback_logrotate:
     image: mskcc/voyager-compose-utils:1.0.1
@@ -539,7 +539,7 @@ services:
     healthcheck:
       test: "find /logs/last_completed_logrotate_cron -type f -mtime -2 | read"
       interval: 12h
-      timeout: 5h
+      timeout: 10s
       retries: 3
     depends_on:
       ridgeback_celery_beat:
@@ -570,7 +570,7 @@ services:
     healthcheck:
       test: "find /logs/last_completed_db_backup_cron -type f -mtime -2 | read"
       interval: 12h
-      timeout: 5h
+      timeout: 10s
       retries: 3
     depends_on:
       ridgeback_celery_beat:
