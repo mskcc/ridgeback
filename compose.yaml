@@ -54,6 +54,14 @@ x-ridgeback_celery: &ridgeback_celery
     - ${CLUSTER_PYTHON_INCLUDE_MOUNT}:${CLUSTER_PYTHON_INCLUDE_MOUNT}
     - ${CLUSTER_CODE_PATH:-/dev/null}:${CLUSTER_CODE_PATH:-/dev/null}
     - type: bind
+      source: /etc/profile
+      target: /etc/profile
+      read_only: true
+    - type: bind
+      source: /etc/bashrc
+      target: /etc/bashrc
+      read_only: true
+    - type: bind
       source: ${SLURM_ETC}
       target: ${SLURM_ETC}
       read_only: true
