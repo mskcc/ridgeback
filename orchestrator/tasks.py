@@ -3,6 +3,8 @@ import json
 import shutil
 import logging
 import tempfile
+from pathlib import Path
+from getpass import getuser
 from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
@@ -493,7 +495,10 @@ def set_permission(job):
         except Exception:
             raise TypeError("Could not convert %s to permission octal" % str(permission_str))
         try:
-            os.chmod(permissions_dir, permission_octal)
+            if Path(permissions_dir).owner() == getuser():
+                os.chmod(permissions_dir, permission_octal)
+            else:
+                logger.debug(f"Skipping permission change for {permissions_dir} as it is not owned by {getuser()}")
             for root, dirs, files in os.walk(permissions_dir):
                 for single_dir in dirs:
                     if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
