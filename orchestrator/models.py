@@ -176,7 +176,7 @@ class Job(BaseModel):
     external_id = models.CharField(max_length=50, null=True, blank=True)
     base_dir = models.CharField(max_length=1000)
     root_dir = models.CharField(max_length=1000)
-    root_permission = models.CharField(default=get_default_for_job("root_permission"), max_length=3)
+    root_permission = models.CharField(default=get_default_for_job("root_permission"), max_length=4)
     user = models.CharField(default=getuser(), max_length=100)
     output_uid = models.IntegerField(default=get_default_for_job("output_gid"), editable=True)
     output_gid = models.IntegerField(default=get_default_for_job("output_gid"), editable=True)
