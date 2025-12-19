@@ -393,7 +393,6 @@ services:
           -Q ${RIDGEBACK_COMMAND_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_COMMAND_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --max-tasks-per-child=30 \
           --concurrency=30 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}
     healthcheck:
@@ -418,7 +417,6 @@ services:
           -Q ${RIDGEBACK_ACTION_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_ACTION_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --max-tasks-per-child=30 \
           --concurrency=10 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}
     healthcheck:
@@ -442,7 +440,6 @@ services:
           -Q ${RIDGEBACK_CHECK_STATUS_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_CHECK_STATUS_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --max-tasks-per-child=30 \
           --concurrency=10 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE}
     healthcheck:
@@ -466,7 +463,6 @@ services:
           -Q ${RIDGEBACK_SUBMIT_JOB_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_SUBMIT_JOB_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --max-tasks-per-child=30 \
           --concurrency=5 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE}
     healthcheck:
@@ -490,7 +486,6 @@ services:
           -Q ${RIDGEBACK_SET_PERMISSIONS_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_SET_PERMISSIONS_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --max-tasks-per-child=30 \
           --concurrency=10 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}
     healthcheck:
@@ -514,7 +509,6 @@ services:
           -Q ${RIDGEBACK_CLEANUP_QUEUE} \
           -f /ridgeback/celery/logs/${RIDGEBACK_CLEANUP_QUEUE}.log \
           --pidfile $$PIDFILE \
-          --max-tasks-per-child=30 \
           --concurrency=2 \
           -n ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE}
     healthcheck:
