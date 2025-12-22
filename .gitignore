@@ -6,3 +6,4 @@ conda/
 toil
 .toil/
 *.sif
+.env

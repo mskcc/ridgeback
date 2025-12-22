@@ -68,6 +68,13 @@ The default rabbitmq queue should be the same queue set in orchestrator/celery.p
 | :-------------------------------------- | :----------------- | :------ |
 | SINGULARITYENV_RIDGEBACK_LSF_STACKLIMIT | stacklimit for LSF | None    |
 
+##### SLURM
+
+| Variable                                 | Description                  |
+| :--------------------------------------- | :--------------------------- |
+| SINGULARITYENV_SLURM_BINDIR              | The path to the lsf bin dir  |
+| SINGULARITYENV_RIDGEBACK_SLURM_PARTITION | Partition for the SLURM jobs |
+
 ##### Celery
 
 | Optional Variable                        | Description                          | Default |
