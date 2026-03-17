@@ -333,7 +333,7 @@ ACCESS_LEGACY_APP_ENV_MAP = json.loads(
         json.dumps(
             {
                 "access-pipeline": "/usersoftware/core005/access/production/V1/micromamba/envs/ACCESS-voyager/bin",
-                "access_heme": "/usersoftware/core005/accessH/development/envs/ACCESS-HEME-voyager/bin"
+                "access_heme": "/usersoftware/core005/accessH/development/envs/ACCESS-HEME-voyager/bin",
             }
         ),
     )
