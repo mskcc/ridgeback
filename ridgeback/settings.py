@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
+import json
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -326,9 +327,16 @@ MAX_HANGING_HOURS = os.environ.get("RIDGEBACK_MAX_HANGING_HOURS", "5")
 SKIP_THE_QUEUE_JOBS = ("ARGOS", "ACCESS_HEME", "ACCESS", "CMO-CH")
 
 # ACCESS LEGACY INFO
-ACCESS_LEGACY_APP = os.environ.get("ACCESS_LEGACY_APP", "access-pipeline")
-ACCESS_LEGACY_CONDA_ENV = os.environ.get(
-    "ACCESS_LEGACY_CONDA_ENV", "/usersoftware/core005/access/production/V1/micromamba/envs/ACCESS-voyager/bin"
+ACCESS_LEGACY_APP_ENV_MAP = json.loads(
+    os.environ.get(
+        "ACCESS_LEGACY_APP_ENV_MAP",
+        json.dumps(
+            {
+                "access-pipeline": "/usersoftware/core005/access/production/V1/micromamba/envs/ACCESS-voyager/bin",
+                "access_heme": "/usersoftware/core005/accessH/development/envs/ACCESS-HEME-voyager/bin"
+            }
+        ),
+    )
 )
 
 SHELL_PLUS = "ipython"
