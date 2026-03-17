@@ -89,8 +89,11 @@ class ToilJobSubmitter(JobSubmitter):
         env["TMP"] = self.job_tmp_dir
         env["TMPDIR"] = self.job_tmp_dir
         env[self.batch_system_args_env] = toil_batch_system_args.strip()
-        if settings.ACCESS_LEGACY_APP in self.app.github.lower():
-            env["PATH"] = f"{settings.ACCESS_LEGACY_CONDA_ENV}:{os.environ.get('PATH')}"
+        github_lower = self.app.github.lower()
+        for app_key, conda_env in settings.ACCESS_LEGACY_APP_ENV_MAP.items():
+            if app_key in github_lower:
+                env["PATH"] = f"{conda_env}:{os.environ.get('PATH')}"
+                break
         return command_line, self._leader_args(), log_path, self.job_id, self.partition, env
 
     def get_commandline_status(self, cache):
