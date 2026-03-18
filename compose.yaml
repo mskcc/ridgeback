@@ -3,6 +3,7 @@ name: "Ridgeback Services ${RIDGEBACK_DEPLOYMENT}"
 x-ridgeback_celery: &ridgeback_celery
   image: mskcc/ridgeback:${RIDGEBACK_VERSION}
   restart: always
+  init: true
   user: "${DOCKER_UID}:${DOCKER_GID}"
   networks:
     - voyager_net
