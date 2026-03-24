@@ -7,16 +7,18 @@ import re
 import subprocess
 import json
 import logging
-from django.conf import settings
 from orchestrator.models import Status
 from orchestrator.exceptions import FailToSubmitToSchedulerException, FetchStatusException
+from batch_systems.batch_system import BatchClient
+from submitter.userswitcher import userswitch
+from getpass import getuser
 
 
 def format_lsf_job_id(job_id):
     return "/{}".format(job_id)
 
 
-class LSFClient(object):
+class LSFClient(BatchClient):
     """
     Client for LSF
 
@@ -24,31 +26,38 @@ class LSFClient(object):
         logger (logging): logging module
     """
 
-    def __init__(self):
+    def __init__(self, user=getuser()):
         """
         init function
         """
         self.logger = logging.getLogger("LSF_client")
+        self.logfileName = "lsf.log"
+        self.name = "lsf"
+        self.user = user
 
-    def submit(self, command, job_args, stdout, job_id, env={}):
+    @userswitch
+    def submit(self, command, job_args, stdout, job_id, partition, env={}):
         """
         Submit command to LSF and store log in stdout
 
         Args:
-            command (str): command to submit
+            command (list): command to submit
             job_args (list): Additional options for leader bsub
             stdout (str): log file path
             job_id (str): job_id
+            partition (str): the batch system partition to use
             env (dict): Environment variables
 
         Returns:
             int: lsf job id
         """
-        if settings.LSF_SLA:
-            bsub_command = ["bsub", "-sla", settings.LSF_SLA, "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
-        else:
-            bsub_command = ["bsub", "-g", format_lsf_job_id(job_id), "-oo", stdout] + job_args
-
+        bsub_command = (
+            ["bsub"]
+            + self.set_service_queue(partition)
+            + self.set_group(job_id)
+            + self.set_stdout_file(stdout)
+            + job_args
+        )
         bsub_command.extend(command)
         current_env = os.environ.copy()
         for k, v in env.items():
@@ -71,6 +80,7 @@ class LSFClient(object):
             )
         return self._parse_procid(process.stdout)
 
+    @userswitch
     def terminate(self, job_id):
         """
         Kill LSF job
@@ -88,7 +98,64 @@ class LSFClient(object):
             return True
         return False
 
-    def parse_bjobs(self, bjobs_output_str):
+    def set_walltime(self, expected_limit, hard_limit):
+        walltime_args = []
+        if expected_limit:
+            walltime_args = walltime_args + ["-We", str(expected_limit)]
+        if hard_limit:
+            walltime_args = walltime_args + ["-W", str(hard_limit)]
+        return walltime_args
+
+    def set_memlimit(self, mem_limit, default=None):
+        mem_limit_args = []
+        if mem_limit:
+            return ["-M", mem_limit]
+        if default:
+            mem_limit_args = ["-M", default]
+        return mem_limit_args
+
+    def set_num_tasks(self, num_tasks, default=None):
+        """
+        Set the number of tasks for the batch job
+        """
+        num_task_args = []
+        if default:
+            num_task_args = ["-n", default]
+        if num_tasks:
+            num_task_args = ["-n", num_tasks]
+        return num_task_args
+
+    def get_env_export_flag(self):
+        """
+        Flag to enable env propagation for the batch jobs
+
+        Returns:
+            str: CLI flag to enable env propagation
+        """
+        return "-env all"
+
+    def set_group(self, group_id):
+        group_id_args = []
+        if group_id:
+            group_id_args = ["-g", format_lsf_job_id(group_id)]
+        return group_id_args
+
+    def set_stdout_file(self, stdout_file):
+        if stdout_file:
+            return ["-oo", stdout_file]
+        else:
+            return ["-oo", self.logfileName]
+
+    def set_service_queue(self, partition):
+        """
+        Set the service queue parameter
+        """
+        service_queue_args = []
+        if partition:
+            service_queue_args = ["-sla", partition]
+        return service_queue_args
+
+    def _parse_bjobs(self, bjobs_output_str):
         """
         Parse the output of bjobs into a descriptive dict
 
@@ -191,7 +258,7 @@ class LSFClient(object):
         Returns:
             tuple: (Ridgeback Status int, extra info)
         """
-        bjobs_records = self.parse_bjobs(stdout)
+        bjobs_records = self._parse_bjobs(stdout)
         if bjobs_records:
             process_output = bjobs_records[0]
             if "STAT" in process_output:
@@ -204,6 +271,7 @@ class LSFClient(object):
                 return Status.UNKNOWN, error_message.strip()
         raise FetchStatusException(f"Failed to get status for job {external_job_id}")
 
+    @userswitch
     def status(self, external_job_id):
         """Parse LSF status
 
@@ -225,11 +293,12 @@ class LSFClient(object):
         status = self._parse_status(process.stdout, external_job_id)
         return status
 
+    @userswitch
     def suspend(self, job_id):
         """
         Suspend LSF job
         Args:
-            extrnsl_job_id (str): id of job
+            job_id (str): id of job
         Returns:
             bool: successful
         """
@@ -240,6 +309,7 @@ class LSFClient(object):
             return True
         return False
 
+    @userswitch
     def resume(self, job_id):
         """
         Resume LSF job

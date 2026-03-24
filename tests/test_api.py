@@ -45,7 +45,7 @@ class JobTestCase(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    @patch("orchestrator.tasks.submit_job_to_lsf")
+    @patch("orchestrator.tasks.submit_job_to_batch_system")
     def test_create(self, submit_jobs_mock):
         ddtrace.tracer.enabled = False
         url = self.api_root + "jobs/"
@@ -80,7 +80,7 @@ class JobTestCase(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-    @patch("orchestrator.tasks.submit_job_to_lsf")
+    @patch("orchestrator.tasks.submit_job_to_batch_system")
     def test_resume(self, submit_jobs_mock):
         ddtrace.tracer.enabled = False
         url = "{}jobs/{}/resume/".format(self.api_root, self.example_job.id)

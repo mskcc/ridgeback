@@ -23,26 +23,35 @@ export RIDGEBACK_RABBITMQ_PASSWORD=sample_password
 export ARGOS_JOB_STORE_ROOT=/sample_path
 export ARGOS_WORK_DIR_ROOT=/sample_path
 export ARGOS_TMP_DIR_ROOT=/sample_path
+export ARGOS_PARTITION=sample_SLA
 export TEMPO_JOB_STORE_ROOT=/sample_path
 export TEMPO_WORK_DIR_ROOT=/sample_path
 export TEMPO_TMP_DIR_ROOT=/sample_path
+export TEMPO_PARTITION=sample_SLA
 export ACCESS_JOB_STORE_ROOT=/sample_path
 export ACCESS_WORK_DIR_ROOT=/sample_path
 export ACCESS_TMP_DIR_ROOT=/sample_path
+export ACCESS_PARTITION=sample_SLA
 export CMO_CH_JOB_STORE_ROOT=/sample_path
 export CMO_CH_WORK_DIR_ROOT=/sample_path
 export CMO_CH_TMP_DIR_ROOT=/sample_path
+export CMO_CH_PARTITION=sample_SLA
 export ACCESS_HEME_JOB_STORE_ROOT=/sample_path
 export ACCESS_HEME_WORK_DIR_ROOT=/sample_path
 export ACCESS_HEME_TMP_DIR_ROOT=/sample_path
+export ACCESS_HEME_PARTITION=sample_SLA
+export MICROBIOME_JOB_STORE_ROOT=/sample_path
+export MICROBIOME_WORK_DIR_ROOT=/sample_path
+export MICROBIOME_TMP_DIR_ROOT=/sample_path
+export MICROBIOME_PARTITION=sample_SLA
 export DEFAULT_JOB_STORE_ROOT=/sample_path
 export DEFAULT_WORK_DIR_ROOT=/sample_path
 export DEFAULT_TMP_DIR_ROOT=/sample_path
+export DEFAULT_PARTITION=sample_SLA
 
 ### Set the LSF env variable
 
 export RIDGEBACK_LSF_WALLTIME=10:00
-export RIDGEBACK_LSF_SLA=sample_SLA
 
 ### Set the celery env variable
 

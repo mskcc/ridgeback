@@ -7,6 +7,7 @@ from django.contrib.postgres.fields import JSONField
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
 from django.conf import settings
+from getpass import getuser
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,15 @@ def message_default():
         "info": "",
     }
     return message_default_dict
+
+
+def get_default_for_job(model_field):
+    if model_field == "root_permission":
+        return settings.OUTPUT_DEFAULT_PERMISSION
+    elif model_field == "output_uid":
+        return settings.OUTPUT_DEFAULT_UID
+    elif model_field == "output_gid":
+        return settings.OUTPUT_DEFAULT_GID
 
 
 class Status(IntEnum):
@@ -166,9 +176,10 @@ class Job(BaseModel):
     external_id = models.CharField(max_length=50, null=True, blank=True)
     base_dir = models.CharField(max_length=1000)
     root_dir = models.CharField(max_length=1000)
-    root_permission = models.CharField(default=settings.OUTPUT_DEFAULT_PERMISSION, max_length=3)
-    output_uid = models.IntegerField(default=settings.OUTPUT_DEFAULT_UID, editable=True)
-    output_gid = models.IntegerField(default=settings.OUTPUT_DEFAULT_GID, editable=True)
+    root_permission = models.CharField(default=get_default_for_job("root_permission"), max_length=4)
+    user = models.CharField(default=getuser(), max_length=100)
+    output_uid = models.IntegerField(default=get_default_for_job("output_gid"), editable=True)
+    output_gid = models.IntegerField(default=get_default_for_job("output_gid"), editable=True)
     job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     resume_job_store_location = models.CharField(max_length=1000, null=True, blank=True)
     working_dir = models.CharField(max_length=1000, null=True, blank=True)
@@ -193,13 +204,15 @@ class Job(BaseModel):
     metadata = JSONField(blank=True, null=True, default=dict)
 
     def job_prepared(self, job_store_dir, job_work_dir, job_output_dir, log_path, log_prefix):
+        from batch_systems.batch_system import get_batch_system
+
         self.status = Status.PREPARED
         self.job_store_location = job_store_dir
         self.working_dir = job_work_dir
         self.output_directory = job_output_dir
         self.log_dir = log_path
         self.log_prefix = log_prefix
-        self.message["log"] = os.path.join(job_work_dir, "lsf.log")
+        self.message["log"] = os.path.join(job_work_dir, get_batch_system().logfileName)
         self.save(
             update_fields=[
                 "status",
@@ -266,7 +279,7 @@ class CommandLineToolJob(BaseModel):
     submitted = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
     job_name = models.CharField(max_length=100)
-    job_id = models.CharField(max_length=20)
+    job_id = models.CharField(max_length=50)
     details = JSONField(blank=True, null=True)
 
     def get_aware_datetime(self, date_str):

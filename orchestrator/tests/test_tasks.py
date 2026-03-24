@@ -410,7 +410,7 @@ class TasksTest(TestCase):
 
         process_jobs()
         calls = [
-            call(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)).to_dict()),
+            call(Command(CommandType.CHECK_STATUS_ON_BATCH_SYSTEM, str(job_pending_1.id)).to_dict()),
             call(Command(CommandType.PREPARE, str(job_created_1.id)).to_dict()),
         ]
 
@@ -441,7 +441,7 @@ class TasksTest(TestCase):
         delete.return_value = True
         status.side_effect = _raise_retryable_exception
         with self.assertRaises(RetryException):
-            command_processor(Command(CommandType.CHECK_STATUS_ON_LSF, str(job_pending_1.id)).to_dict())
+            command_processor(Command(CommandType.CHECK_STATUS_ON_BATCH_SYSTEM, str(job_pending_1.id)).to_dict())
 
     @patch("django.core.cache.cache.delete")
     @patch("django.core.cache.cache.add")
@@ -554,12 +554,13 @@ class TasksTest(TestCase):
                 }
             },
             external_id="ext_id",
+            working_dir="/toil/work/dir/root",
             status=Status.SUBMITTED,
             metadata={"pipeline_name": "TEST"},
         )
         with self.settings(PIPELINE_CONFIG=PIPELINE_CONFIG):
             res = get_job_info_path(str(job.id))
-            self.assertEqual(res, f"/toil/work/dir/root/{str(job.id)}/.run.info")
+            self.assertEqual(res, f"{str(job.working_dir)}/.run.info")
 
     def test_permission(self):
         with tempfile.TemporaryDirectory() as temp_path:
