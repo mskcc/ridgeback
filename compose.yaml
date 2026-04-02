@@ -377,7 +377,7 @@ services:
   ridgeback_celery_command_queue:
     <<: *ridgeback_celery
     tmpfs:
-      - /tmp:size=500M,mode=777
+      - /tmp:size=2G,mode=777
     command:
       - |
         source ${RIDGEBACK_VENV}/bin/activate
@@ -402,7 +402,7 @@ services:
   ridgeback_celery_action_queue:
     <<: *ridgeback_celery
     tmpfs:
-      - /tmp:size=500M,mode=777
+      - /tmp:size=2G,mode=777
     command:
       - |
         source ${RIDGEBACK_VENV}/bin/activate
