@@ -330,7 +330,7 @@ def check_job_status(job):
 
             if batch_system_status in (Status.RUNNING,):
                 command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
-                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
+                # command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
         elif batch_system_status in (Status.COMPLETED,):
             submitter = JobSubmitterFactory.factory(
