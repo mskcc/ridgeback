@@ -348,14 +348,14 @@ def check_job_status(job):
             outputs, error_message = submitter.get_outputs()
             if outputs:
                 _pipeline_completed(job, outputs)
-                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
+                # command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
             else:
                 _fail(job, error_message)
-                command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
+                # command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
         elif batch_system_status in (Status.FAILED,):
             _fail(job, batch_system_message)
 
-        command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
+        # command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
     else:
         raise StopException("Invalid transition %s to %s" % (Status(job.status).name, Status(batch_system_status).name))
 
