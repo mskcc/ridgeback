@@ -265,7 +265,7 @@ def submit_job_to_batch_system(job, retries=0):
 
 def _pipeline_completed(job, outputs):
     job.pipeline_completed(outputs)
-    set_permissions_job.delay(str(job.id))
+    # set_permissions_job.delay(str(job.id))
 
 
 def _fail(job, error_message=""):
