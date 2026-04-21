@@ -247,7 +247,7 @@ class Job(BaseModel):
     def pipeline_completed(self, outputs):
         self.track_cache = None
         self.outputs = outputs
-        self.status = Status.SET_PERMISSIONS
+        self.status = Status.COMPLETED
         self.finished = now()
         self.save()
 
