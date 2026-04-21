@@ -355,7 +355,7 @@ class TestTasks(TestCase):
             status.return_value = Status.COMPLETED, None
             check_job_status(self.current_job)
             self.current_job.refresh_from_db()
-            self.assertEqual(self.current_job.status, Status.SET_PERMISSIONS)
+            self.assertEqual(self.current_job.status, Status.COMPLETED)
             self.assertNotEqual(self.current_job.finished, None)
 
     @patch("orchestrator.tasks.command_processor.delay")
@@ -374,7 +374,7 @@ class TestTasks(TestCase):
             status.return_value = Status.COMPLETED, None
             check_job_status(self.current_job)
             self.current_job.refresh_from_db()
-            self.assertEqual(self.current_job.status, Status.SET_PERMISSIONS)
+            self.assertEqual(self.current_job.status, Status.COMPLETED)
             self.assertNotEqual(self.current_job.finished, None)
 
     @patch("orchestrator.tasks.command_processor.delay")

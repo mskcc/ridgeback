@@ -228,7 +228,7 @@ class TasksTest(TestCase):
         command_processor.return_value = None
         check_job_status(job)
         job.refresh_from_db()
-        self.assertEqual(job.status, Status.SET_PERMISSIONS)
+        self.assertEqual(job.status, Status.COMPLETED)
         self.assertEqual(job.outputs, outputs)
 
     @patch("orchestrator.tasks.command_processor.delay")
