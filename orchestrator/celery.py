@@ -28,7 +28,7 @@ app.conf.task_routes = {
 app.conf.beat_schedule = {
     "process_jobs": {
         "task": "orchestrator.tasks.process_jobs",
-        "schedule": 60.0,
+        "schedule": settings.RIDGEBACK_CHECK_JOBS_INTERVAL,
         "options": {"queue": settings.RIDGEBACK_SUBMIT_JOB_QUEUE},
     },
     "cleanup_completed_jobs": {
