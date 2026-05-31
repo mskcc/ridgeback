@@ -333,6 +333,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "500",
                 "--no-prepull",
                 "--reference-inputs",
+                "--slurmArgs=--export=ALL,PATH=/usersoftware/common/fuse-3.18.2/bin/:/usr/bin:$PATH,SINGULARITY_TMPDIR=/tmp,APPTAINER_TMPDIR=/tmp",
             ]
         if self.resume_jobstore:
             command_line.extend(["--restart", self.app_location])
