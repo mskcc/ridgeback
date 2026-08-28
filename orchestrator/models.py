@@ -39,7 +39,7 @@ class Status(IntEnum):
     SUBMITTED = 3
     PENDING = 4
     RUNNING = 5
-    SET_PERMISSIONS = 6
+    SET_PERMISSIONS = 6  # DEPRECATED STATE
     COMPLETED = 7
     FAILED = 8
     TERMINATED = 9
@@ -247,7 +247,7 @@ class Job(BaseModel):
     def pipeline_completed(self, outputs):
         self.track_cache = None
         self.outputs = outputs
-        self.status = Status.SET_PERMISSIONS
+        self.status = Status.COMPLETED
         self.finished = now()
         self.save()
 

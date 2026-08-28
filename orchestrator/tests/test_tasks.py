@@ -13,7 +13,6 @@ from orchestrator.tasks import (
     process_jobs,
     cleanup_folders,
     get_job_info_path,
-    set_permission,
 )
 
 
@@ -561,68 +560,3 @@ class TasksTest(TestCase):
         with self.settings(PIPELINE_CONFIG=PIPELINE_CONFIG):
             res = get_job_info_path(str(job.id))
             self.assertEqual(res, f"{str(job.working_dir)}/.run.info")
-
-    def test_permission(self):
-        with tempfile.TemporaryDirectory() as temp_path:
-            expected_permission = "750"
-            job_completed = Job.objects.create(
-                type=PipelineType.CWL,
-                app={
-                    "github": {
-                        "version": "1.0.0",
-                        "entrypoint": "test.cwl",
-                        "repository": "",
-                    }
-                },
-                root_dir=temp_path,
-                base_dir="/".join(temp_path.split("/")[:-1]) + "/",
-                root_permission=expected_permission,
-                external_id="ext_id",
-                status=Status.COMPLETED,
-                metadata={"pipeline_name": "NA"},
-            )
-            set_permission(job_completed)
-            current_permission = oct(os.stat(temp_path).st_mode)[-3:]
-            self.assertEqual(current_permission, expected_permission)
-
-    def test_permission_wrong_permission(self):
-        with self.assertRaises(TypeError):
-            with tempfile.TemporaryDirectory() as temp_path:
-                expected_permission = "auk"
-                job_completed = Job.objects.create(
-                    type=PipelineType.CWL,
-                    app={
-                        "github": {
-                            "version": "1.0.0",
-                            "entrypoint": "test.cwl",
-                            "repository": "",
-                        }
-                    },
-                    root_dir=temp_path,
-                    base_dir="/".join(temp_path.split("/")[:-1]) + "/",
-                    root_permission=expected_permission,
-                    external_id="ext_id",
-                    status=Status.COMPLETED,
-                    metadata={"pipeline_name": "NA"},
-                )
-                set_permission(job_completed)
-
-    def test_permission_wrong_path(self):
-        with self.assertRaises(RuntimeError):
-            expected_permission = "750"
-            job_completed = Job.objects.create(
-                type=PipelineType.CWL,
-                app={
-                    "github": {
-                        "version": "1.0.0",
-                        "entrypoint": "test.cwl",
-                        "repository": "",
-                    }
-                },
-                root_dir="/awk",
-                root_permission=expected_permission,
-                external_id="ext_id",
-                status=Status.COMPLETED,
-                metadata={"pipeline_name": "NA"},
-            )
-            set_permission(job_completed)

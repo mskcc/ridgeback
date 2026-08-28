@@ -20,7 +20,7 @@ SHORT_JOB_QUEUE = int(os.environ.get("SHORT_JOB_QUEUE_SIZE", 50))
 SHORT_JOB_MAX_DURATION = int(os.environ.get("SHORT_JOB_MAX_DURATION", 4321))
 MEDIUM_JOB_QUEUE = int(os.environ.get("MEDIUM_JOB_QUEUE_SIZE", 100))
 MEDIUM_JOB_MAX_DURATION = int(os.environ.get("MEDIUM_JOB_MAX_DURATION", 7201))
-LONG_JOB_QUEUE = int(os.environ.get("LONG_JOB_QUEUE_SIZE", 150))
+LONG_JOB_QUEUE = int(os.environ.get("LONG_JOB_QUEUE_SIZE", 100))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -304,7 +304,7 @@ CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
 TOIL_MAX_CORES = os.environ.get("RIDGEBACK_TOIL_MAX_CORES", "40")
 TOIL_DEFAULT_MEMORY = os.environ.get("RIDGEBACK_TOIL_DEFAULT_MEMORY", "8G")
-TOIL_JOB_STORE_TIMEOUT = os.environ.get("RIDGEBACK_TOIL_JOB_STORE_TIMEOUT", "1800")
+TOIL_JOB_STORE_TIMEOUT = os.environ.get("RIDGEBACK_TOIL_JOB_STORE_TIMEOUT", "86400")
 SINGLE_MACHINE_CORES = os.environ.get("RIDGEBACK_SINGLE_MACHINE_CORES", 16)
 SINGLE_MACHINE_MEMORY = os.environ.get("RIDGEBACK_SINGLE_MACHINE_MEMORY", 25)
 

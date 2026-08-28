@@ -183,16 +183,6 @@ def reset_job_to_created(job_id):
     job.save()
 
 
-@shared_task(bind=True)
-def set_permissions_job(self, job_id):
-    job = Job.objects.get(id=job_id)
-    try:
-        set_permission(job)
-    except Exception as e:
-        logger.error(f"Failed to set permissions for job:{job_id}. {str(e)}")
-    job.complete()
-
-
 def prepare_job(job):
     if Status(job.status).transition(Status.PREPARED):
         logger.info(f"Preparing job {str(job.id)} for execution")
@@ -265,7 +255,6 @@ def submit_job_to_batch_system(job, retries=0):
 
 def _pipeline_completed(job, outputs):
     job.pipeline_completed(outputs)
-    # set_permissions_job.delay(str(job.id))
 
 
 def _fail(job, error_message=""):
@@ -481,46 +470,6 @@ def terminate_job(job):
             if not job_killed:
                 raise RetryException("Failed to TERMINATE job %s" % str(job.id))
         job.terminate()
-
-
-@userswitch
-def set_permission(job):
-    failed_to_set = None
-    dirs = job.root_dir.replace(job.base_dir, "").split("/")
-    permission_str = job.root_permission
-    permissions_dir = job.base_dir
-    for d in dirs:
-        failed_to_set = False
-        permissions_dir = "/".join([permissions_dir, d]).replace("//", "/")
-        try:
-            permission_octal = int(permission_str, 8)
-        except Exception:
-            raise TypeError("Could not convert %s to permission octal" % str(permission_str))
-        try:
-            if Path(permissions_dir).owner() == getuser():
-                os.chmod(permissions_dir, permission_octal)
-            else:
-                logger.debug(f"Skipping permission change for {permissions_dir} as it is not owned by {getuser()}")
-            for root, dirs, files in os.walk(permissions_dir):
-                for single_dir in dirs:
-                    if oct(os.lstat(os.path.join(root, single_dir)).st_mode)[-3:] != permission_octal:
-                        logger.debug(f"Setting permissions for {os.path.join(root, single_dir)}")
-                        path = os.path.join(root, single_dir)
-                        os.chmod(path, permission_octal)
-                for single_file in files:
-                    if oct(os.lstat(os.path.join(root, single_file)).st_mode)[-3:] != permission_octal:
-                        path = os.path.join(root, single_file)
-                        logger.debug(f"Setting permissions for {path}")
-                        os.chmod(path, permission_octal)
-        except Exception:
-            logger.exception(f"Failed to set permissions for directory {permissions_dir}")
-            failed_to_set = True
-            continue
-        else:
-            logger.debug(f"Permissions set for directory {permissions_dir}")
-            break
-    if failed_to_set:
-        raise RuntimeError("Failed to change permission of directory %s" % permissions_dir)
 
 
 # Cleaning jobs
