@@ -3,8 +3,6 @@ import json
 import shutil
 import logging
 import tempfile
-from pathlib import Path
-from getpass import getuser
 from datetime import timedelta
 from celery import shared_task
 from django.conf import settings

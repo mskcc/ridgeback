@@ -1,8 +1,6 @@
 import uuid
 from mock import patch, call
 from django.test import TestCase
-import tempfile
-import os
 from orchestrator.commands import CommandType, Command
 from orchestrator.models import CommandLineToolJob
 from orchestrator.models import Job, Status, PipelineType
