@@ -205,8 +205,7 @@ class TasksTest(TestCase):
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    @patch("orchestrator.tasks.set_permissions_job.delay")
-    def test_running_to_pipeline_completed(self, permission, status, get_outputs, command_processor):
+    def test_running_to_pipeline_completed(self, status, get_outputs, command_processor):
         job = Job.objects.create(
             type=PipelineType.CWL,
             app={
@@ -220,14 +219,13 @@ class TasksTest(TestCase):
             status=Status.RUNNING,
             metadata={"pipeline_name": "NA"},
         )
-        permission.return_value = None
         status.return_value = Status.COMPLETED, ""
         outputs = {"output": "test_value"}
         get_outputs.return_value = outputs, None
         command_processor.return_value = None
         check_job_status(job)
         job.refresh_from_db()
-        self.assertEqual(job.status, Status.SET_PERMISSIONS)
+        self.assertEqual(job.status, Status.COMPLETED)
         self.assertEqual(job.outputs, outputs)
 
     @patch("orchestrator.tasks.command_processor.delay")
