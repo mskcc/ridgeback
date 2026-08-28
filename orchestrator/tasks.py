@@ -329,7 +329,9 @@ def check_job_status(job):
             job.update_status(batch_system_status)
 
             if batch_system_status in (Status.RUNNING,):
-                command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
+                # TODO: Fix performance and errors in CHECK_HANGING and CHECK_COMMAND_LINE_STATUS commands
+                pass
+                # command_processor.delay(Command(CommandType.CHECK_HANGING, str(job.id)).to_dict())
                 # command_processor.delay(Command(CommandType.CHECK_COMMAND_LINE_STATUS, str(job.id)).to_dict())
 
         elif batch_system_status in (Status.COMPLETED,):

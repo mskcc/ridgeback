@@ -204,6 +204,7 @@ RIDGEBACK_SUBMIT_JOB_LSF_QUEUE = os.environ.get("RIDGEBACK_SUBMIT_JOB_LSF_QUEUE"
 RIDGEBACK_CLEANUP_QUEUE = os.environ.get("RIDGEBACK_CLEANUP_QUEUE", "ridgeback_cleanup_queue")
 RIDGEBACK_COMMAND_QUEUE = os.environ.get("RIDGEBACK_COMMAND_QUEUE", "ridgeback_command_queue")
 RIDGEBACK_SET_PERMISSIONS_QUEUE = os.environ.get("RIDGEBACK_SET_PERMISSIONS_QUEUE", "ridgeback_set_permissions")
+RIDGEBACK_CHECK_JOBS_INTERVAL = int(os.environ.get("RIDGEBACK_CHECK_JOBS_INTERVAL", 180))
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -212,6 +213,12 @@ CELERY_RESULT_SERIALIZER = "json"
 # Logging
 
 LOG_PATH = os.environ.get("RIDGEBACK_LOG_PATH", "ridgeback-server.log")
+
+if ENVIRONMENT == "prod":
+    handlers = ["file"]
+else:
+    handlers = ["file", "console"]
+
 
 LOGGING = {
     "version": 1,
@@ -227,9 +234,9 @@ LOGGING = {
         },
     },
     "loggers": {
-        "django_auth_ldap": {"level": "DEBUG", "handlers": ["console"]},
+        "django_auth_ldap": {"level": "DEBUG", "handlers": handlers},
         "django": {
-            "handlers": ["file", "console"],
+            "handlers": handlers,
             "level": "INFO",
             "propagate": True,
         },
@@ -297,6 +304,7 @@ CWLTOIL = os.environ.get("RIDGEBACK_TOIL", "toil-cwl-runner")
 TOIL_STATE_POLLING_WAIT = os.environ.get("TOIL_STATE_POLLING_WAIT", 60)
 TOIL_MAX_CORES = os.environ.get("RIDGEBACK_TOIL_MAX_CORES", "40")
 TOIL_DEFAULT_MEMORY = os.environ.get("RIDGEBACK_TOIL_DEFAULT_MEMORY", "8G")
+TOIL_JOB_STORE_TIMEOUT = os.environ.get("RIDGEBACK_TOIL_JOB_STORE_TIMEOUT", "1800")
 SINGLE_MACHINE_CORES = os.environ.get("RIDGEBACK_SINGLE_MACHINE_CORES", 16)
 SINGLE_MACHINE_MEMORY = os.environ.get("RIDGEBACK_SINGLE_MACHINE_MEMORY", 25)
 
