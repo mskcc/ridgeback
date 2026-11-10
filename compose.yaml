@@ -27,7 +27,7 @@ x-ridgeback_celery: &ridgeback_celery
           IFS=',' read -r -a docker_group_list <<< "${DOCKER_GROUPS}"
           docker_first_group="$$docker_group_list"
           # 2. Create the Docker user assigning the extracted primary group (-g) and all secondary groups (-G)
-          id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m -g "$docker_first_group" -G ${DOCKER_GROUPS} ${DOCKER_USERNAME}
+          id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m -g "$$docker_first_group" -G ${DOCKER_GROUPS} ${DOCKER_USERNAME}
           id -u slurm &>/dev/null || useradd -s /bin/bash -d /var/lib/slurm --uid ${SLURM_UID} -m slurm -g slurm
           id -u munge &>/dev/null || useradd -s /sbin/nologin -d ${SLURM_MUNGE_VAR} --uid ${MUNGE_UID} -m munge -g munge
           for single_user in ${all_users}; do
@@ -321,7 +321,7 @@ services:
             IFS=',' read -r -a docker_group_list <<< "${DOCKER_GROUPS}"
             docker_first_group="$$docker_group_list"
             # 2. Create the Docker user assigning the extracted primary group (-g) and all secondary groups (-G)
-            id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m -g "$docker_first_group" -G ${DOCKER_GROUPS} ${DOCKER_USERNAME}
+            id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m -g "$$docker_first_group" -G ${DOCKER_GROUPS} ${DOCKER_USERNAME}
         user: root
     entrypoint: ["/bin/bash", "-c"]
     command:
