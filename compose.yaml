@@ -35,9 +35,9 @@ x-ridgeback_celery: &ridgeback_celery
             user_string=$${!single_user}
             user_items=($$user_string)            
             # 2. Safely map out the indices from the space-split array
-            user_uid="$$user_items"
-            user_name="$$user_items"
-            user_groups="$$user_items"            
+            user_uid="$${user_items[0]}"
+            user_name="$${user_items[1]}"
+            user_groups="$${user_items[2]}"           
             # 3. Extract the first group out of the comma-separated group string
             IFS=',' read -r -a group_list <<< "$$user_groups"
             first_group="$$group_list"            
