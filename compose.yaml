@@ -45,10 +45,9 @@ x-ridgeback_celery: &ridgeback_celery
             if [ -n "$$user_uid" ] && ! id -u "$$user_name" &>/dev/null; then
               useradd -s /bin/bash \
                       --uid "$$user_uid" \
-                      -m \
+                      -m "$$user_name" \
                       -g "$$first_group" \
-                      -G "$$user_groups" \
-                      "$$user_name"
+                      -G "$$user_groups"
             fi
           done
       user: root
