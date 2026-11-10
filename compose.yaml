@@ -22,7 +22,12 @@ x-ridgeback_celery: &ridgeback_celery
             single_group_items=($${!single_group[0]})
             getent group $${single_group_items[1]} &>/dev/null || groupadd -g $${single_group_items[0]} $${single_group_items[1]}
           done
-          id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m ${DOCKER_USERNAME} -G ${DOCKER_GROUPS}
+          # 1. Split DOCKER_GROUPS to find its first group for the primary group (-g)
+          # Note: Since DOCKER_GROUPS is a standard template variable, we use single $
+          IFS=',' read -r -a docker_group_list <<< "${DOCKER_GROUPS}"
+          docker_first_group="$$docker_group_list"
+          # 2. Create the Docker user assigning the extracted primary group (-g) and all secondary groups (-G)
+          id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m -g "$docker_first_group" -G ${DOCKER_GROUPS} ${DOCKER_USERNAME}
           id -u slurm &>/dev/null || useradd -s /bin/bash -d /var/lib/slurm --uid ${SLURM_UID} -m slurm -g slurm
           id -u munge &>/dev/null || useradd -s /sbin/nologin -d ${SLURM_MUNGE_VAR} --uid ${MUNGE_UID} -m munge -g munge
           for single_user in ${all_users}; do
@@ -311,7 +316,12 @@ services:
               single_group_items=($${!single_group[0]})
               getent group $${single_group_items[1]} &>/dev/null || groupadd -g $${single_group_items[0]} $${single_group_items[1]}
             done
-            id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m ${DOCKER_USERNAME} -G ${DOCKER_GROUPS}
+            # 1. Split DOCKER_GROUPS to find its first group for the primary group (-g)
+            # Note: Since DOCKER_GROUPS is a standard template variable, we use single $
+            IFS=',' read -r -a docker_group_list <<< "${DOCKER_GROUPS}"
+            docker_first_group="$$docker_group_list"
+            # 2. Create the Docker user assigning the extracted primary group (-g) and all secondary groups (-G)
+            id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m -g "$docker_first_group" -G ${DOCKER_GROUPS} ${DOCKER_USERNAME}
         user: root
     entrypoint: ["/bin/bash", "-c"]
     command:
