@@ -26,19 +26,19 @@ x-ridgeback_celery: &ridgeback_celery
           id -u slurm &>/dev/null || useradd -s /bin/bash -d /var/lib/slurm --uid ${SLURM_UID} -m slurm -g slurm
           id -u munge &>/dev/null || useradd -s /sbin/nologin -d ${SLURM_MUNGE_VAR} --uid ${MUNGE_UID} -m munge -g munge
           for single_user in ${all_users}; do
-            # 1. Use a nameref to treat 'u_items' exactly like the source user array
-            declare -n u_items="$single_user"            
+            # 1. Establish the reference to the user data array
+            declare -n u_items="$$single_user"            
             # 2. Extract the first group out of the comma-separated string (element index 2)
-            IFS=',' read -r -a group_list <<< "${u_items[2]}"
-            first_group="${group_list[0]}"            
-            # 3. Create user safely using strict double-quotes to handle commas and spaces perfectly
-            if ! id -u "${u_items[1]}" &>/dev/null; then
+            IFS=',' read -r -a group_list <<< "$$u_items"
+            first_group="$$group_list"            
+            # 3. Create user safely with strict quoting and correct group routing
+            if ! id -u "$$u_items" &>/dev/null; then
               useradd -s /bin/bash \
-                      --uid "${u_items[0]}" \
+                      --uid "$$u_items" \
                       -m \
-                      -g "$first_group" \
-                      -G "${u_items[2]}" \
-                      "${u_items[1]}"
+                      -g "$$first_group" \
+                      -G "$$u_items" \
+                      "$$u_items"
             fi
           done
       user: root
