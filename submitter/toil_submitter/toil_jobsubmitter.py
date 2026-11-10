@@ -279,7 +279,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--outdir",
                 self.job_outputs_dir,
                 "--maxLocalJobs",
-                "500",
+                "300",
                 "--no-prepull",
                 "--reference-inputs",
             ]
@@ -330,7 +330,7 @@ class ToilJobSubmitter(JobSubmitter):
                 "--outdir",
                 self.job_outputs_dir,
                 "--maxLocalJobs",
-                "500",
+                "300",
                 "--no-prepull",
                 "--reference-inputs",
             ]

@@ -1,8 +1,6 @@
 import uuid
 from mock import patch, call
 from django.test import TestCase
-import tempfile
-import os
 from orchestrator.commands import CommandType, Command
 from orchestrator.models import CommandLineToolJob
 from orchestrator.models import Job, Status, PipelineType
@@ -13,7 +11,6 @@ from orchestrator.tasks import (
     process_jobs,
     cleanup_folders,
     get_job_info_path,
-    set_permission,
 )
 
 
@@ -206,8 +203,7 @@ class TasksTest(TestCase):
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
-    @patch("orchestrator.tasks.set_permissions_job.delay")
-    def test_running_to_pipeline_completed(self, permission, status, get_outputs, command_processor):
+    def test_running_to_pipeline_completed(self, status, get_outputs, command_processor):
         job = Job.objects.create(
             type=PipelineType.CWL,
             app={
@@ -221,14 +217,13 @@ class TasksTest(TestCase):
             status=Status.RUNNING,
             metadata={"pipeline_name": "NA"},
         )
-        permission.return_value = None
         status.return_value = Status.COMPLETED, ""
         outputs = {"output": "test_value"}
         get_outputs.return_value = outputs, None
         command_processor.return_value = None
         check_job_status(job)
         job.refresh_from_db()
-        self.assertEqual(job.status, Status.SET_PERMISSIONS)
+        self.assertEqual(job.status, Status.COMPLETED)
         self.assertEqual(job.outputs, outputs)
 
     @patch("orchestrator.tasks.command_processor.delay")
@@ -561,68 +556,3 @@ class TasksTest(TestCase):
         with self.settings(PIPELINE_CONFIG=PIPELINE_CONFIG):
             res = get_job_info_path(str(job.id))
             self.assertEqual(res, f"{str(job.working_dir)}/.run.info")
-
-    def test_permission(self):
-        with tempfile.TemporaryDirectory() as temp_path:
-            expected_permission = "750"
-            job_completed = Job.objects.create(
-                type=PipelineType.CWL,
-                app={
-                    "github": {
-                        "version": "1.0.0",
-                        "entrypoint": "test.cwl",
-                        "repository": "",
-                    }
-                },
-                root_dir=temp_path,
-                base_dir="/".join(temp_path.split("/")[:-1]) + "/",
-                root_permission=expected_permission,
-                external_id="ext_id",
-                status=Status.COMPLETED,
-                metadata={"pipeline_name": "NA"},
-            )
-            set_permission(job_completed)
-            current_permission = oct(os.stat(temp_path).st_mode)[-3:]
-            self.assertEqual(current_permission, expected_permission)
-
-    def test_permission_wrong_permission(self):
-        with self.assertRaises(TypeError):
-            with tempfile.TemporaryDirectory() as temp_path:
-                expected_permission = "auk"
-                job_completed = Job.objects.create(
-                    type=PipelineType.CWL,
-                    app={
-                        "github": {
-                            "version": "1.0.0",
-                            "entrypoint": "test.cwl",
-                            "repository": "",
-                        }
-                    },
-                    root_dir=temp_path,
-                    base_dir="/".join(temp_path.split("/")[:-1]) + "/",
-                    root_permission=expected_permission,
-                    external_id="ext_id",
-                    status=Status.COMPLETED,
-                    metadata={"pipeline_name": "NA"},
-                )
-                set_permission(job_completed)
-
-    def test_permission_wrong_path(self):
-        with self.assertRaises(RuntimeError):
-            expected_permission = "750"
-            job_completed = Job.objects.create(
-                type=PipelineType.CWL,
-                app={
-                    "github": {
-                        "version": "1.0.0",
-                        "entrypoint": "test.cwl",
-                        "repository": "",
-                    }
-                },
-                root_dir="/awk",
-                root_permission=expected_permission,
-                external_id="ext_id",
-                status=Status.COMPLETED,
-                metadata={"pipeline_name": "NA"},
-            )
-            set_permission(job_completed)

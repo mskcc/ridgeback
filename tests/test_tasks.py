@@ -343,38 +343,34 @@ class TestTasks(TestCase):
     @patch("orchestrator.tasks.get_job_info_path")
     @patch("batch_systems.lsf_client.lsf_client.LSFClient.status")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
-    @patch("orchestrator.tasks.set_permissions_job.delay")
-    def test_complete_lsf(self, permission, get_outputs, status, get_job_info_path, command_processor):
+    def test_complete_lsf(self, get_outputs, status, get_job_info_path, command_processor):
         with override_settings(BATCH_SYSTEM="LSF"):
             self.current_job.status = Status.PENDING
             self.current_job.save()
-            permission.return_value = None
             command_processor.return_value = True
             get_outputs.return_value = {"outputs": True}, None
             get_job_info_path.return_value = "sample/job/path"
             status.return_value = Status.COMPLETED, None
             check_job_status(self.current_job)
             self.current_job.refresh_from_db()
-            self.assertEqual(self.current_job.status, Status.SET_PERMISSIONS)
+            self.assertEqual(self.current_job.status, Status.COMPLETED)
             self.assertNotEqual(self.current_job.finished, None)
 
     @patch("orchestrator.tasks.command_processor.delay")
     @patch("orchestrator.tasks.get_job_info_path")
     @patch("batch_systems.slurm_client.slurm_client.SLURMClient.status")
     @patch("submitter.toil_submitter.ToilJobSubmitter.get_outputs")
-    @patch("orchestrator.tasks.set_permissions_job.delay")
-    def test_complete_slurm(self, permission, get_outputs, status, get_job_info_path, command_processor):
+    def test_complete_slurm(self, get_outputs, status, get_job_info_path, command_processor):
         with override_settings(BATCH_SYSTEM="SLURM"):
             self.current_job.status = Status.PENDING
             self.current_job.save()
-            permission.return_value = None
             command_processor.return_value = True
             get_outputs.return_value = {"outputs": True}, None
             get_job_info_path.return_value = "sample/job/path"
             status.return_value = Status.COMPLETED, None
             check_job_status(self.current_job)
             self.current_job.refresh_from_db()
-            self.assertEqual(self.current_job.status, Status.SET_PERMISSIONS)
+            self.assertEqual(self.current_job.status, Status.COMPLETED)
             self.assertNotEqual(self.current_job.finished, None)
 
     @patch("orchestrator.tasks.command_processor.delay")
