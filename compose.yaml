@@ -22,12 +22,33 @@ x-ridgeback_celery: &ridgeback_celery
             single_group_items=($${!single_group[0]})
             getent group $${single_group_items[1]} &>/dev/null || groupadd -g $${single_group_items[0]} $${single_group_items[1]}
           done
-          id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m ${DOCKER_USERNAME} -G ${DOCKER_GROUPS}
+          # 1. Split DOCKER_GROUPS to find its first group for the primary group (-g)
+          # Note: Since DOCKER_GROUPS is a standard template variable, we use single $
+          IFS=',' read -r -a docker_group_list <<< "${DOCKER_GROUPS}"
+          docker_first_group="$$docker_group_list"
+          # 2. Create the Docker user assigning the extracted primary group (-g) and all secondary groups (-G)
+          id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m -g "$$docker_first_group" -G ${DOCKER_GROUPS} ${DOCKER_USERNAME}
           id -u slurm &>/dev/null || useradd -s /bin/bash -d /var/lib/slurm --uid ${SLURM_UID} -m slurm -g slurm
           id -u munge &>/dev/null || useradd -s /sbin/nologin -d ${SLURM_MUNGE_VAR} --uid ${MUNGE_UID} -m munge -g munge
           for single_user in ${all_users}; do
-            single_user_items=($${!single_user[0]})
-            id -u $${single_user_items[1]} &>/dev/null || useradd -s /bin/bash --uid $${single_user_items[0]} -m $${single_user_items[1]} -G $${single_user_items[2]}
+            # 1. Parse the indirect string value into a real space-separated local array
+            user_string=$${!single_user}
+            user_items=($$user_string)            
+            # 2. Safely map out the indices from the space-split array
+            user_uid="$${user_items[0]}"
+            user_name="$${user_items[1]}"
+            user_groups="$${user_items[2]}"           
+            # 3. Extract the first group out of the comma-separated group string
+            IFS=',' read -r -a group_list <<< "$$user_groups"
+            first_group="$$group_list"            
+            # 4. Safely create user using the validated, non-empty fields
+            if [ -n "$$user_uid" ] && ! id -u "$$user_name" &>/dev/null; then
+              useradd -s /bin/bash \
+                      --uid "$$user_uid" \
+                      -m "$$user_name" \
+                      -g "$$first_group" \
+                      -G "$$user_groups"
+            fi
           done
       user: root
   env_file: .env
@@ -299,7 +320,12 @@ services:
               single_group_items=($${!single_group[0]})
               getent group $${single_group_items[1]} &>/dev/null || groupadd -g $${single_group_items[0]} $${single_group_items[1]}
             done
-            id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m ${DOCKER_USERNAME} -G ${DOCKER_GROUPS}
+            # 1. Split DOCKER_GROUPS to find its first group for the primary group (-g)
+            # Note: Since DOCKER_GROUPS is a standard template variable, we use single $
+            IFS=',' read -r -a docker_group_list <<< "${DOCKER_GROUPS}"
+            docker_first_group="$$docker_group_list"
+            # 2. Create the Docker user assigning the extracted primary group (-g) and all secondary groups (-G)
+            id -u ${DOCKER_USERNAME} &>/dev/null || useradd -s /bin/bash -d ${HOME} --uid ${DOCKER_UID} -m -g "$$docker_first_group" -G ${DOCKER_GROUPS} ${DOCKER_USERNAME}
         user: root
     entrypoint: ["/bin/bash", "-c"]
     command:
