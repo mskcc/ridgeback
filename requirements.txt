@@ -16,7 +16,7 @@ pymemcache>=4.0.0
 coverage==7.3.2
 flake8==6.1.0
 black==24.1.1
-ddtrace==1.23.1
+ddtrace==3.13.0
 django-extensions==3.2.3
 urllib3==2.1.0
 ipython==8.18.1
