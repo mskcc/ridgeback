@@ -21,7 +21,6 @@ RUN apt-get update \
             wget curl libldap2-dev libsasl2-dev procps libssl-dev libxml2-dev libxslt-dev \
             libpq-dev gawk nodejs git build-essential openssh-client \
         && pip install --upgrade pip \
-        && pip install --upgrade pip setuptools \
         && pip install -r /app/data/requirements.txt \
         && pip install -r /app/data/requirements-toil.txt \
     # Clean up image
