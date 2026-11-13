@@ -3,7 +3,7 @@ import uuid
 import logging
 from enum import IntEnum
 from django.db import models
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_aware, make_aware, now
 from django.conf import settings
