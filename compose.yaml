@@ -70,10 +70,6 @@ x-ridgeback_celery: &ridgeback_celery
     - celery_path:/ridgeback/celery/
     - ${CLUSTER_FILESYSTEM_MOUNT}:${CLUSTER_FILESYSTEM_MOUNT}
     - ${CLUSTER_SCRATCH_MOUNT}:${CLUSTER_SCRATCH_MOUNT}
-    - ${CLUSTER_PYTHON_MOUNT}:${CLUSTER_PYTHON_MOUNT}
-    - ${CLUSTER_PYTHON_LIBSO_MOUNT}:${CONTAINER_PYTHON_LIBSO_MOUNT}
-    - ${CLUSTER_PYTHON_LIB_MOUNT}:${CLUSTER_PYTHON_LIB_MOUNT}
-    - ${CLUSTER_PYTHON_INCLUDE_MOUNT}:${CLUSTER_PYTHON_INCLUDE_MOUNT}
     - ${CLUSTER_CODE_PATH:-/dev/null}:${CLUSTER_CODE_PATH:-/dev/null}
     - type: bind
       source: /etc/profile
@@ -301,10 +297,10 @@ services:
       - ${CLUSTER_FILESYSTEM_MOUNT}:${CLUSTER_FILESYSTEM_MOUNT}
       - ${CLUSTER_CODE_PATH:-/dev/null}:${CLUSTER_CODE_PATH:-/dev/null}
       - ${CLUSTER_SCRATCH_MOUNT}:${CLUSTER_SCRATCH_MOUNT}
-      - ${CLUSTER_PYTHON_MOUNT}:${CLUSTER_PYTHON_MOUNT}
-      - ${CLUSTER_PYTHON_LIBSO_MOUNT}:${CONTAINER_PYTHON_LIBSO_MOUNT}
-      - ${CLUSTER_PYTHON_LIB_MOUNT}:${CLUSTER_PYTHON_LIB_MOUNT}
-      - ${CLUSTER_PYTHON_INCLUDE_MOUNT}:${CLUSTER_PYTHON_INCLUDE_MOUNT}
+      - type: bind
+        source: ${CLUSTER_ADMIN_MOUNT}
+        target: ${CLUSTER_ADMIN_MOUNT}
+        read_only: true
     ports:
       - ${RIDGEBACK_PORT}:${RIDGEBACK_PORT}
     post_start:
@@ -330,18 +326,6 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
-
-        if ! python3 -c "import toil"  2>&1 >/dev/null
-        then
-          pip3 install --upgrade pip &&
-          pip3 install --force-reinstall 'setuptools<58.0.0' &&
-          pip3 install "cython<3.0.0" wheel &&
-          pip3 install "pyyaml==5.4.1" --no-build-isolation &&
-          pip3 install --use-pep517 -r ${RIDGEBACK_PATH}/requirements.txt &&
-          pip3 install --use-pep517 -r ${RIDGEBACK_PATH}/requirements-toil.txt
-        fi
-
         python3 ${RIDGEBACK_PATH}/manage.py migrate --noinput
         echo "User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin','voyager@mskcc.org','${RIDGEBACK_DB_PASSWORD}')" | python3 ${RIDGEBACK_PATH}/manage.py shell_plus
         python3 ${RIDGEBACK_PATH}/manage.py collectstatic --noinput
@@ -366,8 +350,6 @@ services:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
-
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.ridgeback_beat.pid
 
         [ -e $$PIDFILE ] && rm $$PIDFILE
@@ -407,8 +389,6 @@ services:
       - /tmp:size=2G,mode=777
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
-
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_COMMAND_QUEUE}.pid
         [ -e $$PIDFILE ] && rm $$PIDFILE
         echo 'Running command queue worker...'
@@ -432,8 +412,6 @@ services:
       - /tmp:size=2G,mode=777
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
-
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_ACTION_QUEUE}.pid
         [ -e $$PIDFILE ] && rm $$PIDFILE
         echo 'Running action queue worker...'
@@ -454,8 +432,6 @@ services:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
-
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CHECK_STATUS_QUEUE}.pid 
         [ -e $$PIDFILE ] && rm $$PIDFILE
         echo 'Running check status queue worker...'
@@ -477,8 +453,6 @@ services:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
-
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SUBMIT_JOB_QUEUE}.pid
         [ -e $$PIDFILE ] && rm $$PIDFILE
         echo 'Running submit job queue worker...'
@@ -500,8 +474,6 @@ services:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
-
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_SET_PERMISSIONS_QUEUE}.pid
         [ -e $$PIDFILE ] && rm $$PIDFILE
         echo 'Running set permission queue worker...'
@@ -523,8 +495,6 @@ services:
     <<: *ridgeback_celery
     command:
       - |
-        source ${RIDGEBACK_VENV}/bin/activate
-
         PIDFILE=/ridgeback/celery/ridgeback.${RIDGEBACK_DEPLOYMENT}.${RIDGEBACK_CLEANUP_QUEUE}.pid
         [ -e $$PIDFILE ] && rm $$PIDFILE
         echo 'Running cleanup queue worker...'
