@@ -8,7 +8,7 @@
 import uuid
 from enum import IntEnum
 from django.db import models
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 
 
 def message_default():
