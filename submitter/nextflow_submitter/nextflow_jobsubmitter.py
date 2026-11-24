@@ -163,7 +163,17 @@ class NextflowJobSubmitter(JobSubmitter):
         if published_manifest:
             result, error_message = self._parse_published_manifest(published_manifest)
         else:
-            result, error_message = [], "Could not find published_manifest_*.tsv in %s" % self.job_outputs_dir
+             try:
+                with open(self.inputs["outputs"]) as f:
+                    files = f.readlines()
+                    for f in files:
+                        path = f.strip()
+                        file_obj = self._output_construct(path)
+                        result.append(file_obj)
+            except FileNotFoundError:
+                error_message = "Could not find %s" % self.inputs["outputs"]
+            except Exception:
+                error_message = "Could not parse %s" % self.inputs["outputs"]
         result_json = {"outputs": result}
         return result_json, error_message
 
