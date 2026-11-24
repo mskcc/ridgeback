@@ -1,3 +1,7 @@
+import os
+import shutil
+import tempfile
+from mock import patch, PropertyMock
 from django.test import TestCase
 from orchestrator.models import Job, Status, PipelineType
 from submitter.nextflow_submitter import NextflowJobSubmitter
@@ -80,3 +84,124 @@ class TestNextflowSubmitter(TestCase):
             tool_walltime=None,
         )
         submitter.get_outputs()
+
+    def _submitter(self, inputs=None):
+        submitter = NextflowJobSubmitter(
+            str(self.job.id),
+            self.job.app,
+            inputs if inputs is not None else self.job.inputs,
+            self.job.root_dir,
+            self.job.resume_job_store_location,
+            log_dir=self.job.log_dir,
+            memlimit=None,
+            walltime=None,
+            tool_walltime=None,
+        )
+        submitter.job_work_dir = self.work_dir
+        submitter.job_outputs_dir = self.outputs_dir
+        return submitter
+
+    def _setup_dirs(self):
+        self.work_dir = tempfile.mkdtemp()
+        self.outputs_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.work_dir)
+        self.addCleanup(shutil.rmtree, self.outputs_dir)
+
+    def _write_output(self, rel):
+        full = os.path.join(self.outputs_dir, rel)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "w") as f:
+            f.write("data")
+        return full
+
+    def _write_published_manifest(self, name, relative_paths):
+        rows = ["run_name\tnextflow_version\toutdir\tpublish_dir\trelative_path\tfull_path\tsize_bytes"]
+        for rel in relative_paths:
+            full = self._write_output(rel)
+            rows.append("\t".join(["run", "25.10.4", self.outputs_dir, os.path.dirname(full), rel, full, "4"]))
+        path = os.path.join(self.outputs_dir, name)
+        with open(path, "w") as f:
+            f.write("\n".join(rows) + "\n")
+        return path
+
+    def _locations(self, outputs):
+        return sorted(o["location"] for o in outputs["outputs"])
+
+    def _expected(self, relative_paths):
+        return sorted("file://" + os.path.join(self.outputs_dir, p) for p in relative_paths)
+
+    def test_dump_published_manifest_config(self):
+        self._setup_dirs()
+        submitter = self._submitter()
+        submitter._dump_app_inputs()
+        self.assertTrue(os.path.exists(submitter.published_manifest_config_location))
+        with open(submitter.published_manifest_config_location) as f:
+            self.assertIn("workflow.onComplete", f.read())
+
+    def test_dump_published_manifest_config_without_job_config(self):
+        self._setup_dirs()
+        inputs = dict(self.job.inputs)
+        inputs.pop("config")
+        submitter = self._submitter(inputs)
+        submitter._dump_app_inputs()
+        self.assertTrue(os.path.exists(submitter.published_manifest_config_location))
+
+    @patch.object(NextflowJobSubmitter, "app_location", new_callable=PropertyMock, return_value="/app/main.nf")
+    def test_command_line_attaches_published_manifest_config_before_job_config(self, _):
+        self._setup_dirs()
+        submitter = self._submitter()
+        submitter._dump_app_inputs()
+        command_line = submitter._command_line()
+        manifest_idx = command_line.index(submitter.published_manifest_config_location)
+        job_config_idx = command_line.index(submitter.config_location)
+        self.assertEqual(command_line[manifest_idx - 1], "-c")
+        self.assertLess(manifest_idx, job_config_idx)
+
+    @patch.object(NextflowJobSubmitter, "app_location", new_callable=PropertyMock, return_value="/app/main.nf")
+    def test_command_line_without_published_manifest_config(self, _):
+        # Jobs prepared before this change have no copy in the work dir
+        self._setup_dirs()
+        submitter = self._submitter()
+        self.assertNotIn(submitter.published_manifest_config_location, submitter._command_line())
+
+    @patch.object(NextflowJobSubmitter, "app_location", new_callable=PropertyMock, return_value="/app/main.nf")
+    def test_submit_command_sets_manifest_dir(self, _):
+        self._setup_dirs()
+        submitter = self._submitter()
+        _, _, _, _, _, env = submitter.get_submit_command()
+        self.assertEqual(env["NXF_MANIFEST_DIR"], self.outputs_dir)
+
+    def test_get_outputs_tempo_from_published_manifest(self):
+        # Tempo job inputs (with "outputs") are parsed from the manifest like any other job
+        self._setup_dirs()
+        self._write_published_manifest("published_manifest_run.tsv", ["bams/s1.bam", "bams/s1.bai"])
+        outputs, error_message = self._submitter().get_outputs()
+        self.assertIsNone(error_message)
+        self.assertEqual(self._locations(outputs), self._expected(["bams/s1.bam", "bams/s1.bai"]))
+        self.assertEqual(outputs["outputs"][0]["size"], 4)
+
+    def test_get_outputs_uses_newest_published_manifest(self):
+        self._setup_dirs()
+        self._write_published_manifest("published_manifest_old_run.tsv", ["old/a.txt"])
+        newest = self._write_published_manifest("published_manifest_new_run.tsv", ["foo/a.txt", "bar/b/c.tsv"])
+        mtime = os.path.getmtime(newest) + 10
+        os.utime(newest, (mtime, mtime))
+        outputs, error_message = self._submitter().get_outputs()
+        self.assertIsNone(error_message)
+        self.assertEqual(self._locations(outputs), self._expected(["foo/a.txt", "bar/b/c.tsv"]))
+
+    def test_get_outputs_bad_published_manifest(self):
+        self._setup_dirs()
+        with open(os.path.join(self.outputs_dir, "published_manifest_run.tsv"), "w") as f:
+            f.write("not\ta\tmanifest\n1\t2\t3\n")
+        outputs, error_message = self._submitter().get_outputs()
+        self.assertEqual(outputs["outputs"], [])
+        self.assertIn("Could not parse", error_message)
+
+    def test_get_outputs_without_published_manifest(self):
+        self._setup_dirs()
+        inputs = dict(self.job.inputs)
+        inputs.pop("outputs")
+        outputs, error_message = self._submitter(inputs).get_outputs()
+        self.assertEqual(outputs["outputs"], [])
+        self.assertIn("Could not find published_manifest_*.tsv", error_message)

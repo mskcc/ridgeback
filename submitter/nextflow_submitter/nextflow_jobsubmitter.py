@@ -1,10 +1,15 @@
 import os
+import csv
+import glob
+import shutil
 import hashlib
-import json
 from django.conf import settings
 from submitter import JobSubmitter
 from submitter.userswitcher import userswitch
 from getpass import getuser
+
+# Written into the work dir of every Nextflow job and attached with -c
+PUBLISHED_MANIFEST_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "published-manifest.config")
 
 
 class NextflowJobSubmitter(JobSubmitter):
@@ -86,6 +91,8 @@ class NextflowJobSubmitter(JobSubmitter):
         env["TMPDIR"] = self.job_tmp_dir
         env["NXF_CACHE_DIR"] = self.job_store_dir
         env["NXF_SLURM_PARTITION"] = self.partition
+        # Read by published-manifest.config; covers apps that use --outDir instead of --outdir
+        env["NXF_MANIFEST_DIR"] = self.job_outputs_dir
         return command_line, self._leader_args(), log_path, self.job_id, self.partition, env
 
     def _leader_args(self):
@@ -152,22 +159,9 @@ class NextflowJobSubmitter(JobSubmitter):
 
     @userswitch
     def get_outputs(self):
-        error_message = None
-        result = list()
-        prov_file = os.path.join(self.job_outputs_dir, "manifest.json")
-        if os.path.exists(prov_file):
-            try:
-                with open(prov_file, "r") as f:
-                    prov_json = json.loads(f.read())
-                    published_json = prov_json["published"]
-                    for f in published_json:
-                        path = f["target"]
-                        file_obj = self._output_construct(path)
-                        result.append(file_obj)
-            except (IndexError, ValueError):
-                error_message = "Could not parse json from %s" % prov_file
-            except FileNotFoundError:
-                error_message = "Could not find %s" % prov_file
+        published_manifest = self._latest_published_manifest()
+        if published_manifest:
+            result, error_message = self._parse_published_manifest(published_manifest)
         else:
             try:
                 with open(self.inputs["outputs"]) as f:
@@ -182,6 +176,28 @@ class NextflowJobSubmitter(JobSubmitter):
                 error_message = "Could not parse %s" % self.inputs["outputs"]
         result_json = {"outputs": result}
         return result_json, error_message
+
+    def _latest_published_manifest(self):
+        """
+        Newest published_manifest_<runName>.tsv in the output directory (a resumed job leaves one per run)
+        """
+        manifests = glob.glob(os.path.join(self.job_outputs_dir, "published_manifest_*.tsv"))
+        if not manifests:
+            return None
+        return max(manifests, key=os.path.getmtime)
+
+    def _parse_published_manifest(self, manifest_path):
+        result = list()
+        try:
+            with open(manifest_path, "r", newline="") as f:
+                for row in csv.DictReader(f, delimiter="\t"):
+                    path = row["full_path"]
+                    if path.startswith("file://"):
+                        path = path[len("file://") :]
+                    result.append(self._output_construct(path))
+        except (KeyError, csv.Error, OSError):
+            return [], "Could not parse %s" % manifest_path
+        return result, None
 
     @property
     def app_location(self):
@@ -206,6 +222,10 @@ class NextflowJobSubmitter(JobSubmitter):
     def config_location(self):
         return os.path.join(self.job_work_dir, "nf.config")
 
+    @property
+    def published_manifest_config_location(self):
+        return os.path.join(self.job_work_dir, "published-manifest.config")
+
     @userswitch
     def _dump_app_inputs(self):
         input_map = dict()
@@ -216,6 +236,11 @@ class NextflowJobSubmitter(JobSubmitter):
         config = self.inputs.get("config")
         if config:
             self._dump_config(config)
+
+        self._dump_published_manifest_config()
+
+    def _dump_published_manifest_config(self):
+        return shutil.copyfile(PUBLISHED_MANIFEST_CONFIG, self.published_manifest_config_location)
 
     def _dump_input(self, name, content, extension, root_dir):
         file_path = os.path.join(root_dir, name)
@@ -252,6 +277,9 @@ class NextflowJobSubmitter(JobSubmitter):
         ]
         for k, v in self.inputs_location.items():
             command_line.extend(["--%s" % k, v])
+        # Before the job config, so anything the job config sets takes precedence
+        if os.path.exists(self.published_manifest_config_location):
+            command_line.extend(["-c", self.published_manifest_config_location])
         if config:
             command_line.extend(["-c", self.config_location])
         if params:
