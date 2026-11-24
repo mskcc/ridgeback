@@ -163,7 +163,7 @@ class NextflowJobSubmitter(JobSubmitter):
         if published_manifest:
             result, error_message = self._parse_published_manifest(published_manifest)
         else:
-             try:
+            try:
                 with open(self.inputs["outputs"]) as f:
                     files = f.readlines()
                     for f in files:
